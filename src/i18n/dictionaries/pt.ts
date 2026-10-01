@@ -13,8 +13,9 @@ const pt = {
   },
   hero: {
     placeholder: "Placeholder: aqui entra o vídeo real de jogos de base",
-    headline: ["Todo craque", "começou", "na base."],
-    sub: "A vitrine do futebol de base para clubes, scouts e agentes.",
+    headline: ["O talento pode", "nascer em", "qualquer lugar."],
+    headlineMobile: ["O talento", "pode nascer", "em qualquer", "lugar."],
+    sub: ["A gente coloca", "ele na vitrine."],
     cta: "Cadastrar atleta",
   },
   manifesto: {

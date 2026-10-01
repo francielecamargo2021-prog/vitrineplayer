@@ -76,18 +76,21 @@ export function HeroReel({ clips }: { clips: HeroClip[] }) {
   return (
     <>
       {first.poster && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={first.poster} alt="" aria-hidden className="absolute inset-0 size-full object-cover" fetchPriority="high" />
+        <picture>
+          {first.posterMobile && <source media="(max-width: 767px)" srcSet={first.posterMobile} />}
+          <img src={first.poster} alt="" aria-hidden className="absolute inset-0 size-full object-cover" fetchPriority="high" />
+        </picture>
       )}
       {mobile !== null &&
-        ([0, 1] as const).map((k) => (
+        (clips.length > 1 ? ([0, 1] as const) : ([0] as const)).map((k) => (
           <video
             key={k}
             ref={k === 0 ? videoA : videoB}
             className="absolute inset-0 size-full object-cover transition-opacity ease-linear"
             style={{ opacity: layer === k ? 1 : 0, transitionDuration: `${FADE}s` }}
             src={srcOf(slots[k])}
-            poster={clips[slots[k]].poster}
+            poster={(mobile && clips[slots[k]].posterMobile) || clips[slots[k]].poster}
+            autoPlay={!still}
             muted
             playsInline
             loop={clips.length === 1}

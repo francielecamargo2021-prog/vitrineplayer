@@ -10,13 +10,16 @@
  * clipe (desktop) e versão vertical/720p ≤ 900 KB em `srcMobile`; poster por clipe.
  * Grading: contraste alto, verdes profundos, pele natural, pretos densos.
  */
-export type HeroClip = { src: string; srcMobile?: string; poster?: string };
+export type HeroClip = { src: string; srcMobile?: string; poster?: string; posterMobile?: string };
 export type MediaSlotData = { src: string | null; shot: string };
 
 export const media = {
   hero: {
-    clips: [] as HeroClip[],
-    // ex.: { src: "/media/hero/01-entrada.mp4", srcMobile: "/media/hero/01-entrada-m.mp4", poster: "/media/hero/01.jpg" },
+    // Montagem única com cortes secos (Pexels: Kampus Production 8938115, Pressmaster 3192198,
+    // Tima Miroshnichenko 6077718). Mobile = recorte 9:16 próprio, plano a plano.
+    clips: [
+      { src: "/media/hero/hero.mp4", srcMobile: "/media/hero/hero-m.mp4", poster: "/media/hero/hero.jpg", posterMobile: "/media/hero/hero-m.jpg" },
+    ] as HeroClip[],
     shot: "Vídeo do hero: montagem de jogos de base",
   },
   /** Full bleed "Futebol de base" (foto ou vídeo horizontal). */

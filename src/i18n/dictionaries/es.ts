@@ -15,8 +15,9 @@ const es: Dictionary = {
   },
   hero: {
     placeholder: "Placeholder: aquí va el video real de partidos formativos",
-    headline: ["Todo crack", "empezó en", "inferiores."],
-    sub: "La vitrina del fútbol formativo para clubes, scouts y representantes.",
+    headline: ["El talento puede", "nacer en", "cualquier lugar."],
+    headlineMobile: ["El talento", "puede nacer", "en cualquier", "lugar."],
+    sub: ["Nosotros lo ponemos", "en la vitrina."],
     cta: "Registrar atleta",
   },
   manifesto: {
