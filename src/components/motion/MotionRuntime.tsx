@@ -9,7 +9,9 @@ import { usePathname } from "next/navigation";
  *  - data-count="1234"      → número animado ao aparecer
  *  - data-parallax="0.08"   → deslocamento vertical sutil conforme scroll (desktop)
  *  - data-tilt              → inclinação 3D leve no hover (ponteiro fino)
- * Também marca <html data-scrolled> para o header.
+ *  - data-words             → palavras (.w) acendem conforme o scroll
+ *  - data-cta-hide          → seções onde a barra de CTA mobile some
+ * Também marca <html data-scrolled> (header) e <html data-cta> (barra de CTA).
  */
 export function MotionRuntime() {
   const pathname = usePathname();
@@ -51,6 +53,12 @@ export function MotionRuntime() {
     document.querySelectorAll<HTMLElement>("[data-reveal],[data-count]").forEach((el) => io.observe(el));
 
     const parallax = reduce || !finePointer ? [] : Array.from(document.querySelectorAll<HTMLElement>("[data-parallax]"));
+    const wordBlocks = Array.from(document.querySelectorAll<HTMLElement>("[data-words]")).map((el) => ({
+      el,
+      words: Array.from(el.querySelectorAll<HTMLElement>(".w")),
+    }));
+    const ctaHide = Array.from(document.querySelectorAll<HTMLElement>("[data-cta-hide]"));
+
     let frame = 0;
     const onScroll = () => {
       if (frame) return;
@@ -60,6 +68,18 @@ export function MotionRuntime() {
         if (y > 24) root.setAttribute("data-scrolled", "");
         else root.removeAttribute("data-scrolled");
         const vh = window.innerHeight;
+        const nearCtaZone = ctaHide.some((el) => {
+          const r = el.getBoundingClientRect();
+          return r.top < vh && r.bottom > 0;
+        });
+        if (y > vh * 0.85 && !nearCtaZone) root.setAttribute("data-cta", "");
+        else root.removeAttribute("data-cta");
+        for (const { el, words } of wordBlocks) {
+          const r = el.getBoundingClientRect();
+          const p = reduce ? 1 : Math.min(1, Math.max(0, (vh * 0.85 - r.top) / (r.height + vh * 0.25)));
+          const lit = Math.round(p * words.length);
+          words.forEach((w, i) => w.classList.toggle("on", i < lit));
+        }
         for (const el of parallax) {
           const rect = el.getBoundingClientRect();
           if (rect.bottom < -200 || rect.top > vh + 200) continue;

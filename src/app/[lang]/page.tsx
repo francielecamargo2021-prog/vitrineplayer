@@ -10,6 +10,10 @@ import { ProBase } from "@/components/home/ProBase";
 import { Pricing } from "@/components/home/Pricing";
 import { Professionals } from "@/components/home/Professionals";
 import { Footer } from "@/components/home/Footer";
+import { CinemaBlock } from "@/components/home/CinemaBlock";
+import { Floodlights, Pitch } from "@/components/home/CinematicBackdrop";
+import { StickyCta } from "@/components/home/StickyCta";
+import { media } from "@/content/media";
 
 export default async function Home({ params }: PageProps<"/[lang]">) {
   const { lang } = await params;
@@ -22,13 +26,16 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
       <main>
         <Hero lang={lang} dict={dict} />
         <Concept dict={dict} />
+        <CinemaBlock src={media.stills.manifesto} fallback={<Pitch />} kicker={dict.cinema.base.kicker} title={dict.cinema.base.title} />
         <HowItWorks dict={dict} />
         <ProfileShowcase lang={lang} dict={dict} />
         <ProBase dict={dict} />
+        <CinemaBlock src={media.stills.pitch} fallback={<Floodlights />} kicker={dict.cinema.region.kicker} title={dict.cinema.region.title} />
         <Pricing lang={lang} dict={dict} />
         <Professionals lang={lang} dict={dict} />
       </main>
       <Footer lang={lang} dict={dict} />
+      <StickyCta lang={lang} dict={dict} />
     </>
   );
 }

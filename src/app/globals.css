@@ -232,6 +232,53 @@ html[data-scrolled] .site-header {
   transform-style: preserve-3d;
 }
 
+
+/* ---------- Hero: abertura, push-in, indicador de capítulos ---------- */
+.hero-curtain { animation: curtain 1.5s var(--ease-cine) 0.15s both; }
+@keyframes curtain { from { clip-path: inset(0 0 0 0); } to { clip-path: inset(0 0 100% 0); } }
+@keyframes hero-push { from { transform: scale(1.14); } to { transform: scale(1); } }
+
+.reel-indicator {
+  position: absolute;
+  z-index: 5;
+  left: max(1rem, env(safe-area-inset-left));
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: max(1.25rem, env(safe-area-inset-bottom));
+  display: grid;
+  gap: 0.75rem;
+}
+@media (width >= 48rem) {
+  .reel-indicator { left: auto; right: 2.5rem; bottom: 2.25rem; width: 22rem; }
+}
+@media (width >= 80rem) {
+  .reel-indicator { right: 4rem; }
+}
+.reel-label { opacity: 0; animation: label-cycle 24s infinite; animation-delay: calc(var(--i) * 6s); }
+@keyframes label-cycle { 0% { opacity: 0; transform: translateY(6px); } 3%, 24% { opacity: 1; transform: none; } 27%, 100% { opacity: 0; } }
+@keyframes seg-0 { 0% { transform: scaleX(0); } 25%, 100% { transform: scaleX(1); } }
+@keyframes seg-1 { 0%, 25% { transform: scaleX(0); } 50%, 100% { transform: scaleX(1); } }
+@keyframes seg-2 { 0%, 50% { transform: scaleX(0); } 75%, 100% { transform: scaleX(1); } }
+@keyframes seg-3 { 0%, 75% { transform: scaleX(0); } 100% { transform: scaleX(1); } }
+
+/* ---------- Blocos cinematográficos: imagem revelada por cortina + zoom-out ---------- */
+[data-reveal="frame"] {
+  opacity: 1;
+  transform: none;
+  clip-path: inset(12% 6% 12% 6%);
+  transition: clip-path 1.6s var(--ease-cine);
+}
+[data-reveal="frame"] .frame-media { transform: scale(1.18); transition: transform 2.2s var(--ease-cine); }
+[data-reveal="frame"].is-in { clip-path: inset(0 0 0 0); }
+[data-reveal="frame"].is-in .frame-media { transform: scale(1); }
+
+/* Palavras que acendem conforme o scroll (data-words) */
+[data-words] .w { opacity: 0.16; transition: opacity 0.5s var(--ease-soft); }
+[data-words] .w.on { opacity: 1; }
+
+/* Barra de CTA fixa no mobile */
+.sticky-cta { transform: translateY(110%); transition: transform 0.7s var(--ease-cine); }
+html[data-cta] .sticky-cta { transform: none; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.001ms !important;
@@ -242,4 +289,8 @@ html[data-scrolled] .site-header {
   .hero-fade { opacity: 1; }
   .scene { opacity: 0; }
   .scene:first-child { opacity: 1; }
+  .hero-curtain { display: none; }
+  .reel-label:first-child { opacity: 1; }
+  [data-reveal="frame"] { clip-path: none; }
+  [data-words] .w { opacity: 1; }
 }

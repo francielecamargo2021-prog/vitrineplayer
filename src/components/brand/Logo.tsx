@@ -1,6 +1,6 @@
 /**
  * Marca provisória: dois cantos de enquadramento — o olhar do scout que
- * "enquadra" o talento — envolvendo a palavra VITRINE.
+ * "enquadra" o talento — ao lado do wordmark VITRINEPLAYER.
  */
 export function LogoMark({ className = "" }: { className?: string }) {
   return (
@@ -16,8 +16,9 @@ export function Logo({ className = "" }: { className?: string }) {
   return (
     <span className={`inline-flex items-center gap-2.5 ${className}`}>
       <LogoMark className="size-5" />
-      <span className="font-display text-[0.95rem] font-extrabold uppercase tracking-[0.34em] [font-stretch:125%]">
-        Vitrine
+      <span className="font-display text-[0.82rem] uppercase tracking-[0.24em] [font-stretch:125%] md:text-[0.9rem]">
+        <span className="font-extrabold">Vitrine</span>
+        <span className="font-light text-fog">Player</span>
       </span>
     </span>
   );

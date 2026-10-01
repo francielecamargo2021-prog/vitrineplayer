@@ -7,7 +7,7 @@ import { LangSwitch } from "./LangSwitch";
 export function Header({ lang, dict }: { lang: Locale; dict: Dictionary }) {
   return (
     <header className="site-header gutter fixed inset-x-0 top-0 z-50 flex h-16 items-center justify-between md:h-20">
-      <Link href={`/${lang}`} aria-label="VITRINE" className="text-bone">
+      <Link href={`/${lang}`} aria-label="VitrinePlayer" className="text-bone">
         <Logo />
       </Link>
       <div className="flex items-center gap-6 md:gap-10">

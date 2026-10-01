@@ -4,56 +4,66 @@ import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/get-dictionary";
 import { Button } from "@/components/ui/Button";
 import { CinematicBackdrop } from "./CinematicBackdrop";
+import { HeroReel } from "./HeroReel";
 
 const delay = (ms: number) => ({ "--d": ms }) as CSSProperties;
 
 export function Hero({ lang, dict }: { lang: Locale; dict: Dictionary }) {
   const { hero } = dict;
-  const { video, videoMobile, poster } = media.hero;
+  const { clips } = media.hero;
+  // Rótulos dos 4 planos da montagem de fallback.
+  const fallbackLabels = [hero.chapters[1], hero.chapters[0], hero.chapters[7], hero.feed];
 
   return (
-    <section className="grain relative isolate flex h-[100svh] min-h-[560px] flex-col justify-end overflow-hidden">
-      {video ? (
-        <video
-          className="absolute inset-0 -z-10 size-full object-cover"
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="metadata"
-          poster={poster ?? undefined}
-          aria-hidden
-        >
-          {videoMobile && <source src={videoMobile} media="(max-width: 767px)" type="video/mp4" />}
-          <source src={video} type="video/mp4" />
-        </video>
-      ) : (
-        <div className="absolute inset-0 -z-10">
-          <CinematicBackdrop />
-        </div>
-      )}
-
-      {/* Gradação para leitura do texto + vinheta */}
-      <div aria-hidden className="absolute inset-0 -z-10 bg-[linear-gradient(to_top,rgba(7,7,8,0.92)_0%,rgba(7,7,8,0.45)_35%,transparent_65%,rgba(7,7,8,0.35)_100%)]" />
-      <div aria-hidden className="absolute inset-0 -z-10 shadow-[inset_0_0_18vmax_rgba(0,0,0,0.6)]" />
-
-      {/* HUD de enquadramento — o olhar do scout */}
-      <div aria-hidden className="hero-fade pointer-events-none absolute inset-4 md:inset-8" style={delay(1600)}>
-        <span className="absolute left-0 top-16 size-5 border-l border-t border-white/40 md:top-14" />
-        <span className="absolute right-0 top-16 size-5 border-r border-t border-white/40 md:top-14" />
-        <span className="absolute bottom-0 left-0 size-5 border-b border-l border-white/40" />
-        <span className="absolute bottom-0 right-0 size-5 border-b border-r border-white/40" />
-        <p className="eyebrow absolute right-8 top-[4.6rem] hidden items-center gap-2 text-white/60 md:flex">
-          <span className="size-1.5 rounded-full bg-signal [animation:rec_1.6s_ease-in-out_infinite]" />
-          {hero.feed}
-        </p>
-        <p className="eyebrow absolute bottom-6 right-8 hidden text-white/50 md:block">{hero.regions}</p>
+    <section className="grain relative isolate h-[100svh] min-h-[600px] overflow-hidden bg-ink">
+      <div aria-hidden className="absolute inset-0">
+        {clips.length > 0 ? (
+          <HeroReel clips={clips} chapters={hero.chapters} />
+        ) : (
+          <>
+            <div className="absolute inset-0 [animation:hero-push_9s_var(--ease-cine)_both]">
+              <CinematicBackdrop />
+            </div>
+            <div className="reel-indicator">
+              <p className="eyebrow relative h-4 text-white/70">
+                {fallbackLabels.map((label, i) => (
+                  <span key={label} className="reel-label absolute inset-0 flex items-center gap-3" style={{ "--i": i } as CSSProperties}>
+                    <span className="tabular-nums text-bone">0{i + 1}</span>
+                    <span className="h-px w-5 bg-white/30" />
+                    {label}
+                  </span>
+                ))}
+              </p>
+              <div className="flex gap-1.5">
+                {fallbackLabels.map((label, i) => (
+                  <span key={label} className="relative h-[2px] flex-1 overflow-hidden bg-white/15">
+                    <span className="absolute inset-0 origin-left scale-x-0 bg-bone" style={{ animation: `seg-${i} 24s linear infinite` }} />
+                  </span>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
-      <div className="gutter relative pb-16 md:pb-24">
-        <h1 className="display text-[clamp(2.1rem,8.6vw,9.5rem)] text-bone">
+      {/* Gradação: leitura do texto embaixo, header legível em cima, vinheta */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_top,rgba(7,7,8,0.96)_0%,rgba(7,7,8,0.6)_30%,rgba(7,7,8,0)_62%),linear-gradient(to_bottom,rgba(7,7,8,0.55),transparent_22%)]" />
+      <div aria-hidden className="pointer-events-none absolute inset-0 shadow-[inset_0_0_16vmax_rgba(0,0,0,0.55)]" />
+
+      {/* Cantos de enquadramento da marca (desktop) */}
+      <div aria-hidden className="hero-fade pointer-events-none absolute inset-8 hidden md:block" style={delay(1800)}>
+        <span className="absolute left-0 top-14 size-5 border-l border-t border-white/35" />
+        <span className="absolute right-0 top-14 size-5 border-r border-t border-white/35" />
+      </div>
+
+      <div className="gutter absolute inset-x-0 bottom-0 pb-24 md:pb-28">
+        <p className="hero-fade eyebrow mb-6 flex items-center gap-3 text-white/70 md:mb-8" style={delay(900)}>
+          <span className="size-1.5 bg-signal" />
+          VitrinePlayer · {hero.regions}
+        </p>
+        <h1 className="display text-[clamp(2.6rem,11.8vw,9.5rem)] text-bone [font-stretch:100%] md:text-[clamp(2.6rem,8.4vw,9.5rem)] md:[font-stretch:125%]">
           {hero.headline.map((line, i) => (
-            <span key={line} className="hero-line block overflow-hidden pb-[0.04em]" style={delay(250 + i * 140)}>
+            <span key={line} className="hero-line block overflow-hidden pb-[0.04em]" style={delay(500 + i * 140)}>
               <span>
                 {i === hero.headline.length - 1 ? (
                   <>
@@ -67,21 +77,13 @@ export function Hero({ lang, dict }: { lang: Locale; dict: Dictionary }) {
             </span>
           ))}
         </h1>
-
-        <div className="mt-8 flex flex-col gap-8 md:mt-12 md:flex-row md:items-end md:justify-between">
-          <p className="hero-fade max-w-[30ch] text-base leading-relaxed text-fog md:text-lg" style={delay(1000)}>
-            {hero.sub}
-          </p>
-          <div className="hero-fade flex flex-wrap items-center gap-6" style={delay(1200)}>
-            <Button href={`/${lang}/cadastro`}>{hero.cta}</Button>
-            <Button href="#profissionais" variant="line">{hero.secondary}</Button>
-          </div>
+        <div className="hero-fade mt-8 md:mt-10" style={delay(1300)}>
+          <Button href={`/${lang}/cadastro`} className="w-full sm:w-auto">{hero.cta}</Button>
         </div>
       </div>
 
-      <div aria-hidden className="hero-fade absolute bottom-0 left-1/2 hidden h-14 w-px -translate-x-1/2 overflow-hidden bg-white/10 md:block" style={delay(1800)}>
-        <span className="absolute inset-0 bg-bone [animation:scroll-cue_2.4s_var(--ease-soft)_infinite]" />
-      </div>
+      {/* Abertura: cortina preta que sobe ao carregar */}
+      <div aria-hidden className="hero-curtain pointer-events-none absolute inset-0 z-10 bg-ink" />
     </section>
   );
 }

@@ -2,7 +2,7 @@ import type { Dictionary } from "./pt";
 
 const es: Dictionary = {
   meta: {
-    title: "VITRINE — El talento necesita ser encontrado",
+    title: "VITRINEPLAYER — El talento necesita ser encontrado",
     description:
       "Base privada de atletas de fútbol, estructurada para clubes, scouts y profesionales del mercado.",
   },
@@ -20,12 +20,18 @@ const es: Dictionary = {
     sub: "Una base privada de atletas, organizada para quienes buscan talento en el fútbol.",
     cta: "Registrar atleta",
     secondary: "Soy profesional",
+    chapters: ["Salida al campo", "Concentración", "Regate", "Pase", "Gol", "Atajada", "Celebración", "Detalle"],
     scroll: "Desliza",
   },
+  cinema: {
+    base: { kicker: "Divisiones formativas", title: ["Donde el futuro", "empieza a jugar."] },
+    region: { kicker: "Brasil · Argentina · Paraguay · Uruguay", title: ["Un mercado.", "Cuatro países."] },
+  },
+  sticky: { label: "Registro del atleta", price: "R$ 59,90 · pago único", cta: "Registrar" },
   concept: {
     index: "01 — Concepto",
     lines: ["Tu talento.", "Nuestra base.", "Nuevas posibilidades."],
-    body: "El atleta ingresa a una base privada, estructurada con estándar profesional y accesible solo para cuentas del mercado del fútbol verificadas por VITRINE.",
+    body: "El atleta ingresa a una base privada, estructurada con estándar profesional y accesible solo para cuentas del mercado del fútbol verificadas por VitrinePlayer.",
     privacy: "Los atletas no ven a otros atletas. Los padres no buscan en la base. Nada es público.",
     stats: [
       { value: 0, suffix: "", label: "perfiles públicos" },
@@ -50,11 +56,11 @@ const es: Dictionary = {
       },
       {
         n: "03",
-        title: "Entra a VITRINE",
+        title: "Entra a VitrinePlayer",
         body: "Tras el análisis y la aprobación, el perfil se integra a la base privada consultada por profesionales autorizados.",
       },
     ],
-    note: "VITRINE organiza y presenta. No realiza pruebas, captaciones ni promesas de contratación.",
+    note: "VitrinePlayer organiza y presenta. No realiza pruebas, captaciones ni promesas de contratación.",
   },
   profile: {
     index: "03 — Perfil del atleta",
@@ -98,7 +104,7 @@ const es: Dictionary = {
   },
   pricing: {
     index: "05 — Registro",
-    eyebrow: "Registro en VITRINE",
+    eyebrow: "Registro en VitrinePlayer",
     currency: "R$",
     amount: "59",
     cents: ",90",
@@ -107,7 +113,7 @@ const es: Dictionary = {
     includes: [
       "Perfil estructurado del atleta",
       "Fotos y enlaces de videos de YouTube",
-      "Análisis y aprobación por el equipo VITRINE",
+      "Análisis y aprobación por el equipo VitrinePlayer",
       "Permanencia en la base privada tras la aprobación",
       "Seguimiento del estado por el responsable",
     ],
@@ -131,7 +137,7 @@ const es: Dictionary = {
   },
   footer: {
     tagline: "Plataforma privada de talentos del fútbol.",
-    legal: "VITRINE no es prueba de jugadores, escuela, red social ni agencia. El registro no garantiza oportunidades.",
+    legal: "VitrinePlayer no es prueba de jugadores, escuela, red social ni agencia. El registro no garantiza oportunidades.",
     privacy: "Privacidad",
     terms: "Términos",
     contact: "Contacto",
@@ -157,7 +163,7 @@ const es: Dictionary = {
     next: "Continuar",
     prev: "Volver",
     summary: "Resumen",
-    summaryItem: "Registro en VITRINE",
+    summaryItem: "Registro en VitrinePlayer",
     total: "Total",
     secure: "El pago se integrará en una etapa futura.",
     fields: {
@@ -248,7 +254,7 @@ const es: Dictionary = {
     addToList: "Agregar a lista",
     compare: "Comparar",
     contact: "Solicitar contacto",
-    contactNote: "El contacto es intermediado por VITRINE. Los datos del responsable nunca se muestran.",
+    contactNote: "El contacto es intermediado por VitrinePlayer. Los datos del responsable nunca se muestran.",
     viewed: "Visto",
   },
 };

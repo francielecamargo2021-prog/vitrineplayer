@@ -26,7 +26,7 @@ function Scene({ i, children }: { i: number; children: React.ReactNode }) {
 }
 
 /* Plano 1 — Arquibancada na noite, torres de refletores e feixes na névoa. */
-function Floodlights() {
+export function Floodlights() {
   return (
     <div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_50%_0%,#1b1d24_0%,#0b0b0e_55%,#050506_100%)]">
       {[18, 82].map((x) => (
@@ -57,7 +57,7 @@ function Floodlights() {
 }
 
 /* Plano 2 — Túnel de acesso: o atleta entrando em campo, em contraluz. */
-function Tunnel() {
+export function Tunnel() {
   return (
     <div className="absolute inset-0 bg-[#060607]">
       <div className="absolute inset-0 [perspective:600px]">
@@ -98,7 +98,7 @@ const band = (z0: number, z1: number) => {
 };
 const pitchBands = Array.from({ length: 12 }, (_, i) => [1 + i * 0.26, 1 + (i + 1) * 0.26]);
 
-function Pitch() {
+export function Pitch() {
   const far = yAt(4.12), mid = yAt(2.2), near = yAt(1);
   return (
     <div className="absolute inset-0 bg-[#060707]">

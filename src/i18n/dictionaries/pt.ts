@@ -1,6 +1,6 @@
 const pt = {
   meta: {
-    title: "VITRINE — O talento precisa ser encontrado",
+    title: "VITRINEPLAYER — O talento precisa ser encontrado",
     description:
       "Base privada de atletas de futebol, estruturada para clubes, scouts e profissionais do mercado.",
   },
@@ -18,12 +18,18 @@ const pt = {
     sub: "Uma base privada de atletas, organizada para quem procura talento no futebol.",
     cta: "Cadastrar atleta",
     secondary: "Sou profissional",
+    chapters: ["Entrada em campo", "Concentração", "Drible", "Passe", "Gol", "Defesa", "Comemoração", "Detalhe"],
     scroll: "Role",
   },
+  cinema: {
+    base: { kicker: "Categorias de base", title: ["Onde o futuro", "começa a jogar."] },
+    region: { kicker: "Brasil · Argentina · Paraguai · Uruguai", title: ["Um mercado.", "Quatro países."] },
+  },
+  sticky: { label: "Cadastro do atleta", price: "R$ 59,90 · pagamento único", cta: "Cadastrar" },
   concept: {
     index: "01 — Conceito",
     lines: ["Seu talento.", "Nossa base.", "Novas possibilidades."],
-    body: "O atleta entra em uma base privada, estruturada com padrão profissional e acessível apenas a contas do mercado do futebol verificadas pela VITRINE.",
+    body: "O atleta entra em uma base privada, estruturada com padrão profissional e acessível apenas a contas do mercado do futebol verificadas pela VitrinePlayer.",
     privacy: "Atletas não veem outros atletas. Pais não pesquisam a base. Nada é público.",
     stats: [
       { value: 0, suffix: "", label: "perfis públicos" },
@@ -48,11 +54,11 @@ const pt = {
       },
       {
         n: "03",
-        title: "Entre para a VITRINE",
+        title: "Entre para a VitrinePlayer",
         body: "Após análise e aprovação, o perfil passa a integrar a base privada consultada por profissionais autorizados.",
       },
     ],
-    note: "A VITRINE organiza e apresenta. Não realiza peneiras, testes ou promessas de contratação.",
+    note: "A VitrinePlayer organiza e apresenta. Não realiza peneiras, testes ou promessas de contratação.",
   },
   profile: {
     index: "03 — Perfil do atleta",
@@ -96,7 +102,7 @@ const pt = {
   },
   pricing: {
     index: "05 — Cadastro",
-    eyebrow: "Cadastro na VITRINE",
+    eyebrow: "Cadastro na VitrinePlayer",
     currency: "R$",
     amount: "59",
     cents: ",90",
@@ -105,7 +111,7 @@ const pt = {
     includes: [
       "Perfil estruturado do atleta",
       "Fotos e links de vídeos do YouTube",
-      "Análise e aprovação pela equipe VITRINE",
+      "Análise e aprovação pela equipe VitrinePlayer",
       "Permanência na base privada após aprovação",
       "Acompanhamento do status pelo responsável",
     ],
@@ -129,7 +135,7 @@ const pt = {
   },
   footer: {
     tagline: "Plataforma privada de talentos do futebol.",
-    legal: "A VITRINE não é peneira, escolinha, rede social ou agência. Cadastro não garante oportunidades.",
+    legal: "A VitrinePlayer não é peneira, escolinha, rede social ou agência. Cadastro não garante oportunidades.",
     privacy: "Privacidade e LGPD",
     terms: "Termos",
     contact: "Contato",
@@ -155,7 +161,7 @@ const pt = {
     next: "Continuar",
     prev: "Voltar",
     summary: "Resumo",
-    summaryItem: "Cadastro na VITRINE",
+    summaryItem: "Cadastro na VitrinePlayer",
     total: "Total",
     secure: "Pagamento será integrado em etapa futura.",
     fields: {
@@ -246,7 +252,7 @@ const pt = {
     addToList: "Adicionar à lista",
     compare: "Comparar",
     contact: "Solicitar contato",
-    contactNote: "O contato é intermediado pela VITRINE. Dados do responsável nunca são exibidos.",
+    contactNote: "O contato é intermediado pela VitrinePlayer. Dados do responsável nunca são exibidos.",
     viewed: "Visualizado",
   },
 };

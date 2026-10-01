@@ -55,5 +55,7 @@ Estados: `draft → pending_payment → in_review → approved | rejected | susp
 ## Mídia
 
 Sem vídeo/foto licenciados no repositório, o hero usa uma montagem cinematográfica em CSS/SVG.
-Para usar vídeo real: coloque os arquivos em `public/media/` e preencha `src/content/media.ts`
-(MP4 H.264 1080p ≤ 6 MB + versão 720p ≤ 2,5 MB, 12–20 s, sem áudio, com poster).
+Para usar vídeo real: coloque os clipes licenciados em `public/media/hero/` e liste-os em
+`src/content/media.ts` (`hero.clips`). O `HeroReel` toca a sequência com crossfade, indicador de
+capítulos, versão mobile por clipe e pausa fora da tela. Especificação no próprio arquivo.
+Fotos dos blocos em tela cheia: `media.stills`.
