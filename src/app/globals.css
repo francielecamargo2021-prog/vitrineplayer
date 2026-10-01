@@ -1,21 +1,24 @@
 @import "tailwindcss";
 
 /* ==========================================================================
-   VITRINE — Design tokens (provisórios)
-   Base escura e neutra. Uma única cor de assinatura (--color-signal),
-   trocável em um só lugar quando a identidade definitiva for aprovada.
+   VITRINEPLAYER — identidade "noite de jogo"
+   Verde que nasce do campo (gramado molhado sob refletores), preto, grafite e
+   off-white. Nada de verde neon. Fotografia e vídeo são protagonistas.
    ========================================================================== */
 @theme {
-  --color-ink: #070708;
-  --color-night: #0c0c0e;
-  --color-graphite: #141417;
-  --color-carbon: #1c1c20;
-  --color-steel: #2a2a30;
-  --color-ash: #8b8b93;
-  --color-fog: #b9b7b2;
-  --color-bone: #eeebe5;
-  --color-signal: #ff5b23;
-  --color-signal-soft: #ff8a5c;
+  --color-ink: #050806;        /* preto com viés verde */
+  --color-night: #09100c;
+  --color-graphite: #111915;
+  --color-carbon: #19231e;
+  --color-steel: #2a3530;
+  --color-pitch: #0c2418;      /* verde profundo */
+  --color-turf: #17432c;       /* gramado sofisticado */
+  --color-grass: #4f9a6a;      /* detalhe/interação — nunca neon */
+  --color-ash: #87918b;
+  --color-fog: #bfc6c1;
+  --color-bone: #f2f1eb;
+  --color-signal: #4f9a6a;     /* alias legado (mockups) */
+  --color-signal-soft: #7cbb92;
 
   --font-display: var(--font-archivo), "Arial Narrow", system-ui, sans-serif;
   --font-sans: var(--font-archivo), system-ui, sans-serif;
@@ -55,9 +58,9 @@ body {
 @utility display {
   font-family: var(--font-display);
   font-weight: 800;
-  font-stretch: 125%;
-  letter-spacing: -0.035em;
-  line-height: 0.88;
+  font-stretch: 72%;
+  letter-spacing: -0.012em;
+  line-height: 0.86;
   text-transform: uppercase;
 }
 
@@ -105,10 +108,17 @@ body {
   100% { transform: translate(0, 0); }
 }
 
-/* ---------- Scroll (skill vitrineplayer-design §6) ----------
-   Sem fade-and-slide-up genérico: [data-reveal] fica visível em repouso.
-   Só os momentos orquestrados animam: hero, [data-reveal="frame"] e [data-words]. */
-.line-mask { display: block; }
+/* ---------- Scroll (skill vitrineplayer-design) ----------
+   [data-reveal] genérico fica visível em repouso. Animam: hero, imagens
+   ([data-reveal="frame"]), títulos grandes ([data-reveal="lines"]) e [data-words]. */
+.line-mask { display: block; overflow: hidden; padding-block: 0.12em 0.05em; margin-block: -0.12em -0.05em; }
+[data-reveal="lines"] .line-mask > span {
+  display: block;
+  transform: translate3d(0, 104%, 0);
+  transition: transform 1.2s var(--ease-cine);
+  transition-delay: calc(var(--d, 0) * 1ms);
+}
+[data-reveal="lines"].is-in .line-mask > span { transform: none; }
 
 /* Hero: entrada no carregamento (sem depender de JS) */
 .hero-line > span {
@@ -125,9 +135,6 @@ body {
 @keyframes rise { to { transform: none; } }
 @keyframes fade-in { to { opacity: 1; } }
 
-/* ---------- Placeholder de filmagem (temporário) ---------- */
-@keyframes pan { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(-6%, 0, 0); } }
-@keyframes breathe { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(0.7); } }
 
 /* ---------- Header ---------- */
 .site-header {
@@ -135,14 +142,14 @@ body {
   border-bottom: 1px solid transparent;
 }
 html[data-scrolled] .site-header {
-  background-color: rgb(7 7 8 / 0.72);
+  background-color: rgb(5 8 6 / 0.78);
   backdrop-filter: blur(18px) saturate(1.2);
   -webkit-backdrop-filter: blur(18px) saturate(1.2);
   border-color: rgb(255 255 255 / 0.06);
 }
 
-.header-logo, .header-cta { opacity: 0; pointer-events: none; transition: opacity 0.6s var(--ease-cine); }
-html[data-scrolled] .header-logo, html[data-scrolled] .header-cta { opacity: 1; pointer-events: auto; }
+.header-cta { opacity: 0; pointer-events: none; transition: opacity 0.6s var(--ease-cine); }
+html[data-scrolled] .header-cta { opacity: 1; pointer-events: auto; }
 
 /* ---------- Cartões com profundidade ---------- */
 .depth {
@@ -187,4 +194,21 @@ html[data-cta] .sticky-cta { transform: none; }
   .hero-curtain { display: none; }
   [data-reveal="frame"] { clip-path: none; }
   [data-words] .w { opacity: 1; }
+  [data-reveal="lines"] .line-mask > span { transform: none; }
+}
+
+/* Placeholder de mídia: liso, tom de gramado à noite + grão. Sem ilustração. */
+.media-placeholder {
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.03), transparent 40%),
+    linear-gradient(160deg, var(--color-turf) 0%, var(--color-pitch) 45%, var(--color-ink) 100%);
+}
+.media-placeholder::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--grain);
+  opacity: 0.06;
+  mix-blend-mode: overlay;
+  pointer-events: none;
 }

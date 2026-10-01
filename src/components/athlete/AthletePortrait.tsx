@@ -21,10 +21,10 @@ export function AthletePortrait({
   priority?: boolean;
   showNumber?: boolean;
 }) {
-  if (media.athletePortrait) {
+  if (media.athlete.src) {
     return (
       <div className={`relative overflow-hidden ${className}`}>
-        <Image src={media.athletePortrait} alt="" fill priority={priority} sizes="(min-width: 768px) 45vw, 100vw" className="object-cover" />
+        <Image src={media.athlete.src} alt="" fill priority={priority} sizes="(min-width: 768px) 45vw, 100vw" className="object-cover" />
       </div>
     );
   }

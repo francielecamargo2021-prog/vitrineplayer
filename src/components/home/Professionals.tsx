@@ -1,37 +1,40 @@
 import type { CSSProperties } from "react";
+import { media } from "@/content/media";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/get-dictionary";
 import { Button } from "@/components/ui/Button";
+import { MediaSlot } from "./MediaSlot";
 
+/** Área profissional sobre fotografia de arquibancada/observação. */
 export function Professionals({ lang, dict }: { lang: Locale; dict: Dictionary }) {
   const { pros } = dict;
   return (
-    <section id="profissionais" className="grain relative overflow-hidden bg-bone py-28 text-ink md:py-40">
-      <div className="gutter relative">
-        <div className="flex flex-col justify-between gap-8 md:flex-row md:items-end">
-          <h2 data-reveal className="display max-w-[12ch] text-[clamp(2.4rem,9vw,6.5rem)] [font-stretch:100%] md:[font-stretch:125%]">{pros.title}</h2>
-          <p data-reveal className="max-w-sm leading-relaxed text-ink/70" style={{ "--d": 150 } as CSSProperties}>{pros.body}</p>
-        </div>
+    <section id="profissionais" className="relative isolate overflow-hidden bg-ink py-24 md:py-40">
+      <div aria-hidden className="absolute inset-0 -z-10">
+        <MediaSlot slot={media.pros} labelPosition="top" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(5,8,6,0.55),rgba(5,8,6,0.92)_60%)]" />
+      </div>
 
-        <ul className="mt-16 border-t border-ink/15 md:mt-24">
-          {pros.audiences.map((a, i) => (
-            <li key={a.name} data-reveal style={{ "--d": i * 80 } as CSSProperties} className="group relative border-b border-ink/15">
-              <span aria-hidden className="absolute inset-0 origin-bottom scale-y-0 bg-ink transition-transform duration-700 ease-[var(--ease-cine)] group-hover:scale-y-100" />
-              <div className="relative flex items-center justify-between gap-6 py-6 transition-colors duration-500 group-hover:text-bone md:py-8">
-                <span className="flex items-baseline gap-5 md:gap-10">
-                  <span className="display text-[clamp(1.8rem,5vw,4.2rem)] transition-transform duration-700 ease-[var(--ease-cine)] md:group-hover:translate-x-4">{a.name}</span>
-                </span>
-                <span className="hidden items-center gap-4 text-sm text-ink/55 transition-colors group-hover:text-fog md:flex">
-                  {a.detail}
-                </span>
-              </div>
+      <div className="gutter">
+        <h2 data-reveal="lines" className="display text-[clamp(3.2rem,16vw,11rem)] leading-[0.84]">
+          {pros.title.map((line, i) => (
+            <span key={line} className="line-mask" style={{ "--d": i * 150 } as CSSProperties}><span>{line}</span></span>
+          ))}
+        </h2>
+        <p className="mt-8 max-w-[44ch] text-[1.05rem] leading-relaxed text-white/85 md:ml-[33%] md:mt-12 md:text-lg">{pros.body}</p>
+
+        <ul className="mt-14 border-t border-white/20 md:ml-[33%] md:mt-20">
+          {pros.audiences.map((a) => (
+            <li key={a.name} className="group flex items-baseline justify-between gap-6 border-b border-white/20 py-4 md:py-5">
+              <span className="display text-[clamp(2.2rem,10vw,4.5rem)] leading-none transition-colors duration-500 group-hover:text-grass">{a.name}</span>
+              <span className="hidden text-right text-sm text-white/60 md:block">{a.detail}</span>
             </li>
           ))}
         </ul>
 
-        <div data-reveal className="mt-14 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-          <Button href={`/${lang}/profissional`} variant="dark">{pros.cta}</Button>
-          <p className="max-w-sm text-sm text-ink/60">{pros.note}</p>
+        <div className="mt-12 flex flex-col gap-5 md:ml-[33%] md:flex-row md:items-center md:gap-10">
+          <Button href={`/${lang}/profissional`} className="h-16 w-full md:w-auto md:px-10">{pros.cta}</Button>
+          <p className="max-w-sm text-sm text-white/60">{pros.note}</p>
         </div>
       </div>
     </section>

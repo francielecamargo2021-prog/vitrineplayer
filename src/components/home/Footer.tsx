@@ -6,8 +6,8 @@ import type { Dictionary } from "@/i18n/get-dictionary";
 export function Footer({ lang, dict }: { lang: Locale; dict: Dictionary }) {
   const f = dict.footer;
   return (
-    <footer data-cta-hide className="gutter relative overflow-hidden pb-10 pt-24 md:pt-32">
-      <p aria-hidden data-reveal="fade" className="display pointer-events-none select-none text-center text-[6.6vw] leading-[0.8] text-transparent [-webkit-text-stroke:1px_rgba(238,235,229,0.12)]">
+    <footer data-cta-hide className="gutter relative overflow-hidden bg-ink pb-10 pt-20 md:pt-28">
+      <p aria-hidden data-reveal="fade" className="display pointer-events-none select-none text-[15vw] leading-[0.8] text-carbon">
         VitrinePlayer
       </p>
       <div className="mt-16 flex flex-col gap-10 border-t border-white/10 pt-10 md:flex-row md:items-start md:justify-between">

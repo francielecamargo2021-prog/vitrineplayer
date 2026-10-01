@@ -1,7 +1,7 @@
 import type { Dictionary } from "@/i18n/get-dictionary";
 import { proResults, type ProResult } from "@/mocks/athletes";
 import { AthletePortrait, portraitHues } from "@/components/athlete/AthletePortrait";
-import { LockIcon } from "@/components/home/Concept";
+import { LockIcon } from "@/components/ui/LockIcon";
 
 /**
  * Mockup do portal profissional (visão de um clube/scout aprovado).

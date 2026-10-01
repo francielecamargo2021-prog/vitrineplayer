@@ -1,143 +1,130 @@
 ---
 name: vitrineplayer-design
-description: Padrões de design da VitrinePlayer (futebol premium + editorial + cinematográfico + tecnológico). Use sempre que criar, revisar ou alterar qualquer interface do projeto — Home, seções, componentes, mockups, tipografia, cores, motion, vídeo/fotografia ou layout mobile — e antes de aprovar qualquer mudança visual.
+description: Direção visual da VitrinePlayer — futebol primeiro, tecnologia depois. Use sempre que criar, revisar ou alterar qualquer interface do projeto (Home, seções, componentes, mockups, tipografia, cores, motion, vídeo/fotografia, layout mobile) e antes de aprovar qualquer mudança visual.
 ---
 
-# VitrinePlayer — padrões de design
+# VitrinePlayer — direção visual
 
-Plataforma privada de talentos do futebol de base. A interface precisa parecer uma
-**marca internacional do futebol**, nunca um template. Direção:
-**futebol premium + editorial + cinematográfico + tecnológico.**
+## Regra central
 
-Referência de *nível* (não de forma): Elenko Sports. Nunca copiar layout, textos,
-componentes, identidade ou código de nenhuma empresa.
+**A VITRINEPLAYER É FUTEBOL PRIMEIRO, TECNOLOGIA DEPOIS.**
 
-## 0. Ordem de decisão
+Fotografia e vídeo são protagonistas. A interface serve ao conteúdo esportivo,
+nunca o contrário. Quem abre o site precisa sentir, antes de ler: *"isso é futebol"*.
 
-1. Palavras do usuário/briefing (sempre vencem).
-2. Esta skill.
-3. Tokens existentes em `src/app/globals.css` (`@theme`).
+Linguagem: **campanha de marca esportiva + agência internacional de jogadores +
+plataforma profissional de scouting.** Universo: futebol profissional, futebol de
+base, scouting, tecnologia e oportunidade.
 
-Escopo: só frontend. Nunca alterar banco, RLS, autenticação, pagamento ou regras de
-negócio ao aplicar esta skill.
+Referência de nível (impacto, fotografia, percepção profissional): Elenko Sports.
+Nunca copiar layout exato, textos, código, identidade ou elementos proprietários.
 
-## 1. Princípio central — a imagem manda
+Não pode parecer: startup genérica, SaaS, dashboard, site de apostas, site de
+peneira, escolinha, portal esportivo antigo, projeto conceitual/tech abstrato.
 
-- O futebol aparece **antes** do produto. Vídeo e fotografia são protagonistas; texto e UI
-  são legenda.
-- **Hero** = vídeo real de futebol de base em 100% do fundo (`100svh`). Sobre ele, no
-  máximo: marca, headline, texto curto (≤ 18 palavras) e **um** CTA. Nada de cards,
-  números, dashboards, selos, indicadores ou segundo CTA.
-- Texto ancorado embaixo; o terço superior da imagem fica livre.
-- Escurecimento só onde há texto (gradiente na base), nunca um véu sobre a imagem inteira.
-- Placeholders (CSS/SVG) são temporários e **neutros**: não podem virar identidade.
+## 0. Ordem de decisão e escopo
 
-## 2. Vídeo e fotografia
+1. Palavras do usuário (sempre vencem). 2. Esta skill. 3. Tokens em `src/app/globals.css`.
 
-- Fonte única de mídia: `src/content/media.ts`. Componentes nunca hardcodam caminhos.
-- Vídeo do hero: clipes de 3–6 s (entrada em campo, drible, passe, gol, defesa,
-  comemoração, detalhe de chuteira/bola/gramado, concentração), MP4 H.264, sem áudio,
-  ≤ 2 MB (desktop) / ≤ 900 KB (mobile), poster por clipe, `muted playsInline`,
-  pausa fora da tela e com `prefers-reduced-motion` (mostra o poster).
-- Grading: escuro, contraste alto, dessaturado; sem verdes saturados.
-- Fotografia: atletas reais em ação ou detalhe, sangrando nas bordas (full-bleed),
-  nunca em molduras com sombra. Retratos 4:5; blocos de cena 16:9 ou `100svh`.
-- Nenhuma mídia externa não licenciada. Imagens com `next/image` e `sizes` corretos.
-- Menores de idade: nada de rosto identificável de atleta real sem autorização registrada.
+Só frontend. Nunca alterar banco, Supabase, RLS, autenticação, cadastro, pagamento,
+integrações ou regras de negócio ao aplicar esta skill.
 
-## 3. Tipografia
+## 1. Vídeo e fotografia (protagonistas)
 
-- Família de identidade: **Archivo** (variável, eixo de largura). O contraste vem de
-  **largura e peso**, não de trocar de família:
-  - display: peso 800, largura 115–125% no desktop, 100% no celular, caixa alta,
-    `line-height` 0.82–0.9, tracking −0.03 a −0.045em;
-  - texto: largura 100%, peso 400–500, 16–18px, `line-height` 1.5–1.65, ≤ 65 caracteres.
-- Escala: hero `clamp(2.7rem, 12vw, 10rem)`; título de seção `clamp(2.2rem, 9vw, 6rem)`;
-  subtítulo `clamp(1.5rem, 5.6vw, 3rem)`; texto 1–1.125rem; legenda 0.8rem.
-- `text-wrap: balance` em títulos. Testar a palavra mais longa em ES e PT (ex.:
-  "ENCONTRADO.", "POSIBILIDADES.") a 360px — nunca pode estourar.
-- Proibido (marcas de página gerada):
-  - destacar uma palavra/linha do título em itálico, serifa ou outra cor;
-  - rótulo em CAIXA ALTA espaçada acima de cada título ("01 — Conceito");
-  - fonte monoespaçada para microrrótulos de marketing (mono só para dados tabulares nos mockups);
-  - strings com pontos médios ("A · B · C") em texto corrido; prefira frases;
-  - "→" anexado a botões e links.
+- **Hero**: vídeo real de futebol de base em tela cheia (100vw × 100svh), cortes
+  cinematográficos — entrada em campo, chuteira, gramado, bola, disputa, drible,
+  passe, gol, goleiro, comemoração, arquibancada, concentração.
+- Sobre o vídeo, só: marca (no header), headline curta e muito forte, uma linha de
+  apoio e **um** CTA ("Cadastrar atleta"). Nada de explicações, cards ou números.
+- A Home é uma sequência de **grandes imagens**: full bleed, atleta ocupando a tela,
+  texto sobre fotografia, números gigantes sobre cenas reais.
+- Toda mídia passa por `src/content/media.ts` (slots com `src` + `shot`, a descrição
+  da cena). Componentes usam `MediaSlot`/`HeroReel`, nunca caminhos fixos.
+- **Placeholder = liso.** Enquanto não houver mídia real, o slot mostra um tom de
+  gramado à noite e a descrição da cena. **Proibido** simular futebol com CSS/SVG:
+  estádio, refletores, luzes/bokeh, gramado desenhado, mira de scout, silhuetas,
+  ilustrações ou animações conceituais.
+- Especificação: clipes de 3–6 s, MP4 H.264, sem áudio, ≤ 2 MB (desktop) e
+  ≤ 900 KB (mobile/vertical), poster por clipe; fotos JPG/AVIF ≥ 2400 px.
+- Grading: contraste alto, pretos densos, verdes profundos de gramado, pele natural.
+- Só mídia licenciada. Atletas menores: nada de rosto identificável sem autorização.
 
-## 4. Cor
+## 2. Cor — "noite de jogo"
 
-- Base escura e neutra: `ink`, `night`, `graphite`, `carbon`, `steel`; texto `bone`/`fog`/`ash`.
-- A cor de assinatura (`--color-signal`) é **provisória**. A composição deve funcionar 100%
-  em monocromático; a cor aparece só em estado de interação (hover/foco/ativo) e
-  detalhes mínimos. Nunca estruturar hierarquia dependendo dela.
-- Evitar os clichês: verde-gramado, preto + verde-ácido, preto + vermelhão,
-  gradiente roxo-azul, creme + terracota.
-- Contraste mínimo WCAG AA (4.5:1 texto, 3:1 texto grande/ícones) inclusive sobre vídeo.
+| Token | Uso |
+|---|---|
+| `ink` #050806 | preto base (com viés verde) |
+| `graphite`/`carbon` | superfícies escuras secundárias |
+| `pitch` #0c2418 | verde profundo — seções de bloco (Como funciona) |
+| `turf` #17432c | gramado sofisticado — preço, destaques de manifesto |
+| `grass` #4f9a6a | detalhe e interação (hover, "Player" do logo) — nunca em grandes áreas |
+| `bone` #f2f1eb | off-white — texto e seção de manifesto (quebra de contraste) |
 
-## 5. Composição, hierarquia e espaçamento
+- Verde associado ao **campo**: gramado molhado à noite, refletores, fotografia.
+- Proibido: verde neon/limão, degradês tecnológicos verdes, brilhos, glow,
+  qualquer coisa que lembre site de apostas.
+- Ritmo de fundos: escuro (vídeo) → off-white (manifesto) → imagem → verde
+  profundo → imagem/preto → verde gramado (preço) → preto (rodapé).
 
-- Ritmo: **imagem → manifesto → imagem → conteúdo → imagem → conversão**. Alternar
-  blocos full-bleed com blocos tipográficos; nunca duas seções densas seguidas.
-- Grade de 12 colunas no desktop, 1 coluna no celular; gutter 16px (mobile),
-  40px (md), 64px (xl) via utilitário `gutter`.
-- Espaço vertical generoso: seções `py-28` (mobile) a `py-44/48` (desktop).
-- Uma ideia por tela. Um elemento memorável por seção; o resto quieto.
-- Estrutura é informação: numeração só para sequência real (ex.: Como funciona 01–03).
-  Listas não sequenciais não recebem números.
-- **Sem kit de cards SaaS**: nada de grades de cards iguais com raio + sombra. Separe com
-  espaço e filetes (`border-t`), não com caixas. Caixas só para o que é de fato um objeto
-  (ex.: a interface demonstrativa da base profissional).
-- Raio 0 por padrão; nada de sombras decorativas.
+## 3. Tipografia — pôster esportivo
 
-## 6. Motion e microinterações
+- Família única **Archivo** (variável). Títulos = `display`: peso 800,
+  **condensado (largura 72%)**, caixa alta, `line-height` 0.82–0.88.
+- Escala: hero `clamp(3.6rem, 19.5vw, 13.5rem)` no celular / `11.5vw` no desktop;
+  títulos de seção `clamp(3rem, 15–17vw, 13rem)`; corpo 1–1.125rem, `leading` 1.5.
+- Headlines curtas (2–4 linhas de 1–2 palavras). Poucas palavras, muito contraste.
+- `line-mask` com folga vertical para acentos (Á, Ó, Ç) não serem cortados.
+- Testar a linha mais longa em PT e ES a 360px.
+- Evitar: rótulos em caixa alta espaçada acima de títulos, fonte mono em marketing,
+  "→" em botões, strings "A · B · C" em texto corrido.
 
-- **Um momento orquestrado por tela**, não efeitos espalhados:
-  - abertura do hero (cortina + push-in + linhas subindo);
-  - revelação de imagem full-bleed (cortina/zoom-out);
-  - texto do manifesto que acende com o scroll.
-- Proibido: fade-and-slide-up em toda seção, hover em todo card, parallax forte.
-- Conteúdo legível **em repouso**: nada fica invisível esperando observer.
-- Curvas: `--ease-cine` (saídas), `--ease-soft` (loops). Durações 0.5–1.6s.
-- Microinterações respondem à ação (hover/foco/toque mostram o que muda): CTA com
-  preenchimento, linha que cresce, `:active` no mobile.
-- Animar apenas `transform`, `opacity`, `clip-path`. Tudo desligado com
-  `prefers-reduced-motion`.
-- Motion via `MotionRuntime` (atributos `data-*`); não adicionar bibliotecas de animação.
+## 4. Composição
 
-## 7. Mobile first (tráfego pago chega pelo celular)
+- Full bleed sempre que houver imagem. Texto ancorado embaixo, sobre gradiente só na base.
+- Sem cards arredondados, caixinhas, ícones genéricos, sombras decorativas.
+  Separação por imagem, cor de fundo e filetes finos.
+- Perfil do atleta **integrado à direção de arte**: foto grande sangrando, nome
+  gigante invadindo a coluna de dados — nunca um card no meio da página.
+- Nenhum elemento de dashboard na Home (a interface do produto fica nos mockups).
+- Numeração só para sequência real (Como funciona 01–03).
 
-- Projetar primeiro em 360–390px; depois expandir.
-- Primeira dobra no celular: imagem domina ≥ 50% da altura; headline legível sem zoom;
-  CTA com largura total e altura ≥ 48px dentro da zona do polegar.
-- Barra de CTA fixa (`StickyCta`) aparece após o hero e some em preço/rodapé.
-- `100svh`, `env(safe-area-inset-*)`, sem rolagem horizontal (verificar `scrollWidth`).
+## 5. Motion
 
-## 8. Performance
+- Elegante e a serviço da imagem: abertura do hero (cortina + push-in + linhas
+  subindo), imagens que abrem como cortina, títulos grandes que sobem da máscara,
+  manifesto que acende com o scroll, números que contam sobre a cena.
+- Proibido: efeitos futuristas gratuitos, partículas, glow, parallax forte,
+  fade em todo parágrafo.
+- Animar só `transform`, `opacity`, `clip-path`. Tudo desligado com
+  `prefers-reduced-motion`. Runtime único (`MotionRuntime`), sem bibliotecas.
 
-- Server Components por padrão; JS cliente só onde há estado real.
-- LCP: poster/primeiro frame do hero com prioridade; fontes via `next/font` (`display: swap`).
-- Vídeo: `preload` só do clipe ativo; próximos com `metadata`.
-- Sem bibliotecas de UI/animação externas; CSS e o runtime de ~1 KB bastam.
-- Meta: LCP < 2,5s em 4G, CLS < 0,05, JS da Home < 100 KB.
+## 6. Mobile (a maior parte do tráfego pago)
 
-## 9. Acessibilidade
+- Desenhar primeiro para 360–390px; não pode parecer desktop reduzido.
+- Vídeo ocupa praticamente a tela inteira; headline realmente grande (≈ 19vw);
+  CTA de largura total, ≥ 56px de altura.
+- Fotografia em largura total; carrossel com snap para sequências (Como funciona).
+- Textos curtos, nada apertado; barra de CTA fixa após o hero.
+- `100svh`, `safe-area`, sem rolagem horizontal da página.
 
-- Foco visível em tudo que é clicável; ordem de tabulação lógica.
-- Mídia decorativa com `aria-hidden`; vídeo sem som e sem informação essencial.
-- Alvos de toque ≥ 44px; texto mínimo 14px (legendas) e 16px (corpo).
-- `lang` correto por idioma (`pt-BR`/`es`); i18n via dicionários, nunca texto fixo em componente.
+## 7. Performance e acessibilidade
 
-## 10. Texto (copy)
+- Server Components por padrão; JS cliente só com estado real.
+- Poster do hero com prioridade; vídeos `preload` só no clipe ativo; `next/image` com `sizes`.
+- Contraste AA sobre imagem (gradiente na base garante); foco visível; alvos ≥ 44px.
+- Mídia decorativa `aria-hidden`; textos via dicionários PT/ES.
 
-- Frases curtas, voz ativa, sentence case nos dicionários (caixa alta só via estilo display).
-- CTA diz exatamente o que acontece: "Cadastrar atleta".
-- Nunca prometer contratação, teste ou avaliação. Manter o aviso de não-garantia no preço.
+## 8. Copy
 
-## 11. Checklist antes de entregar
+- Voz de marca esportiva: frases curtas, afirmativas, vocabulário do futebol
+  (craque, base, campo, jogo). Ex.: "Todo craque começou na base."
+- Nunca prometer contratação, teste ou avaliação; manter o aviso no preço.
 
-- [ ] Hero: só marca, headline, texto curto e 1 CTA sobre a imagem.
-- [ ] Nenhum dos proibidos das seções 3, 5 e 6 presente.
-- [ ] Funciona em monocromático (cor de assinatura removível).
-- [ ] 390px e 1440px sem estouro; `scrollWidth` = largura da viewport.
-- [ ] Reduced motion ok; foco visível; contraste AA.
-- [ ] `npm run lint` e `npm run build` limpos.
-- [ ] Screenshots: hero desktop/mobile e seções principais.
+## 9. Checklist
+
+- [ ] Primeira tela = vídeo/imagem + headline + 1 CTA.
+- [ ] A página é dominada por fotografia/vídeo, não por blocos de interface.
+- [ ] Nenhum placeholder ilustrado/abstrato.
+- [ ] Verde de campo, sem neon/degradê tech.
+- [ ] Mobile 390px e desktop 1440px sem estouro; acentos íntegros nos títulos.
+- [ ] `npm run lint` e `npm run build` limpos; screenshots desktop e mobile.
