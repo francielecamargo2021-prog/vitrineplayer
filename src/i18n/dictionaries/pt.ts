@@ -13,9 +13,11 @@ const pt = {
   },
   hero: {
     placeholder: "Placeholder: aqui entra o vídeo real de jogos de base",
-    headline: ["O talento pode", "nascer em", "qualquer lugar."],
-    headlineMobile: ["O talento", "pode nascer", "em qualquer", "lugar."],
-    sub: ["A gente coloca", "ele na vitrine."],
+    // lead (linha de apoio do título) + key (palavras-chave monumentais); a 2ª parte quebra só no celular
+    lead: ["O talento pode", "nascer em"],
+    key: ["Qualquer", "lugar."],
+    // [linha 1, linha 2, palavra em destaque]
+    sub: ["A gente coloca", "ele na", "vitrine."],
     cta: "Cadastrar atleta",
   },
   manifesto: {

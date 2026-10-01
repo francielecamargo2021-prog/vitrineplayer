@@ -12,7 +12,21 @@ export function LogoMark({ className = "" }: { className?: string }) {
   );
 }
 
-export function Logo({ className = "" }: { className?: string }) {
+/**
+ * `editorial` (header da Home, sobre o vídeo): VITRINE em Archivo 62%/900 e
+ * PLAYER menor, em largura normal, leve e espaçado, alinhado pela linha de base.
+ */
+export function Logo({ className = "", variant = "default" }: { className?: string; variant?: "default" | "editorial" }) {
+  if (variant === "editorial")
+    return (
+      <span className={`inline-flex items-center gap-3 ${className}`}>
+        <LogoMark className="size-[1.1rem] md:size-5" />
+        <span className="flex items-baseline font-display text-[1.45rem] uppercase leading-none md:text-[1.7rem]">
+          <span className="font-black tracking-[0.005em] [font-stretch:62%]">Vitrine</span>
+          <span className="ml-[0.18em] text-[0.62em] font-medium tracking-[0.24em] text-signal-soft [font-stretch:100%]">Player</span>
+        </span>
+      </span>
+    );
   return (
     <span className={`inline-flex items-center gap-2.5 ${className}`}>
       <LogoMark className="size-5" />

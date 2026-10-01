@@ -15,9 +15,9 @@ const es: Dictionary = {
   },
   hero: {
     placeholder: "Placeholder: aquí va el video real de partidos formativos",
-    headline: ["El talento puede", "nacer en", "cualquier lugar."],
-    headlineMobile: ["El talento", "puede nacer", "en cualquier", "lugar."],
-    sub: ["Nosotros lo ponemos", "en la vitrina."],
+    lead: ["El talento puede", "nacer en"],
+    key: ["Cualquier", "lugar."],
+    sub: ["Nosotros lo ponemos", "en la", "vitrina."],
     cta: "Registrar atleta",
   },
   manifesto: {

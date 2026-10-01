@@ -2,7 +2,8 @@ import type { CSSProperties } from "react";
 import { media } from "@/content/media";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/get-dictionary";
-import { Button } from "@/components/ui/Button";
+import Link from "next/link";
+import { LogoMark } from "@/components/brand/Logo";
 import { HeroReel } from "./HeroReel";
 import { MediaSlot } from "./MediaSlot";
 
@@ -28,34 +29,37 @@ export function Hero({ lang, dict }: { lang: Locale; dict: Dictionary }) {
         className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_top,rgba(5,8,6,0.88)_0%,rgba(5,8,6,0.5)_38%,rgba(5,8,6,0)_64%),linear-gradient(to_bottom,rgba(5,8,6,0.5),transparent_18%)] md:bg-[linear-gradient(to_top,rgba(5,8,6,0.8)_0%,rgba(5,8,6,0.3)_40%,rgba(5,8,6,0)_62%),linear-gradient(to_right,rgba(5,8,6,0.6)_0%,rgba(5,8,6,0.28)_45%,rgba(5,8,6,0)_72%),linear-gradient(to_bottom,rgba(5,8,6,0.5),transparent_18%)]"
       />
 
-      <div className="gutter absolute inset-x-0 bottom-0 pb-8 md:pb-14">
-        {/* Quebras próprias: 3 linhas no desktop, 4 no celular (só uma versão é exibida/lida). */}
-        <h1 className="display text-[clamp(2.9rem,15vw,13.5rem)] leading-[0.84] text-bone md:text-[clamp(4rem,8.6vw,11rem)]">
-          {[
-            { lines: hero.headlineMobile, cls: "md:hidden" },
-            { lines: hero.headline, cls: "hidden md:block" },
-          ].map(({ lines, cls }) => (
-            <span key={cls} className={cls}>
-              {lines.map((line, i) => (
-                <span key={line} className="hero-line -mt-[0.12em] block overflow-hidden pb-[0.03em] pt-[0.12em]" style={delay(450 + i * 130)}>
-                  <span>{line}</span>
-                </span>
-              ))}
+      {/*
+        Composição de pôster: linha de apoio (Archivo largura normal) + palavras-chave
+        monumentais (Archivo 62% / 900), filete e base com assinatura + CTA.
+        Desktop: chave em uma linha que ocupa a largura; celular: chave empilhada.
+      */}
+      <div className="gutter absolute inset-x-0 bottom-0 pb-[max(1.5rem,env(safe-area-inset-bottom))] md:pb-12">
+        <h1 className="text-bone">
+          <span className="hero-line block overflow-hidden pb-[0.35em] md:pb-[0.5em]" style={delay(450)}>
+            <span className="font-sans text-[clamp(1.05rem,5.2vw,1.5rem)] font-semibold uppercase leading-[1.1] tracking-[0.03em] md:text-[clamp(1.1rem,1.7vw,2rem)]">
+              <span className="block md:inline">{hero.lead[0]}</span> {hero.lead[1]}
             </span>
-          ))}
+          </span>
+          <span className="hero-line -mt-[0.08em] block overflow-hidden pt-[0.08em]" style={delay(600)}>
+            <span className="font-display text-[clamp(3.4rem,21vw,7rem)] font-black uppercase leading-[0.8] tracking-[-0.01em] [font-stretch:62%] md:text-[clamp(4rem,12.4vw,17rem)]">
+              <span className="block md:inline">{hero.key[0]}</span> {hero.key[1]}
+            </span>
+          </span>
         </h1>
 
-        <div className="hero-fade mt-6 flex flex-col gap-6 md:mt-10 md:flex-row md:items-center md:justify-between" style={delay(1150)}>
-          <p className="display text-[clamp(1.6rem,7.4vw,3.4rem)] leading-[0.9] text-bone/90 md:text-[clamp(1.8rem,3.1vw,3.4rem)]">
-            {hero.sub.map((part) => (
-              <span key={part} className="block md:inline md:after:content-['_']">
-                {part}
-              </span>
-            ))}
+        <div className="hero-fade mt-5 border-t border-white/25 pt-5 md:mt-8 md:flex md:items-end md:justify-between md:gap-10 md:pt-6" style={delay(1100)}>
+          <p className="font-display text-[clamp(1.6rem,8.2vw,2.4rem)] font-extrabold uppercase leading-[0.92] [font-stretch:62%] md:text-[clamp(1.6rem,2.3vw,2.6rem)]">
+            <span className="block md:inline">{hero.sub[0]}</span> {hero.sub[1]} <span className="text-signal-soft">{hero.sub[2]}</span>
           </p>
-          <Button href={`/${lang}/cadastro`} className="h-16 w-full text-[1.05rem] md:w-auto md:px-12">
-            {hero.cta}
-          </Button>
+          <Link
+            href={`/${lang}/cadastro`}
+            className="group relative mt-6 flex h-[3.75rem] w-full shrink-0 items-center justify-between overflow-hidden bg-bone px-5 text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-signal md:mt-0 md:h-16 md:w-auto md:min-w-[18.5rem] md:pl-7 md:pr-6"
+          >
+            <span aria-hidden className="absolute inset-0 origin-left scale-x-0 bg-signal transition-transform duration-700 ease-[var(--ease-cine)] group-hover:scale-x-100" />
+            <span className="relative font-display text-[1.35rem] font-extrabold uppercase leading-none tracking-[0.03em] [font-stretch:62%]">{hero.cta}</span>
+            <LogoMark className="relative size-4" />
+          </Link>
         </div>
       </div>
 

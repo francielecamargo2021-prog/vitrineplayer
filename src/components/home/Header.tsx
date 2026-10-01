@@ -8,7 +8,7 @@ export function Header({ lang, dict }: { lang: Locale; dict: Dictionary }) {
   return (
     <header className="site-header gutter fixed inset-x-0 top-0 z-50 flex h-16 items-center justify-between md:h-20">
       <Link href={`/${lang}`} aria-label="VitrinePlayer" className="text-bone">
-        <Logo />
+        <Logo variant="editorial" />
       </Link>
       <div className="flex items-center gap-6 md:gap-10">
         <nav className="hidden items-center gap-8 font-sans text-[0.875rem] font-medium text-fog lg:flex">
