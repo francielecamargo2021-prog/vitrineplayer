@@ -59,3 +59,22 @@ Para usar vídeo real: coloque os clipes licenciados em `public/media/hero/` e l
 `src/content/media.ts` (`hero.clips`). O `HeroReel` toca a sequência com crossfade, indicador de
 capítulos, versão mobile por clipe e pausa fora da tela. Especificação no próprio arquivo.
 Fotos dos blocos em tela cheia: `media.stills`.
+
+## Painel do responsável (0002)
+
+- Vínculo responsável ↔ atleta em `athlete_guardians` (responsável principal + outros responsáveis legais no futuro). Atleta criado só via `create_athlete()`.
+- Profissional vê atleta somente se `status = approved`, `visibility = active` e nenhuma organização da qual é membro foi ocultada pelo responsável (`athlete_visible_to_pro`).
+- Responsável recebe só sinais de atividade (`athlete_activity_signals`): sem contagem e sem identidade.
+- Pagamento único: `draft → pending_payment` pelo responsável; `pending_payment → in_review` só por `mark_payment_paid` (webhook com service role ou admin). Não há checkout fictício.
+- Fotos no bucket privado `athlete-photos` (`{athlete_id}/{arquivo}.webp`), lidas por URL assinada.
+
+### Rodar localmente
+
+```bash
+npx supabase start            # Postgres, Auth, Storage, API (Docker); portas 553xx
+npx supabase db reset         # aplica migrations + seed local ([DEV] organizações)
+npx supabase test db          # testes de isolamento RLS (pgTAP)
+# .env.local: NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY de `npx supabase status`
+```
+
+`supabase/seed.sql` só roda localmente. Ele contém `dev_test_simulate_payment()` (DEV/TEST, executável apenas por conexão direta ao banco local) para testar o fluxo de revisão sem gateway.

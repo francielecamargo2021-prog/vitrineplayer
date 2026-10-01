@@ -108,22 +108,24 @@ export function PhotoManager({ lang, athleteId, photos, t }: { lang: string; ath
             <p className="text-[0.8rem] text-ash">{photos.length}/{PHOTO_LIMIT} {t.limit}</p>
           </div>
           {photos.length === 0 && <p className="mt-3 text-ash">{t.empty}</p>}
-          <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <ul className="mt-3 grid grid-cols-2 gap-x-4 gap-y-5">
             {photos.map((ph, i) => (
               <li key={ph.id} className="group">
                 <FramedPhoto src={ph.url} x={ph.x} y={ph.y} zoom={ph.zoom} className={`aspect-square border ${ph.isPrimary ? "border-grass" : "border-white/10"}`} />
-                <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.78rem] text-ash">
+                <div className="mt-1.5 text-[0.78rem] text-ash">
                   {ph.isPrimary ? (
-                    <span className="text-grass">{t.primary}</span>
+                    <span className="flex min-h-8 items-center text-grass">{t.primary}</span>
                   ) : (
-                    <button type="button" disabled={pending} onClick={() => run(() => setPrimaryPhoto(lang, ph.id))} className="min-h-8 hover:text-bone">{t.makePrimary}</button>
+                    <button type="button" disabled={pending} onClick={() => run(() => setPrimaryPhoto(lang, ph.id))} className="min-h-8 text-left text-fog hover:text-bone">{t.makePrimary}</button>
                   )}
-                  <button type="button" disabled={pending} onClick={() => { replaceTarget.current = ph.id; replaceInput.current?.click(); }} className="min-h-8 hover:text-bone">{t.replace}</button>
-                  <button type="button" disabled={pending} onClick={() => confirm(t.confirmDelete) && run(() => deletePhoto(lang, athleteId, ph.id))} className="min-h-8 hover:text-[#f0c4c4]">{t.delete}</button>
-                  <span className="ml-auto flex">
-                    <button type="button" aria-label={t.moveUp} disabled={pending || i === 0} onClick={() => run(() => movePhoto(lang, athleteId, ph.id, -1))} className="grid size-8 place-items-center hover:text-bone disabled:opacity-30">‹</button>
-                    <button type="button" aria-label={t.moveDown} disabled={pending || i === photos.length - 1} onClick={() => run(() => movePhoto(lang, athleteId, ph.id, 1))} className="grid size-8 place-items-center hover:text-bone disabled:opacity-30">›</button>
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <button type="button" disabled={pending} onClick={() => { replaceTarget.current = ph.id; replaceInput.current?.click(); }} className="min-h-8 hover:text-bone">{t.replace}</button>
+                    <button type="button" disabled={pending} onClick={() => confirm(t.confirmDelete) && run(() => deletePhoto(lang, athleteId, ph.id))} className="min-h-8 hover:text-[#f0c4c4]">{t.delete}</button>
+                    <span className="ml-auto flex">
+                      <button type="button" aria-label={t.moveUp} disabled={pending || i === 0} onClick={() => run(() => movePhoto(lang, athleteId, ph.id, -1))} className="grid size-8 place-items-center text-base hover:text-bone disabled:opacity-30">‹</button>
+                      <button type="button" aria-label={t.moveDown} disabled={pending || i === photos.length - 1} onClick={() => run(() => movePhoto(lang, athleteId, ph.id, 1))} className="grid size-8 place-items-center text-base hover:text-bone disabled:opacity-30">›</button>
+                    </span>
+                  </div>
                 </div>
               </li>
             ))}

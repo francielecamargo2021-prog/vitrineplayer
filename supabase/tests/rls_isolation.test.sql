@@ -121,7 +121,8 @@ select pg_temp.as_user('a0000000-0000-0000-0000-00000000000a');
 update athletes set visibility = 'active' where id = (select id from ids where k = 'athA');
 
 -- ---------------------------------------------------------------- bloqueio de organização
-select is((select count(*)::int from search_organizations('Clube')), 1, 'busca retorna só organizações aprovadas');
+select is((select count(*)::int from search_organizations('Alfa')), 1, 'busca encontra organização aprovada');
+select is((select count(*)::int from search_organizations('Pendente')), 0, 'busca não retorna organização não aprovada');
 select is((select count(*)::int from search_organizations('Cl')), 0, 'busca exige 3+ letras');
 insert into athlete_org_blocks (athlete_id, organization_id) select id, 'd0000000-0000-0000-0000-0000000000d1' from ids where k = 'athA';
 select is((select count(*)::int from athlete_blocked_organizations((select id from ids where k = 'athA'))), 1, 'responsável vê a organização ocultada');

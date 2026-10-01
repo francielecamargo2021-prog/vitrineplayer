@@ -41,17 +41,17 @@ export function AthleteSheet({ bundle, urls, p, locale, actions }: { bundle: Ath
   return (
     <article>
       {/* Abertura */}
-      <header className="relative grid lg:min-h-[calc(100svh-4rem)] lg:grid-cols-12">
+      <header className="relative grid lg:min-h-[calc(100svh-4rem)] lg:grid-cols-12 lg:grid-rows-[1fr]">
         <FramedPhoto
           src={primary?.storage_path ? urls[primary.storage_path] : null} x={primary?.focal_x} y={primary?.focal_y} zoom={primary?.zoom} eager
-          className="aspect-[4/5] max-h-[78svh] w-full lg:col-span-6 lg:aspect-auto lg:max-h-none"
+          className="aspect-[4/5] max-h-[78svh] w-full lg:col-span-6 lg:aspect-auto lg:h-full lg:max-h-none"
         />
         <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 aspect-[4/5] max-h-[78svh] bg-[linear-gradient(to_top,#050806,rgba(5,8,6,0)_45%)] lg:hidden" />
-        <div className="gutter relative z-10 -mt-24 flex flex-col lg:col-span-6 lg:mt-0 lg:justify-end lg:pb-14 lg:pl-0 lg:pr-10">
+        <div className="gutter relative z-10 -mt-24 flex flex-col lg:col-span-6 lg:mt-0 lg:justify-end lg:pb-14 lg:pl-12 lg:pr-10">
           <p className="eyebrow text-grass">
             {[a.primary_position && p.positions[a.primary_position], a.category ?? categoryFor(a.birth_date)].filter(Boolean).join(" · ")}
           </p>
-          <h1 className="mt-3 font-display text-[clamp(3.4rem,17vw,9.5rem)] font-black uppercase leading-[0.8] [font-stretch:62%] lg:-ml-[22%]">
+          <h1 className="mt-3 font-display text-[clamp(3.4rem,17vw,9.5rem)] font-black uppercase leading-[0.8] [font-stretch:62%] lg:-ml-[30%]">
             {name.map((w, i) => (
               <span key={`${w}${i}`} className={`block ${i === name.length - 1 && name.length > 1 ? "text-transparent [-webkit-text-stroke:0.016em_#efeee8]" : "text-[#e6e5de]"}`}>{w}</span>
             ))}
@@ -182,7 +182,10 @@ export function AthleteSheet({ bundle, urls, p, locale, actions }: { bundle: Ath
 function Section({ title, aside, children }: { title: string; aside?: React.ReactNode; children: React.ReactNode }) {
   return (
     <section className="grid gap-6 lg:grid-cols-12">
-      <div className="lg:col-span-3"><SectionTitle aside={aside}>{title}</SectionTitle></div>
+      <div className="lg:col-span-3">
+        <SectionTitle>{title}</SectionTitle>
+        {aside && <div className="mt-2">{aside}</div>}
+      </div>
       <div className="lg:col-span-9 lg:border-t lg:border-white/12 lg:pt-5">{children}</div>
     </section>
   );
