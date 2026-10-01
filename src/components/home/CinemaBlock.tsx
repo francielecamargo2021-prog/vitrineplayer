@@ -36,7 +36,7 @@ export function CinemaBlock({
         <h2 data-reveal="lines">
           {title.map((line, i) => (
             <span key={line} className="line-mask" style={{ "--d": 600 + i * 150 } as React.CSSProperties}>
-              <span className={i === 0 ? "display text-[clamp(2.4rem,9vw,8rem)] [font-stretch:100%] md:[font-stretch:125%]" : "serif-accent text-[clamp(2.6rem,9.5vw,8.5rem)] leading-[0.95] text-fog"}>
+              <span className="display block text-[clamp(2.2rem,9vw,8rem)] [font-stretch:100%] md:[font-stretch:125%]">
                 {line}
               </span>
             </span>

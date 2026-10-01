@@ -1,6 +1,5 @@
 import type { CSSProperties } from "react";
 import type { Dictionary } from "@/i18n/get-dictionary";
-import { SectionIndex } from "@/components/ui/SectionIndex";
 import { AthletePortrait, portraitHues } from "@/components/athlete/AthletePortrait";
 import { proResults } from "@/mocks/athletes";
 import { LockIcon } from "./Concept";
@@ -11,12 +10,11 @@ export function ProBase({ dict }: { dict: Dictionary }) {
     <section className="relative overflow-hidden border-y border-white/[0.07] bg-night py-28 md:py-40">
       <div aria-hidden className="absolute -right-[20vw] top-0 size-[60vw] rounded-full bg-[radial-gradient(circle,rgba(255,91,35,0.10),transparent_65%)]" />
       <div className="gutter relative">
-        <SectionIndex>{base.index}</SectionIndex>
-        <h2 className="mt-10">
+        <h2>
           {base.title.map((line, i) => (
             <span key={line} data-reveal="lines" className="block">
               <span className="line-mask" style={{ "--d": i * 160 } as CSSProperties}>
-                <span className={i === 0 ? "display text-[clamp(2.4rem,8vw,7rem)]" : "serif-accent text-[clamp(2.2rem,7vw,6.5rem)] leading-none text-fog"}>
+                <span className="display block text-[clamp(1.9rem,8vw,7rem)] [font-stretch:100%] md:[font-stretch:125%]">
                   {line}
                 </span>
               </span>

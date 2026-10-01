@@ -2,7 +2,6 @@ import type { CSSProperties } from "react";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/get-dictionary";
 import { demoAthlete as a } from "@/mocks/athletes";
-import { SectionIndex } from "@/components/ui/SectionIndex";
 import { Button } from "@/components/ui/Button";
 import { AthletePortrait } from "@/components/athlete/AthletePortrait";
 
@@ -29,8 +28,7 @@ export function ProfileShowcase({ lang, dict }: { lang: Locale; dict: Dictionary
   return (
     <section id="perfil" className="relative py-28 md:py-44">
       <div className="gutter">
-        <SectionIndex>{profile.index}</SectionIndex>
-        <h2 data-reveal className="display mt-10 max-w-[13ch] text-[clamp(2.2rem,9vw,6rem)] [font-stretch:100%] md:[font-stretch:125%]">
+        <h2 data-reveal className="display max-w-[13ch] text-[clamp(2.2rem,9vw,6rem)] [font-stretch:100%] md:[font-stretch:125%]">
           {profile.title}
         </h2>
       </div>
@@ -44,7 +42,7 @@ export function ProfileShowcase({ lang, dict }: { lang: Locale; dict: Dictionary
             </div>
           </div>
           <div className="pointer-events-none absolute inset-x-0 bottom-0 p-5 md:p-10">
-            <p className="eyebrow text-fog">{a.position} · {a.year}</p>
+            <p className="eyebrow text-fog">{a.position}, {a.year}</p>
             <h3 className="display mt-3 text-[clamp(3.2rem,15vw,8rem)] leading-[0.82] [font-stretch:100%] lg:text-[5vw] md:[font-stretch:125%]">
               {a.sportName.split(" ").map((w) => (
                 <span key={w} className="block">{w}</span>
@@ -72,7 +70,7 @@ export function ProfileShowcase({ lang, dict }: { lang: Locale; dict: Dictionary
             ))}
             <div className="border-t border-white/12 pt-6">
               <p className="eyebrow">{l.traits}</p>
-              <p className="mt-3 text-fog">{a.traits.join("  ·  ")}</p>
+              <p className="mt-3 text-fog">{a.traits.join(", ")}</p>
               <Button href={`/${lang}/atleta/exemplo`} variant="line" className="mt-8">{profile.open}</Button>
             </div>
           </dl>

@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
-import { Archivo, Instrument_Serif, IBM_Plex_Mono } from "next/font/google";
+import { Archivo, IBM_Plex_Mono } from "next/font/google";
 import { hasLocale, htmlLang, locales } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { MotionRuntime } from "@/components/motion/MotionRuntime";
@@ -10,13 +10,6 @@ const archivo = Archivo({
   subsets: ["latin"],
   axes: ["wdth"],
   variable: "--font-archivo",
-  display: "swap",
-});
-const instrument = Instrument_Serif({
-  subsets: ["latin"],
-  weight: "400",
-  style: ["normal", "italic"],
-  variable: "--font-instrument",
   display: "swap",
 });
 const plexMono = IBM_Plex_Mono({
@@ -50,7 +43,7 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
   return (
     <html
       lang={htmlLang[lang]}
-      className={`${archivo.variable} ${instrument.variable} ${plexMono.variable}`}
+      className={`${archivo.variable} ${plexMono.variable}`}
     >
       <body>
         {children}

@@ -1,14 +1,12 @@
 import type { CSSProperties } from "react";
 import type { Dictionary } from "@/i18n/get-dictionary";
-import { SectionIndex } from "@/components/ui/SectionIndex";
 
 /** Passos em linhas editoriais (sem cards): número gigante + título + texto. */
 export function HowItWorks({ dict }: { dict: Dictionary }) {
   const { how } = dict;
   return (
     <section id="como-funciona" className="gutter relative py-28 md:py-44">
-      <SectionIndex>{how.index}</SectionIndex>
-      <h2 data-reveal className="display mt-10 max-w-[14ch] text-[clamp(2.2rem,9vw,6rem)] [font-stretch:100%] md:[font-stretch:125%]">
+      <h2 data-reveal className="display max-w-[14ch] text-[clamp(2.2rem,9vw,6rem)] [font-stretch:100%] md:[font-stretch:125%]">
         {how.title}
       </h2>
 

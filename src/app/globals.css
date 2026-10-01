@@ -19,7 +19,6 @@
 
   --font-display: var(--font-archivo), "Arial Narrow", system-ui, sans-serif;
   --font-sans: var(--font-archivo), system-ui, sans-serif;
-  --font-serif: var(--font-instrument), Georgia, serif;
   --font-mono: var(--font-plex-mono), ui-monospace, monospace;
 
   --ease-cine: cubic-bezier(0.16, 1, 0.3, 1);
@@ -63,21 +62,14 @@ body {
 }
 
 @utility eyebrow {
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.005em;
+  line-height: 1.4;
   color: var(--color-ash);
 }
 
-@utility serif-accent {
-  font-family: var(--font-serif);
-  font-style: italic;
-  font-weight: 400;
-  letter-spacing: -0.01em;
-  text-transform: none;
-  font-stretch: normal;
-}
 
 @utility gutter {
   padding-inline: max(1rem, env(safe-area-inset-left));
@@ -113,38 +105,10 @@ body {
   100% { transform: translate(0, 0); }
 }
 
-/* ---------- Scroll reveal (controlado por MotionRuntime) ---------- */
-[data-reveal] {
-  opacity: 0;
-  transform: translate3d(0, 2.5rem, 0);
-  transition:
-    opacity 1.1s var(--ease-cine),
-    transform 1.3s var(--ease-cine);
-  transition-delay: calc(var(--d, 0) * 1ms);
-  will-change: opacity, transform;
-}
-[data-reveal="fade"] { transform: none; }
-[data-reveal="lines"] { opacity: 1; transform: none; }
-[data-reveal="mask"] {
-  opacity: 1;
-  transform: none;
-  clip-path: inset(0 0 100% 0);
-  transition: clip-path 1.2s var(--ease-cine);
-  transition-delay: calc(var(--d, 0) * 1ms);
-}
-[data-reveal].is-in { opacity: 1; transform: none; }
-[data-reveal="mask"].is-in { clip-path: inset(0 0 -10% 0); }
-
-/* Linhas de título que sobem de dentro de uma máscara */
-.line-mask { display: block; overflow: hidden; padding-bottom: 0.06em; margin-bottom: -0.06em; }
-.line-mask > span {
-  display: block;
-  transform: translate3d(0, 105%, 0);
-  transition: transform 1.3s var(--ease-cine);
-  transition-delay: calc(var(--d, 0) * 1ms);
-}
-.is-in .line-mask > span,
-.line-mask.is-in > span { transform: none; }
+/* ---------- Scroll (skill vitrineplayer-design §6) ----------
+   Sem fade-and-slide-up genérico: [data-reveal] fica visível em repouso.
+   Só os momentos orquestrados animam: hero, [data-reveal="frame"] e [data-words]. */
+.line-mask { display: block; }
 
 /* Hero: entrada no carregamento (sem depender de JS) */
 .hero-line > span {
@@ -218,7 +182,7 @@ html[data-cta] .sticky-cta { transform: none; }
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
-  [data-reveal], .line-mask > span, .hero-line > span { opacity: 1; transform: none; clip-path: none; }
+  .hero-line > span { opacity: 1; transform: none; }
   .hero-fade { opacity: 1; }
   .hero-curtain { display: none; }
   [data-reveal="frame"] { clip-path: none; }

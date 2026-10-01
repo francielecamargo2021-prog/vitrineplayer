@@ -1,23 +1,16 @@
 import type { CSSProperties } from "react";
 import type { Dictionary } from "@/i18n/get-dictionary";
-import { SectionIndex } from "@/components/ui/SectionIndex";
 
 /** Manifesto: três linhas oversized, texto que acende no scroll e números grandes. */
 export function Concept({ dict }: { dict: Dictionary }) {
   const { concept } = dict;
   return (
     <section id="conceito" className="gutter relative py-28 md:py-48">
-      <SectionIndex>{concept.index}</SectionIndex>
-
-      <h2 data-reveal="lines" className="mt-14 md:mt-20">
+      <h2>
         {concept.lines.map((line, i) => (
           <span key={line} className="line-mask" style={{ "--d": i * 160 } as CSSProperties}>
             <span
-              className={
-                i === 1
-                  ? "serif-accent text-[clamp(3rem,13vw,10rem)] leading-[0.92] text-fog"
-                  : "display text-[clamp(2.3rem,10.5vw,8rem)] [font-stretch:100%] md:text-[clamp(2rem,6.4vw,7rem)] md:[font-stretch:125%]"
-              }
+              className="display text-[clamp(2.3rem,10.5vw,8rem)] [font-stretch:100%] md:text-[clamp(2rem,6.4vw,7rem)] md:[font-stretch:125%]"
             >
               {line}
             </span>
@@ -31,7 +24,7 @@ export function Concept({ dict }: { dict: Dictionary }) {
             <span key={i} className="w">{w} </span>
           ))}
         </p>
-        <p data-reveal className="flex items-start gap-3 font-mono text-xs uppercase leading-relaxed tracking-[0.14em] text-fog lg:col-span-6 lg:col-start-4">
+        <p data-reveal className="flex items-start gap-3 text-[0.95rem] leading-relaxed text-fog lg:col-span-6 lg:col-start-4">
           <LockIcon className="mt-0.5 size-4 shrink-0 text-signal" />
           {concept.privacy}
         </p>

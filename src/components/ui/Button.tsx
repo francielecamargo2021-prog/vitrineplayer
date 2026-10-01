@@ -4,7 +4,7 @@ import type { ComponentProps } from "react";
 type Variant = "primary" | "dark" | "ghost" | "line";
 
 const base =
-  "group relative inline-flex items-center justify-center gap-3 overflow-hidden font-mono text-[0.72rem] uppercase tracking-[0.2em] transition-colors duration-500 ease-[var(--ease-cine)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-signal";
+  "group relative inline-flex items-center justify-center gap-3 overflow-hidden font-sans text-[0.98rem] font-semibold tracking-[-0.005em] transition-colors duration-500 ease-[var(--ease-cine)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-signal";
 
 const variants: Record<Variant, string> = {
   primary: "h-14 px-7 bg-bone text-ink",
@@ -18,7 +18,7 @@ export function Button({
   variant = "primary",
   className = "",
   children,
-  arrow = true,
+  arrow = false,
   ...props
 }: ComponentProps<typeof Link> & { variant?: Variant; arrow?: boolean }) {
   return (

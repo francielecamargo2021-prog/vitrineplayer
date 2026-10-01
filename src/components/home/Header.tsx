@@ -11,7 +11,7 @@ export function Header({ lang, dict }: { lang: Locale; dict: Dictionary }) {
         <Logo />
       </Link>
       <div className="flex items-center gap-6 md:gap-10">
-        <nav className="hidden items-center gap-8 font-mono text-[0.68rem] uppercase tracking-[0.2em] text-fog lg:flex">
+        <nav className="hidden items-center gap-8 font-sans text-[0.875rem] font-medium text-fog lg:flex">
           <a href="#como-funciona" className="transition-colors hover:text-bone">{dict.nav.how}</a>
           <a href="#perfil" className="transition-colors hover:text-bone">{dict.nav.profile}</a>
           <a href="#profissionais" className="transition-colors hover:text-bone">{dict.nav.pros}</a>
@@ -19,7 +19,7 @@ export function Header({ lang, dict }: { lang: Locale; dict: Dictionary }) {
         <LangSwitch current={lang} label={dict.nav.langLabel} />
         <Link
           href={`/${lang}/cadastro`}
-          className="header-cta hidden h-10 items-center border border-white/20 px-4 font-mono text-[0.68rem] uppercase tracking-[0.2em] transition-colors duration-500 hover:border-bone hover:bg-bone hover:text-ink sm:inline-flex"
+          className="header-cta hidden h-10 items-center border border-white/20 px-4 font-sans text-[0.875rem] font-medium transition-colors duration-500 hover:border-bone hover:bg-bone hover:text-ink sm:inline-flex"
         >
           {dict.nav.cta}
         </Link>

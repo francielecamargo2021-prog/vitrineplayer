@@ -13,7 +13,7 @@ export function StickyCta({ lang, dict }: { lang: Locale; dict: Dictionary }) {
         </div>
         <Link
           href={`/${lang}/cadastro`}
-          className="flex h-12 shrink-0 items-center bg-bone px-5 font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink active:bg-signal"
+          className="flex h-12 shrink-0 items-center bg-bone px-5 font-sans text-[0.95rem] font-semibold text-ink active:bg-signal"
         >
           {dict.sticky.cta}
         </Link>

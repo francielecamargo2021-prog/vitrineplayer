@@ -14,16 +14,16 @@ const es: Dictionary = {
     langLabel: "Idioma",
   },
   hero: {
-    placeholder: "Placeholder · video real de partidos formativos en producción",
+    placeholder: "Placeholder: aquí entra el video real de partidos formativos",
     headline: ["El talento", "necesita ser", "encontrado."],
     sub: "Una base privada de atletas, organizada para quienes buscan talento en el fútbol.",
     cta: "Registrar atleta",
   },
   cinema: {
     base: { kicker: "Divisiones formativas", title: ["Donde el futuro", "empieza a jugar."] },
-    region: { kicker: "Brasil · Argentina · Paraguay · Uruguay", title: ["Un mercado.", "Cuatro países."] },
+    region: { kicker: "Brasil, Argentina, Paraguay y Uruguay", title: ["Un mercado.", "Cuatro países."] },
   },
-  sticky: { label: "Registro del atleta", price: "R$ 59,90 · pago único", cta: "Registrar" },
+  sticky: { label: "Registro del atleta", price: "R$ 59,90, pago único", cta: "Registrar" },
   concept: {
     index: "01 — Concepto",
     lines: ["Tu talento.", "Nuestra base.", "Nuevas posibilidades."],
@@ -62,7 +62,7 @@ const es: Dictionary = {
     index: "03 — Perfil del atleta",
     title: "Un perfil con estándar de mercado.",
     body: "Cada atleta obtiene una ficha estructurada, pensada para la lectura rápida de un scout.",
-    demo: "Perfil demostrativo · datos ficticios",
+    demo: "Perfil demostrativo con datos ficticios",
     open: "Ver perfil completo",
     labels: {
       year: "Año",
@@ -96,7 +96,7 @@ const es: Dictionary = {
     searchLabel: "Búsqueda avanzada",
     results: "resultados",
     locked: "Acceso restringido a profesionales verificados",
-    lockedSub: "Datos protegidos · contacto siempre intermediado",
+    lockedSub: "Datos protegidos y contacto siempre intermediado",
   },
   pricing: {
     index: "05 — Registro",

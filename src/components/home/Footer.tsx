@@ -16,7 +16,7 @@ export function Footer({ lang, dict }: { lang: Locale; dict: Dictionary }) {
           <p className="mt-4 text-sm text-fog">{f.tagline}</p>
           <p className="mt-3 text-xs leading-relaxed text-ash">{f.legal}</p>
         </div>
-        <nav className="flex flex-wrap gap-x-8 gap-y-3 font-mono text-[0.68rem] uppercase tracking-[0.2em] text-fog">
+        <nav className="flex flex-wrap gap-x-8 gap-y-3 font-sans text-[0.875rem] text-fog">
           <Link href={`/${lang}`} className="hover:text-bone">{f.privacy}</Link>
           <Link href={`/${lang}`} className="hover:text-bone">{f.terms}</Link>
           <Link href={`/${lang}`} className="hover:text-bone">{f.contact}</Link>

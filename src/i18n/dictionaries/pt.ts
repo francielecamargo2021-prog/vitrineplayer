@@ -12,16 +12,16 @@ const pt = {
     langLabel: "Idioma",
   },
   hero: {
-    placeholder: "Placeholder · vídeo real de jogos de base em produção",
+    placeholder: "Placeholder: o vídeo real de jogos de base entra aqui",
     headline: ["O talento", "precisa ser", "encontrado."],
     sub: "Uma base privada de atletas, organizada para quem procura talento no futebol.",
     cta: "Cadastrar atleta",
   },
   cinema: {
     base: { kicker: "Categorias de base", title: ["Onde o futuro", "começa a jogar."] },
-    region: { kicker: "Brasil · Argentina · Paraguai · Uruguai", title: ["Um mercado.", "Quatro países."] },
+    region: { kicker: "Brasil, Argentina, Paraguai e Uruguai", title: ["Um mercado.", "Quatro países."] },
   },
-  sticky: { label: "Cadastro do atleta", price: "R$ 59,90 · pagamento único", cta: "Cadastrar" },
+  sticky: { label: "Cadastro do atleta", price: "R$ 59,90, pagamento único", cta: "Cadastrar" },
   concept: {
     index: "01 — Conceito",
     lines: ["Seu talento.", "Nossa base.", "Novas possibilidades."],
@@ -60,7 +60,7 @@ const pt = {
     index: "03 — Perfil do atleta",
     title: "Um perfil com padrão de mercado.",
     body: "Cada atleta ganha uma ficha estruturada, pensada para a leitura rápida de um scout.",
-    demo: "Perfil demonstrativo · dados fictícios",
+    demo: "Perfil demonstrativo com dados fictícios",
     open: "Ver perfil completo",
     labels: {
       year: "Ano",
@@ -94,7 +94,7 @@ const pt = {
     searchLabel: "Pesquisa avançada",
     results: "resultados",
     locked: "Acesso restrito a profissionais verificados",
-    lockedSub: "Dados protegidos · contato sempre intermediado",
+    lockedSub: "Dados protegidos e contato sempre intermediado",
   },
   pricing: {
     index: "05 — Cadastro",

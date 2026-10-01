@@ -1,22 +1,20 @@
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/get-dictionary";
-import { SectionIndex } from "@/components/ui/SectionIndex";
 import { Button } from "@/components/ui/Button";
 
 export function Pricing({ lang, dict }: { lang: Locale; dict: Dictionary }) {
   const p = dict.pricing;
   return (
     <section id="cadastro" data-cta-hide className="gutter relative py-28 md:py-44">
-      <SectionIndex>{p.index}</SectionIndex>
-      <div className="mt-14 grid gap-14 md:mt-20 lg:grid-cols-12 lg:gap-10">
+      <div className="grid gap-14 lg:grid-cols-12 lg:gap-10">
         <div data-reveal className="lg:col-span-7">
           <p className="eyebrow text-bone">{p.eyebrow}</p>
           <p className="display mt-6 flex items-start text-[clamp(5.5rem,30vw,16rem)] leading-[0.8] [font-stretch:100%] md:[font-stretch:125%]">
-            <span className="mr-3 mt-[0.12em] font-mono text-[0.16em] font-normal tracking-normal text-ash">{p.currency}</span>
+            <span className="mr-3 mt-[0.12em] font-sans text-[0.16em] font-medium tracking-normal text-ash">{p.currency}</span>
             {p.amount}
             <span className="text-[0.42em] leading-[1.15] text-fog">{p.cents}</span>
           </p>
-          <p className="serif-accent mt-6 text-3xl text-fog md:text-4xl">{p.period}</p>
+          <p className="mt-6 text-2xl font-medium text-fog md:text-3xl">{p.period}</p>
           <p className="mt-4 max-w-md text-fog">{p.noFee}</p>
         </div>
 
