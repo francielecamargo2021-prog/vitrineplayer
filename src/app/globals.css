@@ -161,57 +161,9 @@ body {
 @keyframes rise { to { transform: none; } }
 @keyframes fade-in { to { opacity: 1; } }
 
-/* ---------- Hero fallback cinematográfico ---------- */
-.scene {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  animation: scene-cycle 24s infinite;
-  animation-delay: calc(var(--i) * 6s);
-}
-.scene > .kb {
-  position: absolute;
-  inset: -6%;
-  animation: kenburns 24s linear infinite;
-  animation-delay: calc(var(--i) * 6s);
-}
-@keyframes scene-cycle {
-  0% { opacity: 0; }
-  4% { opacity: 1; }
-  25% { opacity: 1; }
-  30% { opacity: 0; }
-  100% { opacity: 0; }
-}
-@keyframes kenburns {
-  0% { transform: scale(1.12) translate3d(0, 0, 0); }
-  30% { transform: scale(1.02) translate3d(-1.5%, -1%, 0); }
-  100% { transform: scale(1.02) translate3d(-1.5%, -1%, 0); }
-}
-@keyframes sweep {
-  0% { transform: translateX(-60%) skewX(-18deg); }
-  100% { transform: translateX(160%) skewX(-18deg); }
-}
-@keyframes beam {
-  0%, 100% { opacity: 0.55; }
-  50% { opacity: 0.9; }
-}
-@keyframes drift {
-  0% { transform: translate3d(0, 0, 0); }
-  100% { transform: translate3d(-4%, -10%, 0); }
-}
-@keyframes scroll-cue {
-  0% { transform: scaleY(0); transform-origin: top; }
-  45% { transform: scaleY(1); transform-origin: top; }
-  55% { transform: scaleY(1); transform-origin: bottom; }
-  100% { transform: scaleY(0); transform-origin: bottom; }
-}
-@keyframes rec {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.2; }
-}
-@keyframes marquee {
-  to { transform: translateX(-50%); }
-}
+/* ---------- Placeholder de filmagem (temporário) ---------- */
+@keyframes pan { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(-6%, 0, 0); } }
+@keyframes breathe { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(0.7); } }
 
 /* ---------- Header ---------- */
 .site-header {
@@ -225,6 +177,9 @@ html[data-scrolled] .site-header {
   border-color: rgb(255 255 255 / 0.06);
 }
 
+.header-logo, .header-cta { opacity: 0; pointer-events: none; transition: opacity 0.6s var(--ease-cine); }
+html[data-scrolled] .header-logo, html[data-scrolled] .header-cta { opacity: 1; pointer-events: auto; }
+
 /* ---------- Cartões com profundidade ---------- */
 .depth {
   transform: perspective(1200px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
@@ -237,28 +192,6 @@ html[data-scrolled] .site-header {
 .hero-curtain { animation: curtain 1.5s var(--ease-cine) 0.15s both; }
 @keyframes curtain { from { clip-path: inset(0 0 0 0); } to { clip-path: inset(0 0 100% 0); } }
 @keyframes hero-push { from { transform: scale(1.14); } to { transform: scale(1); } }
-
-.reel-indicator {
-  position: absolute;
-  z-index: 5;
-  left: max(1rem, env(safe-area-inset-left));
-  right: max(1rem, env(safe-area-inset-right));
-  bottom: max(1.25rem, env(safe-area-inset-bottom));
-  display: grid;
-  gap: 0.75rem;
-}
-@media (width >= 48rem) {
-  .reel-indicator { left: auto; right: 2.5rem; bottom: 2.25rem; width: 22rem; }
-}
-@media (width >= 80rem) {
-  .reel-indicator { right: 4rem; }
-}
-.reel-label { opacity: 0; animation: label-cycle 24s infinite; animation-delay: calc(var(--i) * 6s); }
-@keyframes label-cycle { 0% { opacity: 0; transform: translateY(6px); } 3%, 24% { opacity: 1; transform: none; } 27%, 100% { opacity: 0; } }
-@keyframes seg-0 { 0% { transform: scaleX(0); } 25%, 100% { transform: scaleX(1); } }
-@keyframes seg-1 { 0%, 25% { transform: scaleX(0); } 50%, 100% { transform: scaleX(1); } }
-@keyframes seg-2 { 0%, 50% { transform: scaleX(0); } 75%, 100% { transform: scaleX(1); } }
-@keyframes seg-3 { 0%, 75% { transform: scaleX(0); } 100% { transform: scaleX(1); } }
 
 /* ---------- Blocos cinematográficos: imagem revelada por cortina + zoom-out ---------- */
 [data-reveal="frame"] {
@@ -287,10 +220,7 @@ html[data-cta] .sticky-cta { transform: none; }
   }
   [data-reveal], .line-mask > span, .hero-line > span { opacity: 1; transform: none; clip-path: none; }
   .hero-fade { opacity: 1; }
-  .scene { opacity: 0; }
-  .scene:first-child { opacity: 1; }
   .hero-curtain { display: none; }
-  .reel-label:first-child { opacity: 1; }
   [data-reveal="frame"] { clip-path: none; }
   [data-words] .w { opacity: 1; }
 }

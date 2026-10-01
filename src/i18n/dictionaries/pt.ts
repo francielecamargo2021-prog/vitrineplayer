@@ -12,14 +12,10 @@ const pt = {
     langLabel: "Idioma",
   },
   hero: {
-    feed: "Scouting feed",
-    regions: "BR · AR · PY · UY",
+    placeholder: "Placeholder · vídeo real de jogos de base em produção",
     headline: ["O talento", "precisa ser", "encontrado."],
     sub: "Uma base privada de atletas, organizada para quem procura talento no futebol.",
     cta: "Cadastrar atleta",
-    secondary: "Sou profissional",
-    chapters: ["Entrada em campo", "Concentração", "Drible", "Passe", "Gol", "Defesa", "Comemoração", "Detalhe"],
-    scroll: "Role",
   },
   cinema: {
     base: { kicker: "Categorias de base", title: ["Onde o futuro", "começa a jogar."] },

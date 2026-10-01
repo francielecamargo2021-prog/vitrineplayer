@@ -44,7 +44,7 @@ export function ProfileShowcase({ lang, dict }: { lang: Locale; dict: Dictionary
             </div>
           </div>
           <div className="pointer-events-none absolute inset-x-0 bottom-0 p-5 md:p-10">
-            <p className="eyebrow text-signal">{a.position} · {a.year}</p>
+            <p className="eyebrow text-fog">{a.position} · {a.year}</p>
             <h3 className="display mt-3 text-[clamp(3.2rem,15vw,8rem)] leading-[0.82] [font-stretch:100%] lg:text-[5vw] md:[font-stretch:125%]">
               {a.sportName.split(" ").map((w) => (
                 <span key={w} className="block">{w}</span>

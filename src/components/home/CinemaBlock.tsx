@@ -30,7 +30,7 @@ export function CinemaBlock({
       </div>
       <div className="gutter absolute inset-x-0 bottom-0 pb-14 md:pb-20">
         <p data-reveal="fade" className="eyebrow mb-6 flex items-center gap-3 text-white/70" style={{ "--d": 500 } as React.CSSProperties}>
-          <span className="size-1.5 bg-signal" />
+          <span className="size-1.5 bg-bone" />
           {kicker}
         </p>
         <h2 data-reveal="lines">

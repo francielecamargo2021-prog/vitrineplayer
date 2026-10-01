@@ -17,14 +17,12 @@ export type HeroClip = {
   src: string;
   srcMobile?: string;
   poster?: string;
-  /** Rótulo do capítulo exibido no indicador (chave em dict.hero.chapters). */
-  chapter: number;
 };
 
 export const media = {
   hero: {
     clips: [] as HeroClip[],
-    // ex.: { src: "/media/hero/01-entrada.mp4", srcMobile: "/media/hero/01-entrada-m.mp4", poster: "/media/hero/01.jpg", chapter: 0 },
+    // ex.: { src: "/media/hero/01-entrada.mp4", srcMobile: "/media/hero/01-entrada-m.mp4", poster: "/media/hero/01.jpg" },
   },
   /** Blocos fotográficos em tela cheia entre as seções (JPG/AVIF ≥ 2400 px). */
   stills: {

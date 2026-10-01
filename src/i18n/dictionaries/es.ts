@@ -14,14 +14,10 @@ const es: Dictionary = {
     langLabel: "Idioma",
   },
   hero: {
-    feed: "Scouting feed",
-    regions: "BR · AR · PY · UY",
+    placeholder: "Placeholder · video real de partidos formativos en producción",
     headline: ["El talento", "necesita ser", "encontrado."],
     sub: "Una base privada de atletas, organizada para quienes buscan talento en el fútbol.",
     cta: "Registrar atleta",
-    secondary: "Soy profesional",
-    chapters: ["Salida al campo", "Concentración", "Regate", "Pase", "Gol", "Atajada", "Celebración", "Detalle"],
-    scroll: "Desliza",
   },
   cinema: {
     base: { kicker: "Divisiones formativas", title: ["Donde el futuro", "empieza a jugar."] },

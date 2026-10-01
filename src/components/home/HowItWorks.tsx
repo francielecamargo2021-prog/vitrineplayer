@@ -22,7 +22,7 @@ export function HowItWorks({ dict }: { dict: Dictionary }) {
           >
             <span
               aria-hidden
-              className="display text-[clamp(6.5rem,32vw,15rem)] leading-[0.78] text-transparent transition-colors duration-700 [-webkit-text-stroke:1px_rgba(238,235,229,0.3)] group-hover:text-signal group-hover:[-webkit-text-stroke-color:transparent] md:col-span-5"
+              className="display text-[clamp(6.5rem,32vw,15rem)] leading-[0.78] text-transparent transition-colors duration-700 [-webkit-text-stroke:1px_rgba(238,235,229,0.3)] group-hover:text-bone group-hover:[-webkit-text-stroke-color:transparent] md:col-span-5"
             >
               {step.n}
             </span>

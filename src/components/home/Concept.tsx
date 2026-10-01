@@ -15,7 +15,7 @@ export function Concept({ dict }: { dict: Dictionary }) {
             <span
               className={
                 i === 1
-                  ? "serif-accent text-[clamp(3rem,13vw,10rem)] leading-[0.92] text-signal"
+                  ? "serif-accent text-[clamp(3rem,13vw,10rem)] leading-[0.92] text-fog"
                   : "display text-[clamp(2.3rem,10.5vw,8rem)] [font-stretch:100%] md:text-[clamp(2rem,6.4vw,7rem)] md:[font-stretch:125%]"
               }
             >
@@ -42,7 +42,7 @@ export function Concept({ dict }: { dict: Dictionary }) {
           <div key={s.label} data-reveal style={{ "--d": i * 120 } as CSSProperties}>
             <p className="display text-[clamp(3.4rem,14vw,9rem)] leading-[0.8] tabular-nums [font-stretch:100%] md:text-[clamp(4rem,6.5vw,9rem)]">
               <span data-count={s.value}>{s.value}</span>
-              <span className="text-signal">{s.suffix}</span>
+              <span className="text-fog">{s.suffix}</span>
             </p>
             <p className="eyebrow mt-5 border-t border-white/15 pt-4">{s.label}</p>
           </div>

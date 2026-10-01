@@ -23,15 +23,13 @@ function useMedia(query: string) {
  * dois <video>, escolhe a versão mobile no celular, pausa fora da tela/aba
  * oculta e respeita prefers-reduced-motion (mostra só o poster).
  */
-export function HeroReel({ clips, chapters }: { clips: HeroClip[]; chapters: string[] }) {
+export function HeroReel({ clips }: { clips: HeroClip[] }) {
   const videoA = useRef<HTMLVideoElement>(null);
   const videoB = useRef<HTMLVideoElement>(null);
   const [slots, setSlots] = useState<[number, number]>([0, 1 % clips.length]); // clipe em cada <video>
   const [layer, setLayer] = useState<0 | 1>(0); // qual <video> está visível
-  const [progress, setProgress] = useState(0);
   const mobile = useMedia("(max-width: 767px)");
   const still = useMedia("(prefers-reduced-motion: reduce)");
-  const index = slots[layer];
 
   const srcOf = (i: number) => {
     const c = clips[i];
@@ -62,7 +60,6 @@ export function HeroReel({ clips, chapters }: { clips: HeroClip[]; chapters: str
 
   const onTime = (k: 0 | 1, v: HTMLVideoElement) => {
     if (k !== layer || !v.duration) return;
-    setProgress(v.currentTime / v.duration);
     if (clips.length > 1 && v.duration - v.currentTime < FADE) {
       const other = (1 - k) as 0 | 1;
       setSlots((s) => {
@@ -71,7 +68,6 @@ export function HeroReel({ clips, chapters }: { clips: HeroClip[]; chapters: str
         return next;
       });
       setLayer(other);
-      setProgress(0);
     }
   };
 
@@ -88,7 +84,7 @@ export function HeroReel({ clips, chapters }: { clips: HeroClip[]; chapters: str
           <video
             key={k}
             ref={k === 0 ? videoA : videoB}
-            className="absolute inset-0 size-full object-cover transition-opacity ease-linear [animation:hero-push_9s_var(--ease-cine)_both]"
+            className="absolute inset-0 size-full object-cover transition-opacity ease-linear"
             style={{ opacity: layer === k ? 1 : 0, transitionDuration: `${FADE}s` }}
             src={srcOf(slots[k])}
             poster={clips[slots[k]].poster}
@@ -100,30 +96,6 @@ export function HeroReel({ clips, chapters }: { clips: HeroClip[]; chapters: str
             aria-hidden
           />
         ))}
-      <ReelIndicator total={clips.length} index={index} label={chapters[clips[index].chapter] ?? ""} progress={progress} />
     </>
-  );
-}
-
-/** Indicador de capítulos — também usado (via CSS) na montagem de fallback. */
-export function ReelIndicator({ total, index, label, progress }: { total: number; index: number; label: string; progress: number }) {
-  return (
-    <div className="reel-indicator">
-      <p className="eyebrow flex items-center gap-3 text-white/70">
-        <span className="tabular-nums text-bone">{String(index + 1).padStart(2, "0")}</span>
-        <span className="h-px w-5 bg-white/30" />
-        <span>{label}</span>
-      </p>
-      <div className="flex gap-1.5">
-        {Array.from({ length: total }).map((_, i) => (
-          <span key={i} className="relative h-[2px] flex-1 overflow-hidden bg-white/15">
-            <span
-              className="absolute inset-0 origin-left bg-bone"
-              style={{ transform: `scaleX(${i < index ? 1 : i === index ? progress : 0})` }}
-            />
-          </span>
-        ))}
-      </div>
-    </div>
   );
 }

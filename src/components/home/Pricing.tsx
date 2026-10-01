@@ -14,7 +14,7 @@ export function Pricing({ lang, dict }: { lang: Locale; dict: Dictionary }) {
           <p className="display mt-6 flex items-start text-[clamp(5.5rem,30vw,16rem)] leading-[0.8] [font-stretch:100%] md:[font-stretch:125%]">
             <span className="mr-3 mt-[0.12em] font-mono text-[0.16em] font-normal tracking-normal text-ash">{p.currency}</span>
             {p.amount}
-            <span className="text-[0.42em] leading-[1.15] text-signal">{p.cents}</span>
+            <span className="text-[0.42em] leading-[1.15] text-fog">{p.cents}</span>
           </p>
           <p className="serif-accent mt-6 text-3xl text-fog md:text-4xl">{p.period}</p>
           <p className="mt-4 max-w-md text-fog">{p.noFee}</p>
@@ -24,7 +24,7 @@ export function Pricing({ lang, dict }: { lang: Locale; dict: Dictionary }) {
           <ul className="border-t border-white/12">
             {p.includes.map((item) => (
               <li key={item} className="flex items-start gap-4 border-b border-white/12 py-4">
-                <svg viewBox="0 0 16 16" className="mt-1 size-3.5 shrink-0 text-signal" fill="none" aria-hidden>
+                <svg viewBox="0 0 16 16" className="mt-1 size-3.5 shrink-0 text-fog" fill="none" aria-hidden>
                   <path d="M2 8.5l4 4 8-9" stroke="currentColor" strokeWidth="1.8" />
                 </svg>
                 <span>{item}</span>
@@ -35,7 +35,7 @@ export function Pricing({ lang, dict }: { lang: Locale; dict: Dictionary }) {
         </div>
       </div>
 
-      <p data-reveal="fade" className="mt-10 max-w-3xl border-l-2 border-signal pl-5 text-sm leading-relaxed text-fog">
+      <p data-reveal="fade" className="mt-10 max-w-3xl border-l-2 border-white/40 pl-5 text-sm leading-relaxed text-fog">
         {p.disclaimer}
       </p>
     </section>
