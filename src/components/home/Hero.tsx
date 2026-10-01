@@ -43,7 +43,11 @@ export function Hero({ lang, dict }: { lang: Locale; dict: Dictionary }) {
           </span>
           <span className="hero-line -mt-[0.08em] block overflow-hidden pt-[0.08em]" style={delay(600)}>
             <span className="font-display text-[clamp(3.4rem,21vw,7rem)] font-black uppercase leading-[0.8] tracking-[-0.01em] [font-stretch:62%] md:text-[clamp(4rem,12.4vw,17rem)]">
-              <span className="block md:inline">{hero.key[0]}</span> {hero.key[1]}
+              <span className="block text-[#e6e5de] md:inline">{hero.key[0]}</span>{" "}
+              {/* Contorno: o vídeo aparece por dentro; traço mais grosso no celular, sombra mínima só no traço */}
+              <span className="text-transparent [-webkit-text-stroke:0.026em_#efeee8] [filter:drop-shadow(0_1px_1.5px_rgba(5,8,6,0.45))] md:[-webkit-text-stroke:0.016em_#efeee8]">
+                {hero.key[1]}
+              </span>
             </span>
           </span>
         </h1>
