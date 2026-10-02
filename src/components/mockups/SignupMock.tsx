@@ -17,7 +17,7 @@ export function SignupMock({ dict }: { dict: Dictionary }) {
   const panels = [
     <Grid key="guardian">
       <Input label={f.guardianName} placeholder="Mariana Andrade" className="sm:col-span-2" />
-      <Select label={f.relation} options={["Mãe", "Pai", "Tutor(a) legal"]} />
+      <Select label={f.relation} options={["Mãe", "Pai", "Responsável legal"]} />
       <Input label={f.document} placeholder="000.000.000-00" />
       <Input label={f.email} type="email" placeholder="mariana@email.com" />
       <Input label={f.phone} type="tel" placeholder="+55 19 90000-0000" />

@@ -29,6 +29,9 @@ export function AthleteSheet({ bundle, urls, p, locale, actions }: { bundle: Ath
     [f.height, a.height_cm ? `${a.height_cm} cm` : empty],
     [f.weight, a.weight_kg ? `${a.weight_kg} kg` : empty],
     [f.foot, a.foot ? f.feet[a.foot] : empty],
+    [f.nationality, a.nationality ? region.of(a.nationality) : empty],
+    [f.otherCitizenship, a.other_citizenships.length ? a.other_citizenships.map((c) => region.of(c)).join(", ") : "—"],
+    [f.passport, a.valid_passport === null ? empty : a.valid_passport ? p.form.yes : p.form.no],
   ];
   const availability: [string, string | null][] = [
     [f.available, a.available === null ? null : a.available ? p.form.yes : p.form.no],

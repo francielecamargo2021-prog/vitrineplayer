@@ -8,7 +8,8 @@ import { NewAthleteForm } from "@/components/panel/NewAthleteForm";
 export default async function NewAthletePage({ params }: PageProps<"/[lang]/painel/atleta/novo">) {
   const { lang } = await params;
   if (!hasLocale(lang)) notFound();
-  if (!(await requireGuardian(lang))) return null;
+  const session = await requireGuardian(lang);
+  if (!session) return null;
   const p = await getPanelDictionary(lang);
   return (
     <main className="gutter mx-auto max-w-3xl pb-24 pt-10 md:pt-16">
@@ -17,7 +18,7 @@ export default async function NewAthletePage({ params }: PageProps<"/[lang]/pain
         <span className="block text-transparent [-webkit-text-stroke:0.018em_#efeee8]">{p.newAthlete.title[1]}</span>
       </h1>
       <p className="mt-5 max-w-[46ch] text-lg leading-relaxed text-fog">{p.newAthlete.lead}</p>
-      <NewAthleteForm action={createAthlete.bind(null, lang)} p={p} cancelHref={`/${lang}/painel`} locale={htmlLang[lang]} />
+      <NewAthleteForm action={createAthlete.bind(null, lang)} p={p} cancelHref={`/${lang}/painel`} locale={htmlLang[lang]} defaultCountry={session.profile.country} />
     </main>
   );
 }

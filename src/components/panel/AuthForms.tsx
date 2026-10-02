@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useActionState } from "react";
 import type { PanelDictionary } from "@/i18n/get-dictionary";
 import type { FormState } from "@/lib/panel/actions";
-import { TextField, primaryButton } from "./controls";
+import { countryOptions } from "@/domain/athlete";
+import { SelectField, TextField, primaryButton } from "./controls";
 
 type Action = (prev: FormState, fd: FormData) => Promise<FormState>;
 
@@ -24,15 +25,16 @@ function Feedback({ state, a }: { state: FormState; a: PanelDictionary["auth"] }
   return <p role="alert" className="border-l-2 border-[#e5a3a3] pl-4 text-[#f0c4c4]">{msg}</p>;
 }
 
-export function SignupForm({ action, a, loginHref }: { action: Action; a: PanelDictionary["auth"]; loginHref: string }) {
+export function SignupForm({ action, a, loginHref, locale, select }: { action: Action; a: PanelDictionary["auth"]; loginHref: string; locale: string; select: string }) {
   const [state, formAction, pending] = useActionState(action, undefined);
   return (
     <form action={formAction} className="space-y-6">
       <TextField label={a.fullName} name="full_name" autoComplete="name" required minLength={3} />
       <div className="grid gap-6 sm:grid-cols-2">
         <TextField label={a.email} name="email" type="email" autoComplete="email" required />
-        <TextField label={a.whatsapp} name="whatsapp" type="tel" autoComplete="tel" inputMode="tel" placeholder="+55 11 90000-0000" required hint={a.whatsappHint} />
+        <TextField label={a.whatsapp} name="whatsapp" type="tel" autoComplete="tel" inputMode="tel" placeholder="+00 00 00000-0000" required hint={a.whatsappHint} />
       </div>
+      <SelectField label={a.country} name="country" required placeholder={select} options={countryOptions(locale)} hint={a.countryHint} />
       <div className="grid gap-6 sm:grid-cols-2">
         <TextField label={a.password} name="password" type="password" autoComplete="new-password" required minLength={8} hint={a.passwordHint} />
         <TextField label={a.confirm} name="confirm" type="password" autoComplete="new-password" required minLength={8} />

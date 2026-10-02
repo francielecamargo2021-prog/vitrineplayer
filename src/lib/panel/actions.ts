@@ -47,8 +47,9 @@ export async function signUp(lang: string, _prev: FormState, fd: FormData): Prom
   const fullName = str(fd, "full_name");
   const email = str(fd, "email").toLowerCase();
   const whatsapp = str(fd, "whatsapp").replace(/[^\d+]/g, "");
+  const country = oneOf(str(fd, "country"), countries);
   const password = String(fd.get("password") ?? "");
-  if (!fullName || !email || !whatsapp || !password) return { error: "required" };
+  if (!fullName || !email || !whatsapp || !password || !country) return { error: "required" };
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "email" };
   if (!/^\+?\d{10,15}$/.test(whatsapp)) return { error: "whatsapp" };
   if (password.length < 8) return { error: "password" };
@@ -64,7 +65,7 @@ export async function signUp(lang: string, _prev: FormState, fd: FormData): Prom
     password,
     options: {
       data: {
-        full_name: fullName, whatsapp, locale: l === "es" ? "es" : "pt-BR",
+        full_name: fullName, whatsapp, country, locale: l === "es" ? "es" : "pt-BR",
         consents, consent_version: CONSENT_VERSION, consent_ip: ip, consent_ua: h.get("user-agent") ?? "",
       },
     },
@@ -93,10 +94,11 @@ export async function createAthlete(lang: string, _prev: FormState, fd: FormData
   const { supabase } = await authed();
   const birth = str(fd, "birth_date");
   const relation = oneOf(str(fd, "relation"), ["mother", "father", "legal_guardian", "self", "other"] as const) ?? "legal_guardian";
-  if (str(fd, "full_name").length < 3 || !isDate(birth)) return { error: "required" };
+  const country = oneOf(str(fd, "country"), countries);
+  if (str(fd, "full_name").length < 3 || !isDate(birth) || !country) return { error: "required" };
   const { data, error } = await supabase.rpc("create_athlete", {
     p_full_name: str(fd, "full_name"), p_sport_name: str(fd, "sport_name"), p_birth_date: birth,
-    p_country: oneOf(str(fd, "country"), countries) ?? "BR",
+    p_country: country,
     p_relation: relation,
   });
   if (error || !data) return { error: "generic" };
@@ -111,12 +113,16 @@ export async function saveStep(lang: string, id: string, step: StepSlug, _prev: 
 
   if (step === "dados") {
     const birth = str(fd, "birth_date");
-    if (str(fd, "full_name").length < 3 || !isDate(birth)) return { error: "required" };
+    const country = oneOf(str(fd, "country"), countries);
+    if (str(fd, "full_name").length < 3 || !isDate(birth) || !country) return { error: "required" };
+    const nationality = oneOf(str(fd, "nationality"), countries);
     patch = {
       full_name: str(fd, "full_name"), sport_name: opt(fd, "sport_name"), birth_date: birth,
       sex: oneOf(str(fd, "sex"), sexes),
-      nationality: str(fd, "nationality").split(",").map((s) => s.trim()).filter(Boolean).slice(0, 3),
-      country: oneOf(str(fd, "country"), countries) ?? "BR", state: opt(fd, "state"), city: opt(fd, "city"),
+      nationality,
+      other_citizenships: [...new Set(all(fd, "other_citizenships"))].filter((c) => c !== nationality && (countries as string[]).includes(c)).slice(0, 3),
+      valid_passport: yesNo(str(fd, "valid_passport")),
+      country, state: opt(fd, "state"), city: opt(fd, "city"),
     };
   }
 

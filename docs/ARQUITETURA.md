@@ -78,3 +78,56 @@ npx supabase test db          # testes de isolamento RLS (pgTAP)
 ```
 
 `supabase/seed.sql` só roda localmente. Ele contém `dev_test_simulate_payment()` (DEV/TEST, executável apenas por conexão direta ao banco local) para testar o fluxo de revisão sem gateway.
+
+## Decisões de escopo e visão do ecossistema (out/2026)
+
+Registro para que o que existe hoje não limite o que vem depois. **Nada desta seção está implementado além do indicado como "feito".**
+
+### Ecossistema
+
+| Grupo | Papel | Estado |
+|---|---|---|
+| Atletas e responsáveis | criam e mantêm perfis completos | feito (painel do responsável) |
+| Clubes, núcleos de captação, scouts | encontram talentos | futuro (busca profissional) |
+| Empresários e agências | encontram atletas e, depois, parceiros | futuro |
+| Peneiras / oportunidades | conectam oportunidades a atletas compatíveis | futuro |
+| Marcas / patrocinadores | participam por oportunidades comerciais controladas | futuro (`pro_org_kind = 'brand'` já existe) |
+| VitrinePlayer | organiza dados, controla acesso e privacidade, cria conexões | — |
+
+Todos os grupos profissionais são `organizations` (+ `organization_members`); o tipo (`pro_org_kind`: club, scout, agent, company, scouting_hub, brand) diferencia. Novos papéis entram como novos tipos/colunas, sem tabelas paralelas.
+
+### Terminologia
+
+Na interface, sempre **Responsável** (nunca "Tutor"). Internamente seguem `RESPONSIBLE`, `athlete_guardians`, `guardian_relation`.
+
+### Internacional desde o início (feito)
+
+- País sempre ISO-3166 alfa-2 (`athletes.country`, `profiles.country`, `organizations.country`), com `check`.
+- Estado/província/departamento/região e cidade em texto livre — nenhuma dependência de UF brasileira. Normalização futura (ISO-3166-2) pode entrar como coluna adicional sem quebrar.
+- Formulários listam América Latina primeiro e depois todos os países; nenhum padrão fixo "BR" (o país do responsável vem do cadastro e sugere o do atleta).
+- Nacionalidade principal (`nationality`), outras cidadanias (`other_citizenships`, até 3) e passaporte válido (`valid_passport`). **Nunca** número ou cópia de passaporte. "Pode atuar em outro mercado" é derivável das cidadanias (ex.: cidadania de país da UE) e vira filtro, não pergunta extra.
+- Idiomas: `pt` e `es` hoje; `locales` + dicionários tipados permitem `en`, `it` etc. sem mudar a estrutura.
+
+### Busca profissional (futuro)
+
+Os filtros previstos já são colunas estruturadas e indexadas (0003): país, estado/cidade, nacionalidade, outras cidadanias, ano de nascimento (`birth_year`), idade/categoria, posição principal e secundárias, pé, altura, peso, clube atual, clubes anteriores (`athlete_clubs`), federação, competições, características (`traits`), disponibilidade (viagem, cidade, estado, internacional) e o que busca (`seeking`). Toda consulta profissional passa por `athlete_visible_to_pro()` (aprovado + ativo + não bloqueado). A busca geral também poderá retornar organizações aprovadas, conforme regras de exibição por tipo.
+
+### Buscas salvas (futuro)
+
+Tabela prevista `pro_saved_searches (id, organization_id, created_by, name, filters jsonb, notify boolean, last_run_at)`. `filters` usa as mesmas chaves das colunas acima, para que um job futuro compare atletas recém-aprovados com as buscas e enfileire avisos em `notification_outbox` (já existe). O job deve aplicar `athlete_visible_to_pro` no contexto de cada organização, para que bloqueios valham também para avisos.
+
+### Peneiras / oportunidades (futuro)
+
+Modelo previsto `opportunities`: organização responsável (ou VitrinePlayer), `origin` ('third_party' | 'vitrineplayer') exibido sempre na interface, país/região/cidade/local, datas e período de inscrição, anos de nascimento/categorias aceitos, posições, sexo/categoria, requisitos, descrição, link/processo de inscrição, gratuita/paga (+ valor), status (rascunho, aberta, encerrada, cancelada). Segmentação da base usa os mesmos campos estruturados do atleta. Texto padrão: nenhuma oportunidade garante avaliação, seleção ou contratação.
+
+### Parcerias entre empresários/agentes (futuro, B2B)
+
+Não é rede social. Previsto: anúncios privados entre organizações verificadas do tipo `agent` (mercado/país de interesse, categoria, posição, tipo de parceria, disponibilidade internacional) e solicitação privada de contato intermediada, no mesmo padrão de `contact_requests`. Depende de desenho comercial e jurídico.
+
+### Patrocínios (futuro)
+
+Marcas são `organizations` com `kind = 'brand'`. Participação via oportunidades comerciais controladas pela VitrinePlayer; sem acesso direto à base de atletas.
+
+### Privacidade (feito)
+
+O bloqueio do responsável vale para qualquer tipo de organização. Para a organização bloqueada, o atleta simplesmente não existe: não aparece em resultados, recomendações, buscas salvas, peneiras segmentadas ou contato, e nada indica o bloqueio.

@@ -6,7 +6,7 @@ import { getAthleteBundle, requireGuardian, signedPhotoUrls } from "@/lib/panel/
 import { addVideo, backToDraft, removeVideo, requestPayment, resubmit, saveStep, setVisibility } from "@/lib/panel/actions";
 import { isStep, stepSlugs } from "@/lib/panel/steps";
 import {
-  ageOn, availabilityAnswers, categories, categoryFor, countries, feet, positions, seekingKinds, sexes, traitKeys, youtubeThumb,
+  ageOn, availabilityAnswers, categories, categoryFor, countryOptions, feet, positions, seekingKinds, sexes, traitKeys, youtubeThumb,
 } from "@/domain/athlete";
 import { Choices, SectionTitle, SelectField, TextArea, TextField, ghostButton, primaryButton } from "@/components/panel/controls";
 import { StepForm } from "@/components/panel/StepForm";
@@ -32,7 +32,7 @@ export default async function EditStep({ params }: PageProps<"/[lang]/painel/atl
   const opts = <T extends string>(list: readonly T[], map: Record<T, string>) => list.map((v) => ({ value: v, label: map[v] }));
   const yn = [{ value: "yes", label: p.form.yes }, { value: "no", label: p.form.no }];
   const ynValue = (v: boolean | null) => (v === null ? null : v ? "yes" : "no");
-  const regions = new Intl.DisplayNames([htmlLang[lang]], { type: "region" });
+  const countryList = countryOptions(htmlLang[lang]);
 
   let body: React.ReactNode = null;
 
@@ -44,10 +44,16 @@ export default async function EditStep({ params }: PageProps<"/[lang]/painel/atl
           <TextField label={f.sportName} name="sport_name" defaultValue={a.sport_name ?? ""} />
           <TextField label={f.birthDate} name="birth_date" type="date" defaultValue={a.birth_date} required hint={`${f.age}: ${ageOn(a.birth_date)} · ${categoryFor(a.birth_date)}`} />
           <Choices legend={f.sex} name="sex" options={opts(sexes, f.sexes)} value={a.sex} className="sm:col-span-2" />
-          <TextField label={f.nationality} name="nationality" defaultValue={a.nationality.join(", ")} hint={f.nationalityHint} />
-          <SelectField label={f.country} name="country" defaultValue={a.country} options={countries.map((c) => ({ value: c, label: regions.of(c) ?? c }))} />
+          <SelectField label={f.country} name="country" defaultValue={a.country} options={countryList} required hint={f.countryHint} />
           <TextField label={f.state} name="state" defaultValue={a.state ?? ""} />
           <TextField label={f.city} name="city" defaultValue={a.city ?? ""} />
+        </div>
+        <div className="grid gap-6 border-t border-white/10 pt-8 sm:grid-cols-2">
+          <SelectField label={f.nationality} name="nationality" defaultValue={a.nationality} options={countryList} placeholder={p.form.select} className="sm:col-span-2" />
+          {[0, 1, 2].map((i) => (
+            <SelectField key={i} label={i === 0 ? f.otherCitizenship : `${f.otherCitizenship} ${i + 1}`} name="other_citizenships" defaultValue={a.other_citizenships[i] ?? ""} options={countryList} placeholder={p.form.none} optional={p.form.optional} hint={i === 0 ? f.otherCitizenshipHint : undefined} />
+          ))}
+          <Choices legend={f.passport} name="valid_passport" options={yn} value={ynValue(a.valid_passport)} hint={f.passportHint} className="sm:col-span-2" />
         </div>
       </StepForm>
     );

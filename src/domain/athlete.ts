@@ -38,8 +38,24 @@ export const traitKeys = [
 ] as const;
 export type TraitKey = (typeof traitKeys)[number];
 
-/** Países atendidos no cadastro (ISO-3166 alfa-2). */
-export const countries = ["BR", "AR", "PY", "UY", "CL", "BO", "PE", "CO", "EC", "VE", "PT", "ES", "US"];
+/**
+ * Países (ISO-3166 alfa-2). A VitrinePlayer começa na América Latina, mas não
+ * depende de nenhum país: `featuredCountries` só ordena a lista no formulário.
+ */
+export const featuredCountries = ["BR", "AR", "PY", "UY", "CL", "CO", "PE", "BO", "EC", "VE", "MX", "CR", "PA", "GT", "HN", "SV", "NI", "DO", "CU", "PR"];
+export const countries = [
+  ...featuredCountries,
+  ..."AD AE AF AG AI AL AM AO AQ AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BQ BS BT BW BY BZ CA CD CF CG CH CI CK CM CN CV CW CY CZ DE DJ DK DM DZ EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GU GW GY HK HR HT HU ID IE IL IM IN IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MY MZ NA NC NE NF NG NL NO NP NR NU NZ OM PE PF PG PH PK PL PM PS PT PW QA RE RO RS RU RW SA SB SC SD SE SG SH SI SK SL SM SN SO SR SS ST SX SY SZ TC TD TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UZ VA VC VG VI VN VU WF WS XK YE YT ZA ZM ZW"
+    .split(" ").filter((c) => !featuredCountries.includes(c)),
+];
+
+/** Opções de país no idioma da tela: destaque latino-americano primeiro, depois A–Z. */
+export function countryOptions(locale: string) {
+  const names = new Intl.DisplayNames([locale], { type: "region" });
+  const label = (c: string) => names.of(c) ?? c;
+  const rest = countries.slice(featuredCountries.length).sort((a, b) => label(a).localeCompare(label(b), locale));
+  return [...featuredCountries, ...rest].map((c) => ({ value: c, label: label(c) }));
+}
 
 export const PHOTO_LIMIT = 12;
 export const PHOTO_BUCKET = "athlete-photos";
@@ -96,7 +112,7 @@ export type CompletenessGroup = (typeof completenessGroups)[number];
 export function completeness({ athlete: a, photos, videos, clubs, achievements }: AthleteBundle) {
   const filled = (v: unknown) => (Array.isArray(v) ? v.length > 0 : v !== null && v !== undefined && v !== "");
   const groups: Record<CompletenessGroup, { weight: number; checks: boolean[] }> = {
-    personal: { weight: 15, checks: [a.full_name, a.sport_name, a.birth_date, a.sex, a.nationality, a.state, a.city].map(filled) },
+    personal: { weight: 15, checks: [a.full_name, a.sport_name, a.birth_date, a.sex, a.nationality, a.valid_passport, a.state, a.city].map(filled) },
     photos: { weight: 15, checks: [photos.some((p) => p.is_primary), photos.length >= 3] },
     physical: { weight: 10, checks: [a.height_cm, a.weight_kg, a.foot].map(filled) },
     football: {

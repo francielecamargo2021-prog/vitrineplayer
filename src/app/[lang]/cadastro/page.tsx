@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { redirect } from "next/navigation";
-import { hasLocale } from "@/i18n/config";
+import { hasLocale, htmlLang } from "@/i18n/config";
 import { getDictionary, getPanelDictionary } from "@/i18n/get-dictionary";
 import { privateMetadata } from "@/lib/seo";
 import { getSession } from "@/lib/panel/data";
@@ -19,7 +19,7 @@ export default async function SignupPage({ params }: PageProps<"/[lang]/cadastro
   if (session.user) redirect(`/${lang}/painel`);
   return (
     <AuthLayout lang={lang} langLabel={dict.nav.langLabel} title={p.auth.signupTitle} lead={p.auth.signupLead}>
-      {session.supabase ? <SignupForm action={signUp.bind(null, lang)} a={p.auth} loginHref={`/${lang}/entrar`} /> : <BackendNotice p={p} />}
+      {session.supabase ? <SignupForm action={signUp.bind(null, lang)} a={p.auth} loginHref={`/${lang}/entrar`} locale={htmlLang[lang]} select={p.form.select} /> : <BackendNotice p={p} />}
     </AuthLayout>
   );
 }
