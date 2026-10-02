@@ -131,11 +131,13 @@ export function completeness({ athlete: a, photos, videos, clubs, achievements }
   };
   let total = 0;
   const missing: CompletenessGroup[] = [];
+  const ratios = {} as Record<CompletenessGroup, number>;
   for (const key of completenessGroups) {
     const g = groups[key];
     const ratio = g.checks.filter(Boolean).length / g.checks.length;
     total += g.weight * ratio;
+    ratios[key] = ratio;
     if (ratio < 1) missing.push(key);
   }
-  return { percent: Math.round(total), missing };
+  return { percent: Math.round(total), missing, ratios };
 }

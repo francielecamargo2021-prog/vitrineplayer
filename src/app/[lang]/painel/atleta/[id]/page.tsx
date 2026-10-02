@@ -4,7 +4,6 @@ import { hasLocale, htmlLang } from "@/i18n/config";
 import { getPanelDictionary } from "@/i18n/get-dictionary";
 import { getAthleteBundle, requireGuardian, signedPhotoUrls } from "@/lib/panel/data";
 import { AthleteSheet } from "@/components/panel/AthleteSheet";
-import { ghostButton, primaryButton } from "@/components/panel/controls";
 
 /** Pré-visualização privada da ficha (o responsável vê o perfil como apresentação). */
 export default async function AthletePage({ params }: PageProps<"/[lang]/painel/atleta/[id]">) {
@@ -19,9 +18,14 @@ export default async function AthletePage({ params }: PageProps<"/[lang]/painel/
     <AthleteSheet
       bundle={bundle} urls={urls} p={p} locale={htmlLang[lang]}
       actions={
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <Link href={`/${lang}/painel/atleta/${id}/editar/dados`} className={`${primaryButton} w-full sm:w-auto sm:min-w-[14rem]`}>{p.dashboard.edit}</Link>
-          <Link href={`/${lang}/painel?atleta=${id}`} className={`${ghostButton} w-full sm:w-auto`}>{p.shell.panel}</Link>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+          <Link href={`/${lang}/painel/atleta/${id}/editar/dados`} className="inline-flex h-14 items-center justify-center bg-ink px-7 font-display text-[1.15rem] font-extrabold uppercase tracking-[0.03em] text-bone [font-stretch:62%] transition-colors hover:bg-turf sm:min-w-[14rem]">
+            {p.dashboard.edit}
+          </Link>
+          <div className="flex gap-6 text-[0.9rem] font-medium sm:ml-4">
+            <Link href={`/${lang}/painel?atleta=${id}`} className="underline decoration-ink/30 underline-offset-[6px] hover:decoration-ink">{p.shell.panel}</Link>
+            <Link href={`/${lang}/painel/atleta/${id}/editar/privacidade`} className="underline decoration-ink/30 underline-offset-[6px] hover:decoration-ink">{p.dashboard.privacy}</Link>
+          </div>
         </div>
       }
     />
