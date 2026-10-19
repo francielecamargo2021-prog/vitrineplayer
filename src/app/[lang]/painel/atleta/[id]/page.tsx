@@ -25,6 +25,7 @@ export default async function AthletePage({ params }: PageProps<"/[lang]/painel/
           <div className="flex gap-6 text-[0.9rem] font-medium sm:ml-4">
             <Link href={`/${lang}/painel?atleta=${id}`} className="underline decoration-ink/30 underline-offset-[6px] hover:decoration-ink">{p.shell.panel}</Link>
             <Link href={`/${lang}/painel/atleta/${id}/editar/privacidade`} className="underline decoration-ink/30 underline-offset-[6px] hover:decoration-ink">{p.dashboard.privacy}</Link>
+            <Link href={`/${lang}/painel/atleta/${id}/editar/avaliacao`} className="underline decoration-ink/30 underline-offset-[6px] hover:decoration-ink">{p.steps.avaliacao}</Link>
           </div>
         </div>
       }

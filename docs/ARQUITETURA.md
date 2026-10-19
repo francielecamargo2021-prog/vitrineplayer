@@ -131,3 +131,15 @@ Marcas são `organizations` com `kind = 'brand'`. Participação via oportunidad
 ### Privacidade (feito)
 
 O bloqueio do responsável vale para qualquer tipo de organização. Para a organização bloqueada, o atleta simplesmente não existe: não aparece em resultados, recomendações, buscas salvas, peneiras segmentadas ou contato, e nada indica o bloqueio.
+
+## Avaliação técnica por IA (0004)
+
+Triagem **preliminar** a partir de um único vídeo, para ajudar profissionais a decidir se vale assistir ao vídeo original. Não substitui a avaliação humana.
+
+- **Fluxo:** painel do responsável → etapa *Avaliação técnica* (depois de *Vídeos*) → escolhe UM vídeo do YouTube já cadastrado, confirma tipo (melhores momentos, partida completa, treino), duração, camisa, cor do uniforme e posição, e dá o consentimento específico (`consent_kind = 'ai_video_analysis'`). Pedido criado só por `request_ai_analysis()`.
+- **Liberação:** sem pagamento confirmado o pedido fica `awaiting_payment`; `mark_payment_paid` (trigger em `payments`) o coloca em `queued`. Um pedido em andamento por atleta; quantidade de avaliações = `ai_settings.included_per_athlete` + `ai_analysis_grants` (sem regra comercial fixa); limite de pedidos em 30 dias.
+- **Processamento em lote:** `POST /api/ai/ciclo` (agendador, `Authorization: Bearer $CRON_SECRET`) roda `runCycle` (`src/lib/ai/pipeline.ts`): planeja itens (vídeo curto = 1 item; longo = trechos de 15 min + consolidação em texto), acompanha lotes abertos e envia um novo lote quando (a) encheu (`max_items_per_batch`), (b) o item mais antigo esperou `max_wait_hours` (padrão 6 h) ou (c) há consolidação pendente — sempre dentro do orçamento diário/mensal. Chave de cada linha do lote = id do item (`ai_analysis_jobs`) → pedido → atleta. Reserva atômica (`ai_claim_jobs`), conclusão única (`ai_complete_job`), novas tentativas até `max_attempts`, reconciliação de lote criado mas não registrado, custo real por `usageMetadata`.
+- **Travas de custo:** nada é enviado sem `ai_settings.enabled = true` (padrão `false`), `AI_ANALYSIS_ENABLED=true`, `GEMINI_API_KEY` (somente servidor) e orçamento disponível.
+- **Relatório:** rubrica por posição versionada (`src/lib/ai/rubric.ts`), notas 1–5 relativas à categoria, só com ≥ 2 lances citados com minuto; nota geral só com cobertura ≥ 60% e atleta identificado; melhores momentos limitam a confiança a "média"; sem identificação segura não há avaliação (`unidentified`). Guardado em `ai_video_reports` + `ai_report_scores` (uma linha por fundamento observado — base dos filtros futuros; atleta sem avaliação não perde nada na busca).
+- **Publicação:** nasce não publicado; o responsável publica, retira ou exclui (`set_ai_report_published`, `delete_ai_report`, que revoga o consentimento). Profissional só lê relatório publicado, de atleta visível para ele (`athlete_visible_to_pro`) e como membro de organização esportiva aprovada (`is_sport_pro`: marcas nunca).
+- **Testes sem custo:** `npm run test:ai` (pipeline com Gemini simulado) e `npm run test:db` (migrations + RLS em PostgreSQL local, sem Docker; no Supabase: `npx supabase test db`).

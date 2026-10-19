@@ -78,3 +78,22 @@ export async function activitySignals(supabase: ServerClient, id: string) {
   const { data } = await supabase.rpc("athlete_activity_signals", { p_athlete: id });
   return (data ?? []) as { kind: ActivityKind; last_at: string }[];
 }
+
+/** Pedido de avaliação por IA mais recente do atleta + relatório (se houver). Leitura do responsável (RLS). */
+export async function getAiState(supabase: ServerClient, athleteId: string) {
+  const { data: request } = await supabase
+    .from("ai_analysis_requests")
+    .select("id, status, media_id, video_type, shirt_number, shirt_color, position, created_at, completed_at")
+    .eq("athlete_id", athleteId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const { data: report } = await supabase
+    .from("ai_video_reports")
+    .select("*")
+    .eq("athlete_id", athleteId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return { request, report };
+}

@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { hasLocale, htmlLang } from "@/i18n/config";
 import { getPanelDictionary } from "@/i18n/get-dictionary";
-import { getAthleteBundle, requireGuardian, signedPhotoUrls } from "@/lib/panel/data";
+import { getAiState, getAthleteBundle, requireGuardian, signedPhotoUrls } from "@/lib/panel/data";
+import { cancelAiAnalysis, requestAiAnalysis } from "@/lib/panel/ai-actions";
 import { addVideo, backToDraft, removeVideo, requestPayment, resubmit, saveStep, setVisibility } from "@/lib/panel/actions";
 import { isStep, stepSlugs } from "@/lib/panel/steps";
 import {
@@ -14,6 +15,7 @@ import { Repeatable } from "@/components/panel/Repeatable";
 import { PhotoManager } from "@/components/panel/PhotoManager";
 import { VideoAddForm } from "@/components/panel/VideoAddForm";
 import { BlockManager } from "@/components/panel/BlockManager";
+import { AiRequestForm } from "@/components/ai/AiRequestForm";
 
 export default async function EditStep({ params }: PageProps<"/[lang]/painel/atleta/[id]/editar/[etapa]">) {
   const { lang, id, etapa } = await params;
@@ -170,6 +172,43 @@ export default async function EditStep({ params }: PageProps<"/[lang]/painel/atl
           </ul>
         )}
         <VideoAddForm action={addVideo.bind(null, lang, id)} t={p.videos} optional={p.form.optional} />
+        <NextLink href={`${base}/editar/${stepSlugs[idx + 1]}`} label={p.form.saveNext} exit={`/${lang}/painel`} exitLabel={p.form.exit} />
+      </div>
+    );
+  }
+
+  if (etapa === "avaliacao") {
+    const ai = p.ai;
+    const { request } = await getAiState(supabase, id);
+    // pedido em andamento ou concluído: mostra o estado; senão, o formulário
+    const showForm = !request || ["unidentified", "failed", "cancelled"].includes(request.status);
+    const st = request ? ai.status[request.status] : null;
+    body = (
+      <div className="space-y-10">
+        <p className="max-w-[62ch] leading-relaxed text-fog">{ai.lead}</p>
+        {request && st && (
+          <section className={`space-y-3 border-l-2 pl-4 ${request.status === "completed" ? "border-grass" : request.status === "unidentified" || request.status === "failed" ? "border-[#e5a3a3]" : "border-white/30"}`}>
+            <p className="font-display text-[1.6rem] font-extrabold uppercase leading-none [font-stretch:62%]">{st.title}</p>
+            <p className="max-w-[60ch] text-[0.95rem] leading-relaxed text-fog">{st.body}</p>
+            <div className="flex flex-wrap gap-3 pt-2">
+              {request.status === "completed" && <Link href={`${base}/avaliacao`} className={primaryButton}>{ai.view}</Link>}
+              {["awaiting_payment", "queued"].includes(request.status) && (
+                <form action={cancelAiAnalysis.bind(null, lang, id, request.id)}>
+                  <button className={ghostButton}>{ai.cancel}</button>
+                </form>
+              )}
+            </div>
+          </section>
+        )}
+        {showForm && (bundle.videos.length === 0 ? (
+          <p className="text-ash">{ai.noVideos}</p>
+        ) : (
+          <AiRequestForm
+            action={requestAiAnalysis.bind(null, lang, id)} t={ai} defaultPosition={a.primary_position}
+            positions={opts(positions, p.positions)}
+            videos={bundle.videos.filter((v) => v.external_id).map((v) => ({ id: v.id, title: v.title, thumb: youtubeThumb(v.external_id!), type: v.video_type }))}
+          />
+        ))}
         <NextLink href={`${base}/editar/${stepSlugs[idx + 1]}`} label={p.form.saveNext} exit={`/${lang}/painel`} exitLabel={p.form.exit} />
       </div>
     );

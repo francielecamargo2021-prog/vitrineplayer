@@ -5,6 +5,24 @@ export type Database = {
   
   "public": {
           Tables: {
+            "ai_analysis_requests": {
+                  Row: { "id": string, "athlete_id": string, "media_id": string, "requested_by": string, "consent_id": string, "status": Database["public"]["Enums"]["ai_analysis_status"], "video_type": Database["public"]["Enums"]["video_type"], "youtube_id": string, "video_minutes": number, "range_start_s": number | null, "range_end_s": number | null, "shirt_number": number, "shirt_color": string, "position": Database["public"]["Enums"]["football_position"], "category": string | null, "birth_year": number | null, "report_locale": string, "rubric_version": string, "prompt_version": string, "model": string, "estimated_cost_usd": number | null, "cost_usd": number, "error": string | null, "queued_at": string | null, "completed_at": string | null, "cancelled_at": string | null, "created_at": string, "updated_at": string }
+                  Insert: { "id"?: string, "athlete_id": string, "media_id": string, "requested_by": string, "consent_id": string, "status"?: Database["public"]["Enums"]["ai_analysis_status"], "video_type": Database["public"]["Enums"]["video_type"], "youtube_id": string, "video_minutes": number, "range_start_s"?: number | null, "range_end_s"?: number | null, "shirt_number": number, "shirt_color": string, "position": Database["public"]["Enums"]["football_position"], "category"?: string | null, "birth_year"?: number | null, "report_locale"?: string, "rubric_version": string, "prompt_version": string, "model": string, "estimated_cost_usd"?: number | null, "cost_usd"?: number, "error"?: string | null, "queued_at"?: string | null, "completed_at"?: string | null, "cancelled_at"?: string | null, "created_at"?: string, "updated_at"?: string }
+                  Update: { "id"?: string, "athlete_id"?: string, "media_id"?: string, "requested_by"?: string, "consent_id"?: string, "status"?: Database["public"]["Enums"]["ai_analysis_status"], "video_type"?: Database["public"]["Enums"]["video_type"], "youtube_id"?: string, "video_minutes"?: number, "range_start_s"?: number | null, "range_end_s"?: number | null, "shirt_number"?: number, "shirt_color"?: string, "position"?: Database["public"]["Enums"]["football_position"], "category"?: string | null, "birth_year"?: number | null, "report_locale"?: string, "rubric_version"?: string, "prompt_version"?: string, "model"?: string, "estimated_cost_usd"?: number | null, "cost_usd"?: number, "error"?: string | null, "queued_at"?: string | null, "completed_at"?: string | null, "cancelled_at"?: string | null, "created_at"?: string, "updated_at"?: string }
+                  Relationships: []
+                },
+            "ai_video_reports": {
+                  Row: { "id": string, "request_id": string, "athlete_id": string, "media_id": string, "video_type": Database["public"]["Enums"]["video_type"], "position": Database["public"]["Enums"]["football_position"], "position_group": string, "category": string | null, "rubric_version": string, "model": string, "overall_score": number | null, "coverage": number, "confidence": Database["public"]["Enums"]["ai_confidence"], "summary": string, "strengths": string[], "development": string[], "decision_notes": string | null, "positioning_notes": string | null, "report": Json, "published_at": string | null, "created_at": string }
+                  Insert: { "id"?: string, "request_id": string, "athlete_id": string, "media_id": string, "video_type": Database["public"]["Enums"]["video_type"], "position": Database["public"]["Enums"]["football_position"], "position_group": string, "category"?: string | null, "rubric_version": string, "model": string, "overall_score"?: number | null, "coverage": number, "confidence": Database["public"]["Enums"]["ai_confidence"], "summary": string, "strengths"?: string[], "development"?: string[], "decision_notes"?: string | null, "positioning_notes"?: string | null, "report": Json, "published_at"?: string | null, "created_at"?: string }
+                  Update: { "id"?: string, "request_id"?: string, "athlete_id"?: string, "media_id"?: string, "video_type"?: Database["public"]["Enums"]["video_type"], "position"?: Database["public"]["Enums"]["football_position"], "position_group"?: string, "category"?: string | null, "rubric_version"?: string, "model"?: string, "overall_score"?: number | null, "coverage"?: number, "confidence"?: Database["public"]["Enums"]["ai_confidence"], "summary"?: string, "strengths"?: string[], "development"?: string[], "decision_notes"?: string | null, "positioning_notes"?: string | null, "report"?: Json, "published_at"?: string | null, "created_at"?: string }
+                  Relationships: []
+                },
+            "ai_report_scores": {
+                  Row: { "report_id": string, "athlete_id": string, "criterion": string, "score": number, "confidence": Database["public"]["Enums"]["ai_confidence"], "evidence_count": number }
+                  Insert: { "report_id": string, "athlete_id": string, "criterion": string, "score": number, "confidence": Database["public"]["Enums"]["ai_confidence"], "evidence_count": number }
+                  Update: { "report_id"?: string, "athlete_id"?: string, "criterion"?: string, "score"?: number, "confidence"?: Database["public"]["Enums"]["ai_confidence"], "evidence_count"?: number }
+                  Relationships: []
+                },
             "athlete_achievements": {
                   Row: {
                     "athlete_id": string,"competition": string | null,"created_at": string,"id": string,"position": number,"title": string,"year": number | null
@@ -493,6 +511,21 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
+            "request_ai_analysis":
+{ Args: { "p_media": string,"p_video_type": Database["public"]['Enums']["video_type"],"p_video_minutes": number,"p_shirt_number": number,"p_shirt_color": string,"p_position": Database["public"]['Enums']["football_position"],"p_consent_version": string,"p_rubric_version": string,"p_prompt_version": string,"p_range_start_min"?: number | null,"p_range_end_min"?: number | null }; Returns: string
+                           },
+"cancel_ai_analysis":
+{ Args: { "p_request": string }; Returns: undefined
+                           },
+"set_ai_report_published":
+{ Args: { "p_report": string,"p_published": boolean }; Returns: undefined
+                           },
+"delete_ai_report":
+{ Args: { "p_report": string }; Returns: undefined
+                           },
+"ai_analysis_allowance":
+{ Args: { "p_athlete": string }; Returns: number
+                           },
             "athlete_activity_signals":
 { Args: { "p_athlete": string }; Returns: {
               "kind": Database["public"]['Enums']["activity_kind"],"last_at": string
@@ -552,7 +585,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "activity_kind": "view"|"search_appearance"|"interest","app_role": "RESPONSIBLE"|"PROFESSIONAL"|"SCOUT"|"ADMIN","athlete_sex": "male"|"female","athlete_status": "draft"|"pending_payment"|"in_review"|"approved"|"rejected"|"suspended","availability_answer": "yes"|"no"|"open","consent_kind": "terms"|"privacy"|"guardian_declaration"|"pro_visibility"|"no_guarantee"|"marketing_whatsapp","contact_status": "requested"|"forwarded"|"accepted"|"declined"|"expired","dominant_foot": "right"|"left"|"both","football_position": "GK"|"RB"|"CB"|"LB"|"DM"|"CM"|"AM"|"RW"|"LW"|"CF"|"ST","guardian_relation": "mother"|"father"|"legal_guardian"|"self"|"other","media_kind": "photo"|"youtube"|"video_link","notify_channel": "email"|"whatsapp"|"sms","payment_status": "pending"|"paid"|"failed"|"refunded","pro_org_kind": "club"|"scout"|"agent"|"company"|"scouting_hub"|"brand","profile_visibility": "active"|"paused"|"hidden","review_status": "pending"|"approved"|"rejected"|"suspended","seeking_kind": "club"|"representation"|"agent"|"sponsorship"|"evaluation"|"other"|"national_opportunity"|"international_opportunity","video_type": "highlights"|"full_match"|"training"|"goal_play"|"other"
+            "activity_kind": "view"|"search_appearance"|"interest","app_role": "RESPONSIBLE"|"PROFESSIONAL"|"SCOUT"|"ADMIN","athlete_sex": "male"|"female","athlete_status": "draft"|"pending_payment"|"in_review"|"approved"|"rejected"|"suspended","availability_answer": "yes"|"no"|"open","ai_analysis_status": "awaiting_payment"|"queued"|"processing"|"completed"|"unidentified"|"failed"|"cancelled","ai_confidence": "low"|"medium"|"high","consent_kind": "terms"|"privacy"|"guardian_declaration"|"pro_visibility"|"no_guarantee"|"marketing_whatsapp"|"ai_video_analysis","contact_status": "requested"|"forwarded"|"accepted"|"declined"|"expired","dominant_foot": "right"|"left"|"both","football_position": "GK"|"RB"|"CB"|"LB"|"DM"|"CM"|"AM"|"RW"|"LW"|"CF"|"ST","guardian_relation": "mother"|"father"|"legal_guardian"|"self"|"other","media_kind": "photo"|"youtube"|"video_link","notify_channel": "email"|"whatsapp"|"sms","payment_status": "pending"|"paid"|"failed"|"refunded","pro_org_kind": "club"|"scout"|"agent"|"company"|"scouting_hub"|"brand","profile_visibility": "active"|"paused"|"hidden","review_status": "pending"|"approved"|"rejected"|"suspended","seeking_kind": "club"|"representation"|"agent"|"sponsorship"|"evaluation"|"other"|"national_opportunity"|"international_opportunity","video_type": "highlights"|"full_match"|"training"|"goal_play"|"other"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -668,7 +701,7 @@ export type CompositeTypes<
 export const Constants = {
   "public": {
           Enums: {
-            "activity_kind": ["view", "search_appearance", "interest"],"app_role": ["RESPONSIBLE", "PROFESSIONAL", "SCOUT", "ADMIN"],"athlete_sex": ["male", "female"],"athlete_status": ["draft", "pending_payment", "in_review", "approved", "rejected", "suspended"],"availability_answer": ["yes", "no", "open"],"consent_kind": ["terms", "privacy", "guardian_declaration", "pro_visibility", "no_guarantee", "marketing_whatsapp"],"contact_status": ["requested", "forwarded", "accepted", "declined", "expired"],"dominant_foot": ["right", "left", "both"],"football_position": ["GK", "RB", "CB", "LB", "DM", "CM", "AM", "RW", "LW", "CF", "ST"],"guardian_relation": ["mother", "father", "legal_guardian", "self", "other"],"media_kind": ["photo", "youtube", "video_link"],"notify_channel": ["email", "whatsapp", "sms"],"payment_status": ["pending", "paid", "failed", "refunded"],"pro_org_kind": ["club", "scout", "agent", "company", "scouting_hub", "brand"],"profile_visibility": ["active", "paused", "hidden"],"review_status": ["pending", "approved", "rejected", "suspended"],"seeking_kind": ["club", "representation", "agent", "sponsorship", "evaluation", "other", "national_opportunity", "international_opportunity"],"video_type": ["highlights", "full_match", "training", "goal_play", "other"]
+            "activity_kind": ["view", "search_appearance", "interest"],"app_role": ["RESPONSIBLE", "PROFESSIONAL", "SCOUT", "ADMIN"],"athlete_sex": ["male", "female"],"athlete_status": ["draft", "pending_payment", "in_review", "approved", "rejected", "suspended"],"availability_answer": ["yes", "no", "open"],"ai_analysis_status": ["awaiting_payment", "queued", "processing", "completed", "unidentified", "failed", "cancelled"],"ai_confidence": ["low", "medium", "high"],"consent_kind": ["terms", "privacy", "guardian_declaration", "pro_visibility", "no_guarantee", "marketing_whatsapp", "ai_video_analysis"],"contact_status": ["requested", "forwarded", "accepted", "declined", "expired"],"dominant_foot": ["right", "left", "both"],"football_position": ["GK", "RB", "CB", "LB", "DM", "CM", "AM", "RW", "LW", "CF", "ST"],"guardian_relation": ["mother", "father", "legal_guardian", "self", "other"],"media_kind": ["photo", "youtube", "video_link"],"notify_channel": ["email", "whatsapp", "sms"],"payment_status": ["pending", "paid", "failed", "refunded"],"pro_org_kind": ["club", "scout", "agent", "company", "scouting_hub", "brand"],"profile_visibility": ["active", "paused", "hidden"],"review_status": ["pending", "approved", "rejected", "suspended"],"seeking_kind": ["club", "representation", "agent", "sponsorship", "evaluation", "other", "national_opportunity", "international_opportunity"],"video_type": ["highlights", "full_match", "training", "goal_play", "other"]
           }
         }
 } as const
