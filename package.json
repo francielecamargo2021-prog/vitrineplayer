@@ -8,7 +8,13 @@
     "start": "next start",
     "lint": "eslint",
     "test:ai": "node --test src/lib/ai/tests/*.test.ts",
-    "test:db": "supabase/tests/local/run.sh"
+    "test:db": "supabase/tests/local/run.sh",
+    "test:pilot": "node --test scripts/piloto/kit.test.ts scripts/homolog/guard.test.ts",
+    "homolog:ensaio": "supabase/homolog/testar-local.sh",
+    "homolog:passos": "scripts/homolog/gerar-passos.sh",
+    "homolog:verificar-api": "node scripts/homolog/verificar-api.ts",
+    "piloto:simular": "node scripts/piloto/simular.ts",
+    "piloto:comparar": "node scripts/piloto/comparar.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

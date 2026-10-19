@@ -1,0 +1,38 @@
+{
+  "id": "exemplo-partida",
+  "descricao": "EXEMPLO FICTÍCIO — copie para gabaritos/<id>.json e preencha com um vídeo autorizado.",
+  "menor": false,
+  "autorizacao": { "responsavel": "", "data": "", "documento": "" },
+  "video": { "youtube_id": "EXEMPLO0001", "duracao_min": 92, "tipo": "full_match", "publico_confirmado": false },
+  "atleta": {
+    "categoria": "Adulto",
+    "camisa": 10,
+    "camisa_cor": "vermelha e preta listrada",
+    "calcao_cor": "branco",
+    "meias_cor": "vermelhas",
+    "time": "Time da casa",
+    "adversario_cor": "azul",
+    "posicao": "RW",
+    "secundarias": ["AM"],
+    "pe": "left",
+    "lado": "right",
+    "lado_por_tempo": { "1": "right", "2": "right" },
+    "momento_referencia": "12:30"
+  },
+  "lances_referencia": [
+    { "t": "03:15", "acao": "Recebe aberto na direita e corta para dentro com a perna esquerda", "pe": "left", "lado": "right", "fundamento": "dribbling" },
+    { "t": "08:40", "acao": "Cruzamento de pé esquerdo da linha de fundo", "pe": "left", "lado": "right", "fundamento": "crossing" },
+    { "t": "12:30", "acao": "Domínio orientado de costas para o marcador", "pe": "left", "lado": "right", "fundamento": "first_touch" },
+    { "t": "17:05", "acao": "Finalização de fora da área, pé esquerdo, no canto", "pe": "left", "lado": "right", "fundamento": "finishing" },
+    { "t": "24:50", "acao": "Drible curto e passe para o lateral que passou", "pe": "left", "lado": "right", "fundamento": "decision" },
+    { "t": "33:20", "acao": "Arrancada às costas da defesa sem bola", "lado": "right", "fundamento": "off_ball_movement" },
+    { "t": "41:10", "acao": "Cruzamento rasteiro desviado pela defesa", "pe": "left", "lado": "right", "fundamento": "crossing" },
+    { "t": "52:35", "acao": "Perde a bola no um contra um", "pe": "left", "lado": "right", "fundamento": "dribbling" },
+    { "t": "63:00", "acao": "Finalização para fora após corte para dentro", "pe": "left", "lado": "right", "fundamento": "finishing" },
+    { "t": "78:45", "acao": "Gol: chute colocado de pé esquerdo", "pe": "left", "lado": "right", "fundamento": "finishing" }
+  ],
+  "notas_treinador": {
+    "avaliador": "",
+    "notas": { "dribbling": 4, "crossing": 4, "finishing": 4, "first_touch": 3, "off_ball_movement": 3, "decision": 3 }
+  }
+}

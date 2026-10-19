@@ -21,6 +21,7 @@ export async function requireGuardian(lang: string) {
   const s = await getSession();
   if (!s.supabase) return null;
   if (!s.user || !s.profile) redirect(`/${lang}/entrar`);
+  if (s.profile.role === "ADMIN") redirect(`/${lang}/admin`);
   if (s.profile.role !== "RESPONSIBLE") redirect(`/${lang}`);
   return { supabase: s.supabase, user: s.user, profile: s.profile };
 }

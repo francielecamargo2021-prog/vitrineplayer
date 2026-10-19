@@ -21,7 +21,7 @@ run() { "${psql[@]}" -d vp "$@"; }
 run -f "$here/supabase_stub.sql" >/dev/null
 for m in "$root"/supabase/migrations/*.sql; do
   echo "migration: $(basename "$m")"
-  run -f "$m" >/dev/null
+  run --single-transaction -f "$m" >/dev/null
 done
 run -f "$here/pgtap_shim.sql" >/dev/null
 status=0

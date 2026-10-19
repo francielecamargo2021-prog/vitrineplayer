@@ -511,7 +511,13 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "request_ai_analysis":
+            "admin_review_athlete":
+{ Args: { "p_athlete": string,"p_decision": string,"p_note"?: string | null }; Returns: Database["public"]['Enums']["athlete_status"]
+                           },
+"admin_review_organization":
+{ Args: { "p_org": string,"p_decision": string,"p_note"?: string | null }; Returns: Database["public"]['Enums']["review_status"]
+                           },
+"request_ai_analysis":
 { Args: { "p_media": string,"p_video_type": Database["public"]['Enums']["video_type"],"p_video_minutes": number,"p_shirt_number": number,"p_shirt_color": string,"p_position": Database["public"]['Enums']["football_position"],"p_consent_version": string,"p_rubric_version": string,"p_prompt_version": string,"p_range_start_min"?: number | null,"p_range_end_min"?: number | null }; Returns: string
                            },
 "cancel_ai_analysis":

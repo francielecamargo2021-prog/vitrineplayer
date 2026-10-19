@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { defaultLocale, hasLocale } from "@/i18n/config";
 import { refreshSession } from "@/lib/supabase/session";
 
-const authed = /^\/(pt|es)\/(painel|entrar|cadastro)(\/|$)/;
+const authed = /^\/(pt|es)\/(painel|admin|entrar|cadastro)(\/|$)/;
 
 /**
  * Redireciona rotas sem prefixo de idioma para /pt ou /es (Accept-Language) e
