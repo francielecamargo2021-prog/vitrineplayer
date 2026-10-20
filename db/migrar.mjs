@@ -79,7 +79,7 @@ const MARCA_SQL = (ambiente, rotulo) => `
 const lit = (s) => `'${String(s).replaceAll("'", "''")}'`;
 
 // Configuração criada pelas próprias migrations (sem dados de pessoas): não conta como dado.
-const CONFIGURACAO = ["storage.buckets", "public.ai_settings"];
+const CONFIGURACAO = ["storage.buckets", "public.ai_settings", "public.portal_settings"];
 
 // Conta linhas de todas as tabelas da aplicação e dos usuários do Neon Auth.
 async function contarDados(q) {

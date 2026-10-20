@@ -116,14 +116,15 @@ insert into athlete_media (athlete_id, kind, storage_path, is_primary) select id
 
 -- ---------------------------------------------------------------- visibilidade para profissionais
 select pg_temp.as_user('c0000000-0000-0000-0000-0000000000c1');
-select is((select count(*)::int from athletes), 1, 'P1 vê apenas atleta aprovado e ativo');
+select is((select count(*)::int from pro_search_athletes()), 1, 'P1 vê apenas atleta aprovado e ativo');
 select is((select count(*)::int from athletes where id = (select id from ids where k = 'athB')), 0, 'P1 não vê atleta em rascunho');
-select is((select count(*)::int from athlete_media), 1, 'P1 vê mídia do atleta visível');
+select is((select count(*)::int from athlete_media), 0, 'P1 não lê a tabela de mídia diretamente');
+select is(jsonb_array_length(pro_athlete_profile((select id from ids where k = 'athA'))->'photos'), 1, 'P1 vê a foto do atleta visível pela ficha');
 select is((select count(*)::int from profiles), 1, 'P1 não lê contato de responsáveis');
 select is((select count(*)::int from athlete_guardians), 0, 'P1 não lê vínculos responsável ↔ atleta');
 
 select pg_temp.as_user('c0000000-0000-0000-0000-0000000000c3');
-select is((select count(*)::int from athletes), 0, 'membro de organização pendente não vê atletas');
+select is((select count(*)::int from pro_search_athletes()), 0, 'membro de organização pendente não vê atletas');
 select pg_temp.as_anon();
 select is((select count(*)::int from athletes), 0, 'anônimo não vê atletas');
 select is((select count(*)::int from search_organizations('Clube')), 0, 'anônimo não busca organizações');
@@ -132,12 +133,12 @@ select is((select count(*)::int from search_organizations('Clube')), 0, 'anônim
 select pg_temp.as_user('a0000000-0000-0000-0000-00000000000a');
 update athletes set visibility = 'paused' where id = (select id from ids where k = 'athA');
 select pg_temp.as_user('c0000000-0000-0000-0000-0000000000c1');
-select is((select count(*)::int from athletes), 0, 'perfil pausado some para profissionais');
+select is((select count(*)::int from pro_search_athletes()), 0, 'perfil pausado some para profissionais');
 select is((select count(*)::int from athlete_media), 0, 'mídia de perfil pausado some para profissionais');
 select pg_temp.as_user('a0000000-0000-0000-0000-00000000000a');
 update athletes set visibility = 'hidden' where id = (select id from ids where k = 'athA');
 select pg_temp.as_user('c0000000-0000-0000-0000-0000000000c1');
-select is((select count(*)::int from athletes), 0, 'perfil oculto some para profissionais');
+select is((select count(*)::int from pro_search_athletes()), 0, 'perfil oculto some para profissionais');
 select pg_temp.as_user('a0000000-0000-0000-0000-00000000000a');
 update athletes set visibility = 'active' where id = (select id from ids where k = 'athA');
 
@@ -149,7 +150,7 @@ insert into athlete_org_blocks (athlete_id, organization_id) select id, 'd000000
 select is((select count(*)::int from athlete_blocked_organizations((select id from ids where k = 'athA'))), 1, 'responsável vê a organização ocultada');
 
 select pg_temp.as_user('c0000000-0000-0000-0000-0000000000c1');
-select is((select count(*)::int from athletes), 0, 'organização bloqueada não encontra o atleta');
+select is((select count(*)::int from pro_search_athletes()), 0, 'organização bloqueada não encontra o atleta');
 select is((select count(*)::int from athlete_media), 0, 'organização bloqueada não vê mídia');
 select is((select count(*)::int from athlete_org_blocks), 0, 'organização não descobre o bloqueio');
 select is((select count(*)::int from storage.objects where bucket_id = 'athlete-photos'), 0, 'organização bloqueada não lê fotos no Storage');
@@ -161,14 +162,14 @@ select throws_ok(format($$ insert into pro_favorites (profile_id, athlete_id) va
   '42501', null, 'organização bloqueada não favorita');
 
 select pg_temp.as_user('c0000000-0000-0000-0000-0000000000c2');
-select is((select count(*)::int from athletes), 1, 'outra organização continua vendo o atleta');
-select lives_ok(format($$ insert into athlete_views (athlete_id, viewer_id, kind, source) values (%L, public.vp_uid(), 'view', 'profile_page') $$, (select id from ids where k = 'athA')),
-  'profissional autorizado registra visualização');
+select is((select count(*)::int from pro_search_athletes()), 1, 'outra organização continua vendo o atleta');
+select lives_ok(format($$ select pro_athlete_profile(%L) $$, (select id from ids where k = 'athA')),
+  'profissional autorizado abre a ficha (registra a visualização)');
 select is((select count(*)::int from storage.objects where bucket_id = 'athlete-photos'), 1, 'profissional autorizado lê a foto via Storage');
 
 -- ---------------------------------------------------------------- sinais para o responsável (sem números)
 select pg_temp.as_user('a0000000-0000-0000-0000-00000000000a');
-select is((select array_agg(kind::text) from athlete_activity_signals((select id from ids where k = 'athA'))), array['view'], 'responsável recebe o sinal de visualização');
+select is((select array_agg(kind::text order by kind::text) from athlete_activity_signals((select id from ids where k = 'athA'))), array['search_appearance', 'view'], 'responsável recebe os sinais de busca e visualização');
 select is((select count(*)::int from athlete_views), 0, 'responsável não lê eventos brutos (quem/quantos)');
 select has_function('public', 'athlete_activity_signals', array['uuid'], 'sinais expostos só por função');
 

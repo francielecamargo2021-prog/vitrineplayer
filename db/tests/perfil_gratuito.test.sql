@@ -71,19 +71,19 @@ select throws_ok(format($$ update athletes set review_note = 'ok' where id = %L 
 
 -- ---------------------------------------------------------------- privacidade continua igual
 select pg_temp.as_user('a3000000-0000-0000-0000-0000000000a3');
-select is((select count(*)::int from athletes), 0, 'profissional não vê atleta em revisão');
+select is((select count(*)::int from pro_search_athletes()), 0, 'profissional não vê atleta em revisão');
 select pg_temp.as_owner();
 select set_config('request.jwt.claims', '{"role":"service_role"}', true);   -- aprovação só por admin/serviço
 update athletes set status = 'approved', approved_at = now() where id = (select id from ids where k = 'minor');
 select pg_temp.as_user('a3000000-0000-0000-0000-0000000000a3');
-select is((select count(*)::int from athletes), 1, 'profissional aprovado vê o atleta aprovado');
+select is((select count(*)::int from pro_search_athletes()), 1, 'profissional aprovado vê o atleta aprovado');
 select is((select count(*)::int from profiles where id = 'a1000000-0000-0000-0000-0000000000a1'), 0, 'profissional não lê o contato do responsável do menor');
 select pg_temp.as_user('a2000000-0000-0000-0000-0000000000a2');
 select is((select count(*)::int from athletes), 1, 'um atleta não vê o perfil de outro atleta');
 select pg_temp.as_user('a1000000-0000-0000-0000-0000000000a1');
 insert into athlete_org_blocks (athlete_id, organization_id) select id, 'd1000000-0000-0000-0000-0000000000d1' from ids where k = 'minor';
 select pg_temp.as_user('a3000000-0000-0000-0000-0000000000a3');
-select is((select count(*)::int from athletes), 0, 'organização bloqueada deixa de ver o atleta');
+select is((select count(*)::int from pro_search_athletes()), 0, 'organização bloqueada deixa de ver o atleta');
 select is((select count(*)::int from athlete_media), 0, 'nem os vídeos do atleta');
 select pg_temp.as_owner();
 

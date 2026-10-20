@@ -120,7 +120,7 @@ select throws_ok(format($$ select admin_review_athlete(%L, 'approve') $$, (selec
 
 -- ---------------------------------------------------------------- admin: organização
 select pg_temp.as_user('c0000000-0000-0000-0000-0000000000c1');
-select is((select count(*)::int from athletes), 0, 'profissional de organização pendente não vê atletas');
+select is((select count(*)::int from pro_search_athletes()), 0, 'profissional de organização pendente não vê atletas');
 
 select pg_temp.as_user('e0000000-0000-0000-0000-0000000000e1');
 select throws_ok($$ select admin_review_organization('d0000000-0000-0000-0000-0000000000d1', 'suspend', 'motivo qualquer') $$,
@@ -129,7 +129,7 @@ select is(admin_review_organization('d0000000-0000-0000-0000-0000000000d1', 'app
 select ok((select reviewed_at is not null from organizations where id = 'd0000000-0000-0000-0000-0000000000d1'), 'aprovação da organização grava data');
 
 select pg_temp.as_user('c0000000-0000-0000-0000-0000000000c1');
-select is((select count(*)::int from athletes), 1, 'profissional aprovado passa a ver o atleta aprovado');
+select is((select count(*)::int from pro_search_athletes()), 1, 'profissional aprovado passa a ver o atleta aprovado');
 
 -- suspensões
 select pg_temp.as_user('e0000000-0000-0000-0000-0000000000e1');
@@ -137,13 +137,13 @@ select throws_ok(format($$ select admin_review_athlete(%L, 'suspend') $$, (selec
   'P0001', 'note required', 'suspender atleta exige motivo');
 select is(admin_review_athlete((select id from ids where k = 'ath'), 'suspend', 'Denúncia em verificação'), 'suspended'::athlete_status, 'admin suspende atleta');
 select pg_temp.as_user('c0000000-0000-0000-0000-0000000000c1');
-select is((select count(*)::int from athletes), 0, 'atleta suspenso some para profissionais');
+select is((select count(*)::int from pro_search_athletes()), 0, 'atleta suspenso some para profissionais');
 
 select pg_temp.as_user('e0000000-0000-0000-0000-0000000000e1');
 select is(admin_review_athlete((select id from ids where k = 'ath'), 'reinstate'), 'approved'::athlete_status, 'admin reativa atleta');
 select is(admin_review_organization('d0000000-0000-0000-0000-0000000000d1', 'suspend', 'Documento vencido'), 'suspended'::review_status, 'admin suspende organização');
 select pg_temp.as_user('c0000000-0000-0000-0000-0000000000c1');
-select is((select count(*)::int from athletes), 0, 'organização suspensa perde o acesso');
+select is((select count(*)::int from pro_search_athletes()), 0, 'organização suspensa perde o acesso');
 
 -- responsável não muda o próprio status para aprovado
 select pg_temp.as_user('a0000000-0000-0000-0000-00000000000a');
