@@ -1,17 +1,17 @@
 "use client";
 
+import { useKeepAction } from "@/components/forms/use-keep-action";
 import Link from "next/link";
-import { useActionState } from "react";
 import type { PanelDictionary } from "@/i18n/get-dictionary";
 import type { FormState } from "@/lib/panel/actions";
 import { countryOptions } from "@/domain/athlete";
 import { SelectField, TextField, primaryButton } from "./controls";
 
 export function NewAthleteForm({ action, p, cancelHref, locale, defaultCountry }: { action: (s: FormState, fd: FormData) => Promise<FormState>; p: PanelDictionary; cancelHref: string; locale: string; defaultCountry?: string | null }) {
-  const [state, formAction, pending] = useActionState(action, undefined);
+  const [state, formAction, pending] = useKeepAction(action);
   const f = p.fields;
   return (
-    <form action={formAction} className="mt-12 space-y-6">
+    <form onSubmit={formAction} className="mt-12 space-y-6">
       <TextField label={f.fullName} name="full_name" required minLength={3} autoComplete="off" />
       <div className="grid gap-6 sm:grid-cols-2">
         <TextField label={f.sportName} name="sport_name" optional={p.form.optional} />

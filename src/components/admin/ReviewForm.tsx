@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useKeepAction } from "@/components/forms/use-keep-action";
+import { useState } from "react";
 import type { FormState } from "@/lib/panel/actions";
 import { control, ghostButton, primaryButton } from "@/components/panel/controls";
 
@@ -18,13 +19,13 @@ export function ReviewForm({
   noteLabel?: string;
   compact?: boolean;
 }) {
-  const [state, formAction, pending] = useActionState(action, undefined);
+  const [state, formAction, pending] = useKeepAction(action);
   const [choice, setChoice] = useState<string | null>(null);
   const needsNote = options.find((o) => o.value === choice)?.needsNote ?? false;
   if (!options.length) return <p className="text-[0.85rem] text-ash">Nenhuma decisão disponível nesta situação.</p>;
 
   return (
-    <form action={formAction} className={compact ? "space-y-3" : "space-y-5"}>
+    <form onSubmit={formAction} className={compact ? "space-y-3" : "space-y-5"}>
       {options.some((o) => o.needsNote) && (
         <label className="block">
           <span className="eyebrow text-fog">{noteLabel}</span>

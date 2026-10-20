@@ -1,7 +1,7 @@
 "use client";
 
+import { useKeepAction } from "@/components/forms/use-keep-action";
 import Link from "next/link";
-import { useActionState } from "react";
 import type { PanelDictionary } from "@/i18n/get-dictionary";
 import type { AuthFormState } from "@/lib/auth/actions";
 import { countryOptions } from "@/domain/athlete";
@@ -45,9 +45,9 @@ function SignupDetails({ a, locale, select }: { a: A; locale: string; select: st
 }
 
 export function SignupForm({ action, a, loginHref, locale, select }: { action: Action; a: A; loginHref: string; locale: string; select: string }) {
-  const [state, formAction, pending] = useActionState(action, undefined);
+  const [state, formAction, pending] = useKeepAction(action);
   return (
-    <form action={formAction} className="space-y-6">
+    <form onSubmit={formAction} className="space-y-6">
       <TextField label={a.fullName} name="full_name" autoComplete="name" required minLength={3} />
       <TextField label={a.email} name="email" type="email" autoComplete="email" required />
       <div className="grid gap-6 sm:grid-cols-2">
@@ -65,9 +65,9 @@ export function SignupForm({ action, a, loginHref, locale, select }: { action: A
 }
 
 export function CompleteSignupForm({ action, a, locale, select }: { action: Action; a: A; locale: string; select: string }) {
-  const [state, formAction, pending] = useActionState(action, undefined);
+  const [state, formAction, pending] = useKeepAction(action);
   return (
-    <form action={formAction} className="space-y-6">
+    <form onSubmit={formAction} className="space-y-6">
       <SignupDetails a={a} locale={locale} select={select} />
       <Feedback state={state} a={a} />
       <button disabled={pending} className={`${primaryButton} w-full`}>{a.completeSubmit}</button>
@@ -76,9 +76,9 @@ export function CompleteSignupForm({ action, a, locale, select }: { action: Acti
 }
 
 export function LoginForm({ action, a, signupHref, forgotHref }: { action: Action; a: A; signupHref: string; forgotHref: string }) {
-  const [state, formAction, pending] = useActionState(action, undefined);
+  const [state, formAction, pending] = useKeepAction(action);
   return (
-    <form action={formAction} className="space-y-6">
+    <form onSubmit={formAction} className="space-y-6">
       <TextField label={a.email} name="email" type="email" autoComplete="email" required />
       <TextField label={a.password} name="password" type="password" autoComplete="current-password" required />
       <Feedback state={state} a={a} />
@@ -93,11 +93,11 @@ export function LoginForm({ action, a, signupHref, forgotHref }: { action: Actio
 
 /** Código de verificação do e-mail + reenvio. `email` só aparece quando não há sessão. */
 export function VerifyForm({ verify, resend, a, email, askEmail }: { verify: Action; resend: Action; a: A; email: string; askEmail: boolean }) {
-  const [state, formAction, pending] = useActionState(verify, undefined);
-  const [sent, resendAction, sending] = useActionState(resend, undefined);
+  const [state, formAction, pending] = useKeepAction(verify);
+  const [sent, resendAction, sending] = useKeepAction(resend);
   return (
     <div className="space-y-8">
-      <form action={formAction} className="space-y-6">
+      <form onSubmit={formAction} className="space-y-6">
         {askEmail ? (
           <TextField label={a.email} name="email" type="email" autoComplete="email" required defaultValue={email} />
         ) : (
@@ -107,7 +107,7 @@ export function VerifyForm({ verify, resend, a, email, askEmail }: { verify: Act
         <Feedback state={state} a={a} />
         <button disabled={pending} className={`${primaryButton} w-full`}>{a.verify}</button>
       </form>
-      <form action={resendAction} className="space-y-4 border-t border-white/10 pt-6">
+      <form onSubmit={resendAction} className="space-y-4 border-t border-white/10 pt-6">
         {askEmail && <input type="hidden" name="email" value={email} />}
         <Feedback state={sent} a={a} />
         <button disabled={sending} className={textButton}>{a.resend}</button>
@@ -117,9 +117,9 @@ export function VerifyForm({ verify, resend, a, email, askEmail }: { verify: Act
 }
 
 export function ForgotForm({ action, a, loginHref }: { action: Action; a: A; loginHref: string }) {
-  const [state, formAction, pending] = useActionState(action, undefined);
+  const [state, formAction, pending] = useKeepAction(action);
   return (
-    <form action={formAction} className="space-y-6">
+    <form onSubmit={formAction} className="space-y-6">
       <TextField label={a.email} name="email" type="email" autoComplete="email" required />
       <Feedback state={state} a={a} />
       <button disabled={pending} className={`${primaryButton} w-full`}>{a.sendCode}</button>
@@ -129,7 +129,7 @@ export function ForgotForm({ action, a, loginHref }: { action: Action; a: A; log
 }
 
 export function ResetForm({ action, a, email, loginHref, otherHref }: { action: Action; a: A; email: string; loginHref: string; otherHref: string }) {
-  const [state, formAction, pending] = useActionState(action, undefined);
+  const [state, formAction, pending] = useKeepAction(action);
   if (state?.message === "passwordChanged") {
     return (
       <div className="space-y-6">
@@ -139,7 +139,7 @@ export function ResetForm({ action, a, email, loginHref, otherHref }: { action: 
     );
   }
   return (
-    <form action={formAction} className="space-y-6">
+    <form onSubmit={formAction} className="space-y-6">
       <input type="hidden" name="email" value={email} />
       <p className="text-[0.95rem] text-fog">{a.verifyLeadTo} <span className="text-bone">{email}</span></p>
       <TextField label={a.code} name="code" inputMode="numeric" autoComplete="one-time-code" pattern="\d{6}" maxLength={6} required />

@@ -252,7 +252,6 @@ const panel: PanelDictionary = {
     other: "Otras oportunidades en el fútbol",
   },
   photos: {
-    comingSoon: "Las fotos llegan en la próxima etapa de la migración, con almacenamiento privado: solo la familia y los profesionales autorizados podrán verlas. Seguí con las próximas etapas del perfil.",
     lead: "La foto principal aparece en el encabezado del perfil y en los resultados de búsqueda profesional. La galería muestra al atleta en cancha, con uniforme y en partido.",
     primary: "Foto principal",
     gallery: "Galería",
@@ -273,7 +272,8 @@ const panel: PanelDictionary = {
     tooBig: "Archivo de más de 15 MB.",
     badType: "Formato no soportado.",
     full: "Límite de fotos alcanzado.",
-    privacy: "Las fotos quedan en almacenamiento privado y solo se muestran con enlaces temporales.",
+    privacy: "Las fotos quedan en almacenamiento privado: solo la familia, el equipo de VitrinePlayer y profesionales verificados autorizados pueden verlas. Quitamos los datos de ubicación de los archivos.",
+    failed: "No fue posible enviar la foto. Intentá de nuevo.",
     moveUp: "Mover a la izquierda",
     moveDown: "Mover a la derecha",
   },

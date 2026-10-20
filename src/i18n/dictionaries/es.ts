@@ -30,11 +30,11 @@ const es: Dictionary = {
     stats: [
       { value: 0, label: "perfiles públicos" },
       { value: 4, label: "países en la ruta inicial" },
-      { value: 1, label: "pago único" },
+      { value: 0, label: "costo de registro" },
     ],
   },
   next: { title: ["La próxima generación", "ya está en la cancha."] },
-  sticky: { label: "Registro del atleta", price: "R$ 59,90, pago único", cta: "Registrar" },
+  sticky: { label: "Registro del atleta", price: "Registro gratuito, sin mensualidad", cta: "Registrar" },
   how: {
     index: "02 — Cómo funciona",
     title: "Cómo funciona.",
@@ -90,10 +90,10 @@ const es: Dictionary = {
     index: "05 — Registro",
     eyebrow: "Registro en VitrinePlayer",
     currency: "R$",
-    amount: "59",
-    cents: ",90",
-    period: "Pago único.",
-    noFee: "Sin mensualidad para mantener el registro básico.",
+    amount: "0",
+    cents: "",
+    period: "Registro gratuito.",
+    noFee: "Sin costo de registro y sin mensualidad. Los análisis técnicos de video con IA son opcionales y se contratan aparte.",
     includes: [
       "Perfil estructurado del atleta",
       "Fotos y enlaces de videos de YouTube",
@@ -103,7 +103,7 @@ const es: Dictionary = {
     ],
     cta: "Registrar atleta",
     disclaimer:
-      "El registro no garantiza evaluación, prueba, contratación ni contacto por parte de clubes o profesionales. El pago da derecho exclusivamente al registro del atleta en la plataforma.",
+      "El registro no garantiza evaluación, prueba, contratación ni contacto por parte de clubes o profesionales.",
   },
   pros: {
     title: ["Para quienes", "buscan talento."],

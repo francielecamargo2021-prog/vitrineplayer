@@ -99,11 +99,12 @@ try {
   await A.click("main form button");
   check(await A.has("menores de 18 anos precisam de um responsável legal"), "menor não pode ser cadastrado como \"eu mesmo\"");
   check(!(await athleteOf(NAME)), "nada foi gravado no banco");
-  // o React limpa o formulário após um envio recusado: preenche de novo
-  await A.page.fill('input[name="full_name"]', NAME);
-  await A.page.fill('input[name="sport_name"]', "Lucas");
-  await A.page.fill('input[name="birth_date"]', minorBirth);
-  await A.page.selectOption('select[name="country"]', "BR");
+  const kept = await A.page.evaluate(() => ({
+    name: document.querySelector('input[name="full_name"]').value,
+    birth: document.querySelector('input[name="birth_date"]').value,
+    country: document.querySelector('select[name="country"]').value,
+  }));
+  check(kept.name === NAME && kept.birth === minorBirth && kept.country === "BR", "o formulário mantém o que foi digitado após o erro", JSON.stringify(kept));
   await A.page.selectOption('select[name="relation"]', "mother");
   await A.click("main form button");
   await A.page.waitForURL(/editar\/dados/);
@@ -120,7 +121,7 @@ try {
   const dbRow = await athleteOf(NAME);
   console.log(`   (diagnóstico dados: msg="${live0}" estado=${dbRow?.state} cidade=${dbRow?.city})`);
   const live = await A.page.evaluate(() => [...document.querySelectorAll(":invalid")].map((e) => `${e.tagName}:${e.getAttribute("name")}:${e.validationMessage}`).filter((x) => !x.startsWith("FORM")));
-  check(A.path().endsWith("/editar/fotos") && (await A.page.locator('[data-testid="fotos-etapa4"]').count()) === 1, "dados pessoais salvos; etapa Fotos mostra o aviso da Etapa 4", `${A.path()} ${live.join(" ")}`);
+  check(A.path().endsWith("/editar/fotos") && (await A.has("Adicionar fotos", "0/12")), "dados pessoais salvos; etapa Fotos abre o envio (0/12)", `${A.path()} ${live.join(" ")}`);
   await A.step(`/pt/painel/atleta/${ath.id}/editar/fisico`);
   await A.page.fill('input[name="height_cm"]', "158");
   await A.page.fill('input[name="weight_kg"]', "47");
@@ -235,6 +236,9 @@ try {
   section("Landing intacta");
   await A.go("/pt");
   check(await A.has("QUALQUER", "LUGAR.", "CADASTRAR ATLETA"), "/pt landing com hero e botão");
+  check(await A.has("Cadastro gratuito.", "R$", "Sem taxa de cadastro") && !(await A.has("59,90")) && !(await A.has("Pagamento único")), "/pt landing anuncia cadastro gratuito (sem R$ 59,90)");
+  await A.go("/es");
+  check(await A.has("Registro gratuito.", "REGISTRAR ATLETA") && !(await A.has("59,90")) && !(await A.has("Pago único")), "/es landing anuncia registro gratuito (sin R$ 59,90)");
 } catch (e) {
   check(false, "erro inesperado", e.message.split("\n")[0]);
 } finally {

@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useKeepAction } from "@/components/forms/use-keep-action";
+import { useState } from "react";
 import type { PanelDictionary } from "@/i18n/get-dictionary";
 import type { FormState } from "@/lib/panel/actions";
 import { Label, control, primaryButton } from "@/components/panel/controls";
@@ -24,7 +25,7 @@ export function AiRequestForm({
   defaultPosition: string | null;
   defaultShirt?: number | null;
 }) {
-  const [state, formAction, pending] = useActionState(action, undefined);
+  const [state, formAction, pending] = useKeepAction(action);
   const [media, setMedia] = useState(videos[0]?.id ?? "");
   const [type, setType] = useState<AiType>(toAiType(videos[0]?.type ?? null));
   const pick = (v: Video) => {
@@ -34,7 +35,7 @@ export function AiRequestForm({
   const error = state?.error ? t.errors[state.error as keyof typeof t.errors] ?? t.errors.generic : null;
 
   return (
-    <form action={formAction} className="space-y-10">
+    <form onSubmit={formAction} className="space-y-10">
       <fieldset>
         <legend className="max-w-[56ch] text-[1.1rem] leading-snug text-bone">{t.question}</legend>
         <p className="mt-2 text-[0.85rem] leading-snug text-ash">{t.publicNote}</p>

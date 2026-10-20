@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { userDataClient } from "@/lib/db/data-api";
 import { currentUser } from "@/lib/auth/server";
+import { removePhoto } from "@/lib/photos/server";
 import {
   availabilityAnswers, ageOn, categories, countries, feet, modalities, positions, seekingKinds, sexes, traitKeys, videoTypes, youtubeId,
   ADULT_AGE, VIDEO_LIMIT,
@@ -145,24 +146,18 @@ export async function saveStep(lang: string, id: string, step: StepSlug, _prev: 
 }
 
 // ---------------------------------------------------------------- fotos
-// Os arquivos migram para o Vercel Blob privado na Etapa 4 (envio com autorização prévia
-// no banco). Até lá nenhuma foto é enviada nem apagada por aqui.
-export async function registerPhoto(lang: string, id: string, path: string, width: number, height: number) {
-  void lang; void id; void path; void width; void height;
-  await authed();
-  return { error: "photosLater" };
-}
-
-export async function replacePhoto(lang: string, id: string, mediaId: string, path: string, width: number, height: number) {
-  void lang; void id; void mediaId; void path; void width; void height;
-  await authed();
-  return { error: "photosLater" };
-}
-
+// Envio e substituição: POST /api/fotos (arquivo recodificado no servidor, Blob privado).
+// Exclusão: registro + arquivo, só se o banco permitir ao usuário (RLS).
 export async function deletePhoto(lang: string, id: string, mediaId: string) {
-  void lang; void id; void mediaId;
-  await authed();
-  return { error: "photosLater" };
+  const { user } = await authed();
+  try {
+    await removePhoto(user.id, id, mediaId);
+  } catch (e) {
+    console.error("[fotos] excluir:", (e as Error).message);
+    return { error: "save" };
+  }
+  refresh(lang);
+  return { ok: true };
 }
 
 export async function setPrimaryPhoto(lang: string, mediaId: string) {

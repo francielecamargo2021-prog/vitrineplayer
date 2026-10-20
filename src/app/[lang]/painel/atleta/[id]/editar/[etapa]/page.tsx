@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { hasLocale, htmlLang } from "@/i18n/config";
 import { getPanelDictionary } from "@/i18n/get-dictionary";
-import { getAiState, getAthleteBundle, requireGuardian } from "@/lib/panel/data";
+import { getAiState, getAthleteBundle, requireGuardian, signedPhotoUrls } from "@/lib/panel/data";
 import { cancelAiAnalysis, requestAiAnalysis } from "@/lib/panel/ai-actions";
 import { addVideo, removeVideo, saveStep, setVisibility, submitForReview, withdrawFromReview } from "@/lib/panel/actions";
 import { isStep, stepSlugs } from "@/lib/panel/steps";
@@ -14,6 +14,7 @@ import { StepForm } from "@/components/panel/StepForm";
 import { Repeatable } from "@/components/panel/Repeatable";
 import { VideoAddForm } from "@/components/panel/VideoAddForm";
 import { BlockManager } from "@/components/panel/BlockManager";
+import { PhotoManager } from "@/components/panel/PhotoManager";
 import { AiRequestForm } from "@/components/ai/AiRequestForm";
 
 export default async function EditStep({ params, searchParams }: PageProps<"/[lang]/painel/atleta/[id]/editar/[etapa]">) {
@@ -62,10 +63,13 @@ export default async function EditStep({ params, searchParams }: PageProps<"/[la
   }
 
   if (etapa === "fotos") {
-    // Envio e exibição de fotos: Etapa 4 da migração (Vercel Blob privado + rota que confere a RLS).
+    const urls = await signedPhotoUrls(db, bundle.photos.map((ph) => ph.storage_path!).filter(Boolean));
     body = (
       <>
-        <p data-testid="fotos-etapa4" className="border-l-2 border-grass pl-4 text-[0.95rem] leading-relaxed text-fog">{p.photos.comingSoon}</p>
+        <PhotoManager
+          lang={lang} athleteId={id} t={p.photos}
+          photos={bundle.photos.map((ph) => ({ id: ph.id, url: urls[ph.storage_path!] ?? null, isPrimary: ph.is_primary, x: ph.focal_x, y: ph.focal_y, zoom: ph.zoom }))}
+        />
         <NextLink href={`${base}/editar/${stepSlugs[idx + 1]}`} label={p.form.saveNext} exit={`/${lang}/painel`} exitLabel={p.form.exit} />
       </>
     );

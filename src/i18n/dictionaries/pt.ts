@@ -30,11 +30,11 @@ const pt = {
     stats: [
       { value: 0, label: "perfis públicos" },
       { value: 4, label: "países na rota inicial" },
-      { value: 1, label: "pagamento único" },
+      { value: 0, label: "custo para cadastrar" },
     ],
   },
   next: { title: ["A próxima geração", "já está em campo."] },
-  sticky: { label: "Cadastro do atleta", price: "R$ 59,90, pagamento único", cta: "Cadastrar" },
+  sticky: { label: "Cadastro do atleta", price: "Cadastro gratuito, sem mensalidade", cta: "Cadastrar" },
   how: {
     index: "02 — Como funciona",
     title: "Como funciona.",
@@ -90,10 +90,10 @@ const pt = {
     index: "05 — Cadastro",
     eyebrow: "Cadastro na VitrinePlayer",
     currency: "R$",
-    amount: "59",
-    cents: ",90",
-    period: "Pagamento único.",
-    noFee: "Sem mensalidade para manutenção do cadastro básico.",
+    amount: "0",
+    cents: "",
+    period: "Cadastro gratuito.",
+    noFee: "Sem taxa de cadastro e sem mensalidade. Análises técnicas de vídeo por IA são opcionais e contratadas à parte.",
     includes: [
       "Perfil estruturado do atleta",
       "Fotos e links de vídeos do YouTube",
@@ -103,7 +103,7 @@ const pt = {
     ],
     cta: "Cadastrar atleta",
     disclaimer:
-      "O cadastro não garante avaliação, teste, contratação ou contato por clubes ou profissionais. O pagamento dá direito exclusivamente ao cadastro do atleta na plataforma.",
+      "O cadastro não garante avaliação, teste, contratação ou contato por clubes ou profissionais.",
   },
   pros: {
     title: ["Para quem", "procura talento."],

@@ -251,7 +251,6 @@ const panel = {
     other: "Outras oportunidades no futebol",
   },
   photos: {
-    comingSoon: "As fotos chegam na próxima etapa da migração, com armazenamento privado: só a família e os profissionais autorizados poderão vê-las. Siga para as próximas etapas do perfil.",
     lead: "A foto principal aparece no cabeçalho do perfil e nos resultados de busca profissional. A galeria mostra o atleta em campo, uniformizado e em jogo.",
     primary: "Foto principal",
     gallery: "Galeria",
@@ -272,7 +271,8 @@ const panel = {
     tooBig: "Arquivo acima de 15 MB.",
     badType: "Formato não suportado.",
     full: "Limite de fotos atingido.",
-    privacy: "As fotos ficam em armazenamento privado e só são exibidas por links temporários.",
+    privacy: "As fotos ficam em armazenamento privado: só a família, a equipe VitrinePlayer e profissionais verificados autorizados podem vê-las. Removemos dados de localização dos arquivos.",
+    failed: "Não foi possível enviar a foto. Tente novamente.",
     moveUp: "Mover para a esquerda",
     moveDown: "Mover para a direita",
   },

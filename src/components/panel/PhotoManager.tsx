@@ -2,9 +2,9 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { PHOTO_BUCKET, PHOTO_LIMIT } from "@/domain/athlete";
+import { PHOTO_LIMIT } from "@/domain/athlete";
 import type { PanelDictionary } from "@/i18n/get-dictionary";
-import { deletePhoto, movePhoto, registerPhoto, replacePhoto, setFraming, setPrimaryPhoto } from "@/lib/panel/actions";
+import { deletePhoto, movePhoto, setFraming, setPrimaryPhoto } from "@/lib/panel/actions";
 import { FramedPhoto } from "./FramedPhoto";
 import { ghostButton, primaryButton } from "./controls";
 
@@ -42,13 +42,20 @@ export function PhotoManager({ lang, athleteId, photos, t }: { lang: string; ath
   const primary = photos.find((p) => p.isPrimary);
   const room = PHOTO_LIMIT - photos.length;
 
-  // Envio direto ao armazenamento privado: Etapa 4 (Vercel Blob com token curto emitido
-  // só depois de o banco autorizar). Até lá o componente não envia arquivos.
-  const upload = async (file: File): Promise<{ path: string; w: number; h: number }> => {
-    await compress(file);
-    void athleteId; void PHOTO_BUCKET;
-    throw new Error("photosLater");
+  /**
+   * Envia para /api/fotos (mesma origem, com a sessão). O servidor confere no banco se a
+   * família pode enviar, recodifica a imagem (remove GPS/EXIF) e guarda no Blob privado.
+   */
+  const upload = async (file: File, replace?: string) => {
+    const { blob } = await compress(file);
+    const fd = new FormData();
+    fd.set("athleteId", athleteId);
+    fd.set("file", blob, "foto.webp");
+    if (replace) fd.set("replace", replace);
+    const r = await fetch("/api/fotos", { method: "POST", body: fd });
+    if (!r.ok) throw new Error(((await r.json().catch(() => null)) as { error?: string } | null)?.error ?? "save");
   };
+  const message = (code: string) => (code === "full" ? t.full : code === "tooBig" ? t.tooBig : code === "badType" ? t.badType : t.failed);
 
   const pick = (files: FileList | null) => {
     setError(null);
@@ -62,15 +69,11 @@ export function PhotoManager({ lang, athleteId, photos, t }: { lang: string; ath
   const sendQueue = () =>
     start(async () => {
       try {
-        for (const q of queue) {
-          const { path, w, h } = await upload(q.file);
-          const r = await registerPhoto(lang, athleteId, path, w, h);
-          if (r.error) throw new Error(r.error);
-        }
+        for (const q of queue) await upload(q.file);
         queue.forEach((q) => URL.revokeObjectURL(q.preview));
         setQueue([]);
       } catch (e) {
-        setError((e as Error).message === "full" ? t.full : t.badType);
+        setError(message((e as Error).message));
       }
       router.refresh();
     });
@@ -166,7 +169,10 @@ export function PhotoManager({ lang, athleteId, photos, t }: { lang: string; ath
           if (!file || !target) return;
           if (!TYPES.includes(file.type)) return setError(t.badType);
           if (file.size > MAX_INPUT) return setError(t.tooBig);
-          run(async () => { const { path, w, h } = await upload(file); await replacePhoto(lang, athleteId, target, path, w, h); });
+          start(async () => {
+            try { await upload(file, target); } catch (e) { setError(message((e as Error).message)); }
+            router.refresh();
+          });
         }}
       />
     </div>

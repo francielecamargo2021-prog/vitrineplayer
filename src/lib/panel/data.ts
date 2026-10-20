@@ -3,6 +3,7 @@ import { cache } from "react";
 import { notFound } from "next/navigation";
 import { getAccount, requireGuardianAccount } from "@/lib/auth/session";
 import { userDataClient, type DataClient } from "@/lib/db/data-api";
+import { photoUrl } from "@/lib/photos/server";
 import type { AthleteBundle, ActivityKind } from "@/domain/athlete";
 
 /**
@@ -65,12 +66,12 @@ export async function getAthleteBundle(db: DataClient, uid: string, id: string):
 }
 
 /**
- * Endereços das fotos. Os arquivos migram para o Vercel Blob privado na Etapa 4
- * (rota /api/fotos que confere a RLS antes de ler o arquivo). Até lá, nenhuma foto é servida.
+ * Endereços das fotos: rota interna /api/fotos/{atleta}/{arquivo}, que confere a
+ * permissão no banco a cada pedido. Nada de URL pública ou assinada no navegador.
  */
-export async function signedPhotoUrls(_db: DataClient, _paths: string[]) {
-  void _db; void _paths;
-  return {} as Record<string, string>;
+export async function signedPhotoUrls(_db: DataClient, paths: string[]) {
+  void _db;
+  return Object.fromEntries(paths.filter(Boolean).map((p) => [p, photoUrl(p)])) as Record<string, string>;
 }
 
 /** Sinais de atividade (sem números, sem identidade). */

@@ -1,7 +1,7 @@
 "use client";
 
+import { useKeepAction } from "@/components/forms/use-keep-action";
 import Link from "next/link";
-import { useActionState } from "react";
 import type { FormState } from "@/lib/panel/actions";
 import { ghostButton, primaryButton } from "./controls";
 
@@ -18,9 +18,9 @@ export function StepForm({
   exitHref: string;
   hideNext?: boolean;
 }) {
-  const [state, formAction, pending] = useActionState(action, undefined);
+  const [state, formAction, pending] = useKeepAction(action);
   return (
-    <form action={formAction} className="space-y-10">
+    <form onSubmit={formAction} className="space-y-10">
       {children}
       <div className="sticky bottom-0 z-10 -mx-4 flex flex-col gap-3 border-t border-white/10 bg-ink/95 px-4 py-4 backdrop-blur md:static md:mx-0 md:flex-row md:items-center md:border-0 md:bg-transparent md:px-0 md:py-0">
         {!hideNext && (
