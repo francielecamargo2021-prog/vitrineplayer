@@ -1,6 +1,8 @@
 # VitrinePlayer — Plano da migração completa para Neon + Vercel
 
-*19/10/2026 · para aprovação. Nada deste plano foi executado.*
+*19/10/2026 · para aprovação.*
+
+**Andamento (20/10/2026):** Etapa 1, fase 1 concluída: pasta `db/` criada e testada no Postgres local e num branch temporário do Neon (já apagado). O banco principal de homologação **não foi alterado**: recriar o schema dele (decisão 4) aguarda autorização. Blob privado confirmado com arquivo fictício (já apagado).
 
 ## 0. Situação atual
 

@@ -1,0 +1,18 @@
+{
+  "name": "vitrineplayer-db",
+  "private": true,
+  "type": "module",
+  "description": "Migrations e testes do banco VitrinePlayer (Neon). Ferramenta de linha de comando, fora do app Next.js.",
+  "scripts": {
+    "verificar": "node migrar.mjs verificar",
+    "test:local": "tests/local/run.sh",
+    "test:neon": "node tests/testar-neon.mjs",
+    "test:travas": "node tests/testar-travas.mjs"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "1.2.0",
+    "https-proxy-agent": "9.1.0",
+    "pg": "8.23.1",
+    "ws": "8.22.0"
+  }
+}
