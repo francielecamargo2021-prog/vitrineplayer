@@ -62,10 +62,11 @@ async function asUser(jwt, sql, values) {
 /** Upload: o banco autoriza primeiro (RLS da pasta do atleta); só então o arquivo vai para o Blob. */
 async function enviarFoto(jwt, athleteId, bytes) {
   const name = `${athleteId}/${randomUUID()}.png`;
-  await asUser(jwt, "insert into storage.objects (bucket_id, name) values ('athlete-photos', $1)", [name]);
+  // Sem sufixo aleatório o caminho no Blob é conhecido antes do envio, então ele já entra na
+  // criação do registro (não há regra de UPDATE em storage.objects, de propósito).
+  await asUser(jwt, "insert into storage.objects (bucket_id, name, blob_url) values ('athlete-photos', $1, $2)", [name, PREFIX + name]);
   try {
-    const blob = await put(PREFIX + name, bytes, { access: "private", token: TOKEN, contentType: "image/png", addRandomSuffix: false });
-    await asUser(jwt, "update storage.objects set blob_url = $2 where bucket_id = 'athlete-photos' and name = $1", [name, blob.pathname]);
+    await put(PREFIX + name, bytes, { access: "private", token: TOKEN, contentType: "image/png", addRandomSuffix: false });
     return name;
   } catch (e) {
     await asUser(jwt, "delete from storage.objects where bucket_id = 'athlete-photos' and name = $1", [name]);
