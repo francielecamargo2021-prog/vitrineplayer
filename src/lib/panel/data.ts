@@ -1,29 +1,28 @@
 import "server-only";
 import { cache } from "react";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
+import { getAccount, requireGuardianAccount } from "@/lib/auth/session";
 import { createClient, type ServerClient } from "@/lib/supabase/server";
 import { PHOTO_BUCKET, type AthleteBundle, type ActivityKind } from "@/domain/athlete";
 
-/** Sessão atual (cacheada por requisição). `supabase === null` = backend não configurado. */
+/**
+ * Sessão atual (cacheada por requisição). O login vem do Neon Auth (src/lib/auth);
+ * `supabase` é o acesso aos DADOS, que ainda usa o cliente antigo até a Etapa 3 da
+ * migração. Sem ele, as páginas mostram o aviso de migração em vez de dados.
+ */
 export const getSession = cache(async () => {
-  const supabase = await createClient();
-  if (!supabase) return { supabase: null, user: null, profile: null } as const;
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { supabase, user: null, profile: null } as const;
-  const { data: profile } = await supabase.from("profiles").select("id, full_name, role, country").eq("id", user.id).single();
-  return { supabase, user, profile } as const;
+  const account = await getAccount();
+  const supabase = account.user ? await createClient() : null;
+  return { ...account, supabase } as const;
 });
 
-/** Exige responsável autenticado. Retorna `null` se o backend não estiver configurado. */
+/** Exige responsável autenticado, com e-mail confirmado e cadastro completo. `null` = sem dados disponíveis. */
 export async function requireGuardian(lang: string) {
-  const s = await getSession();
-  if (!s.supabase) return null;
-  if (!s.user || !s.profile) redirect(`/${lang}/entrar`);
-  if (s.profile.role === "ADMIN") redirect(`/${lang}/admin`);
-  if (s.profile.role !== "RESPONSIBLE") redirect(`/${lang}`);
-  return { supabase: s.supabase, user: s.user, profile: s.profile };
+  const s = await requireGuardianAccount(lang);
+  if (!s) return null;
+  const { supabase } = await getSession();
+  if (!supabase) return null;
+  return { supabase, user: s.user, profile: s.profile };
 }
 
 /**

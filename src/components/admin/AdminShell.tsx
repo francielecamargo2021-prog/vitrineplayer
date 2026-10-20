@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/brand/Logo";
-import { signOut } from "@/lib/panel/actions";
+import { signOut } from "@/lib/auth/actions";
 
 const nav = [
   { href: "", label: "Visão geral" },

@@ -1,0 +1,204 @@
+"use server";
+
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { countries } from "@/domain/athlete";
+import { hasLocale } from "@/i18n/config";
+import { asUser, dbReady } from "@/lib/db";
+import { authEnv, currentUser, getAuth } from "./server";
+
+export type AuthFormState = { ok?: boolean; error?: string; message?: string } | undefined;
+
+const CONSENT_VERSION = "2026-10";
+const CONSENTS = ["terms", "privacy", "guardian_declaration", "no_guarantee"] as const;
+
+const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
+const lower = (fd: FormData, k: string) => str(fd, k).toLowerCase();
+const safeLang = (lang: string) => (hasLocale(lang) ? lang : "pt");
+const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) && v.length <= 254;
+const isCode = (v: string) => /^\d{6}$/.test(v);
+const cleanPhone = (v: string) => v.replace(/[^\d+]/g, "");
+const code = (e: unknown) => String((e as { code?: string } | null)?.code ?? "");
+const status = (e: unknown) => Number((e as { status?: number } | null)?.status ?? 0);
+
+function ready() {
+  const auth = getAuth();
+  return auth && dbReady() ? auth : null;
+}
+
+/** Valida WhatsApp, país e os 4 consentimentos (passo 2 do cadastro). */
+function signupDetails(fd: FormData) {
+  const whatsapp = cleanPhone(str(fd, "whatsapp"));
+  const country = (countries as readonly string[]).includes(str(fd, "country")) ? str(fd, "country") : null;
+  if (!whatsapp || !country) return { error: "required" } as const;
+  if (!/^\+?\d{10,15}$/.test(whatsapp)) return { error: "whatsapp" } as const;
+  if (!CONSENTS.every((c) => fd.get(c) === "on")) return { error: "consents" } as const;
+  return { whatsapp, country } as const;
+}
+
+/** Grava WhatsApp, país, idioma e consentimentos COMO o próprio usuário (uma vez só). */
+async function completeSignupAs(userId: string, lang: string, d: { whatsapp: string; country: string }) {
+  const h = await headers();
+  const ip = (h.get("x-forwarded-for") ?? "").split(",")[0].trim() || null;
+  const ua = h.get("user-agent") ?? null;
+  const locale = lang === "es" ? "es" : "pt-BR";
+  await asUser(userId, (q) => q`select complete_signup(${d.whatsapp}, ${d.country}, ${locale},
+    ${[...CONSENTS]}::text[], ${CONSENT_VERSION}, ${ip}, ${ua})`);
+}
+
+/** Envia o código de 6 dígitos. Erros não são revelados (não confirma se a conta existe). */
+async function sendCode(email: string, type: "email-verification" | "forget-password") {
+  const auth = getAuth();
+  try {
+    const r = await auth?.emailOtp.sendVerificationOtp({ email, type });
+    return status(r?.error) === 429 ? "tooMany" : null;
+  } catch {
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------- cadastro (passo 1 + passo 2)
+export async function signUp(lang: string, _prev: AuthFormState, fd: FormData): Promise<AuthFormState> {
+  const auth = ready();
+  if (!auth) return { error: "backend" };
+  const fullName = str(fd, "full_name");
+  const email = lower(fd, "email");
+  const password = String(fd.get("password") ?? "");
+  if (fullName.length < 3 || !email || !password) return { error: "required" };
+  if (!isEmail(email)) return { error: "email" };
+  if (password.length < 8 || password.length > 128) return { error: "password" };
+  if (password !== String(fd.get("confirm") ?? "")) return { error: "mismatch" };
+  const details = signupDetails(fd);
+  if ("error" in details) return { error: details.error };
+
+  const l = safeLang(lang);
+  const { data, error } = await auth.signUp.email({ email, password, name: fullName });
+  if (error || !data?.user?.id) {
+    if (/exist/i.test(code(error)) || status(error) === 422) return { error: "exists" };
+    return { error: status(error) === 429 ? "tooMany" : "generic" };
+  }
+  // A sessão nova só vale na próxima requisição: o servidor completa o cadastro com o ID
+  // devolvido pelo Neon Auth. Se falhar, a pessoa conclui depois em /cadastro/concluir.
+  try {
+    await completeSignupAs(data.user.id, l, details);
+  } catch {
+    /* segue: o painel encaminha para "concluir cadastro" */
+  }
+  await sendCode(email, "email-verification");
+  redirect(`/${l}/entrar/verificar`);
+}
+
+/** Passo 2 para contas que ainda não registraram WhatsApp, país e consentimentos. */
+export async function completeSignup(lang: string, _prev: AuthFormState, fd: FormData): Promise<AuthFormState> {
+  if (!ready()) return { error: "backend" };
+  const user = await currentUser();
+  const l = safeLang(lang);
+  if (!user) redirect(`/${l}/entrar`);
+  const details = signupDetails(fd);
+  if ("error" in details) return { error: details.error };
+  try {
+    await completeSignupAs(user.id, l, details);
+  } catch (e) {
+    if (!/already completed/i.test(String((e as Error).message))) return { error: "generic" };
+  }
+  redirect(`/${l}/painel`);
+}
+
+// ---------------------------------------------------------------- entrar / sair
+export async function signIn(lang: string, _prev: AuthFormState, fd: FormData): Promise<AuthFormState> {
+  const auth = ready();
+  if (!auth) return { error: "backend" };
+  const email = lower(fd, "email");
+  const password = String(fd.get("password") ?? "");
+  const l = safeLang(lang);
+  if (!isEmail(email) || !password) return { error: "invalid" };
+  const { data, error } = await auth.signIn.email({ email, password });
+  if (error) {
+    if (/not_verified/i.test(code(error))) {
+      await sendCode(email, "email-verification");
+      redirect(`/${l}/entrar/verificar?email=${encodeURIComponent(email)}`);
+    }
+    return { error: status(error) === 429 ? "tooMany" : "invalid" };
+  }
+  if (data?.user && !data.user.emailVerified) {
+    await sendCode(email, "email-verification");
+    redirect(`/${l}/entrar/verificar`);
+  }
+  redirect(`/${l}/painel`);
+}
+
+export async function signOut(lang: string) {
+  try {
+    await getAuth()?.signOut();
+  } catch {
+    /* sessão já encerrada */
+  }
+  redirect(`/${safeLang(lang)}/entrar`);
+}
+
+// ---------------------------------------------------------------- verificação de e-mail
+async function emailFor(fd: FormData) {
+  const user = await currentUser();
+  return user?.email ?? lower(fd, "email");
+}
+
+export async function verifyEmail(lang: string, _prev: AuthFormState, fd: FormData): Promise<AuthFormState> {
+  const auth = ready();
+  if (!auth) return { error: "backend" };
+  const email = await emailFor(fd);
+  const otp = str(fd, "code");
+  if (!isEmail(email) || !isCode(otp)) return { error: "code" };
+  const { error } = await auth.emailOtp.verifyEmail({ email, otp });
+  if (error) return { error: status(error) === 429 ? "tooMany" : "code" };
+  redirect(`/${safeLang(lang)}/painel`);
+}
+
+export async function resendVerification(lang: string, _prev: AuthFormState, fd: FormData): Promise<AuthFormState> {
+  void lang;
+  if (!ready()) return { error: "backend" };
+  const email = await emailFor(fd);
+  if (!isEmail(email)) return { error: "email" };
+  const err = await sendCode(email, "email-verification");
+  return err ? { error: err } : { ok: true, message: "codeSent" };
+}
+
+// ---------------------------------------------------------------- recuperação de senha
+export async function requestPasswordReset(lang: string, _prev: AuthFormState, fd: FormData): Promise<AuthFormState> {
+  if (!ready()) return { error: "backend" };
+  const email = lower(fd, "email");
+  if (!isEmail(email)) return { error: "email" };
+  const err = await sendCode(email, "forget-password");
+  if (err) return { error: err };
+  // Mesma resposta exista ou não a conta.
+  redirect(`/${safeLang(lang)}/entrar/recuperar?email=${encodeURIComponent(email)}`);
+}
+
+/**
+ * Troca a senha com o código recebido por e-mail. Chamada direta ao Neon Auth porque o
+ * SDK 0.6.0-beta aponta este método para um caminho inexistente (email-otp/passcode → 404).
+ */
+export async function resetPassword(lang: string, _prev: AuthFormState, fd: FormData): Promise<AuthFormState> {
+  const env = authEnv();
+  if (!env || !ready()) return { error: "backend" };
+  const email = lower(fd, "email");
+  const otp = str(fd, "code");
+  const password = String(fd.get("password") ?? "");
+  if (!isEmail(email) || !isCode(otp)) return { error: "code" };
+  if (password.length < 8 || password.length > 128) return { error: "password" };
+  if (password !== String(fd.get("confirm") ?? "")) return { error: "mismatch" };
+  const h = await headers();
+  const origin = h.get("origin") ?? `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}`;
+  let r: Response;
+  try {
+    r = await fetch(`${env.baseUrl}/email-otp/reset-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Origin: origin },
+      body: JSON.stringify({ email, otp, password }),
+      cache: "no-store",
+    });
+  } catch {
+    return { error: "generic" };
+  }
+  if (!r.ok) return { error: r.status === 429 ? "tooMany" : r.status === 400 ? "code" : "generic" };
+  return { ok: true, message: "passwordChanged" };
+}

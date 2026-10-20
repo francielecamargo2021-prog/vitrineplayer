@@ -2,7 +2,7 @@
 
 *19/10/2026 · para aprovação.*
 
-**Andamento (20/10/2026):** Etapa 1 concluída. Schema definitivo (`db/`, 7 migrations) aplicado no banco principal de homologação com `migrar.mjs recriar`, depois de confirmar zero dados e as travas. Testes no principal: 171/171 de banco e segurança, 39/39 de login + Data API, 16/16 de fotos privadas. Ponto de restauração: branch Neon `backup-antes-recriar-2026-10-20` (sem computação). Etapa 2 aguarda autorização.
+**Andamento (20/10/2026):** Etapa 1 concluída (schema definitivo na homologação; 171/171, 39/39, 16/16). Etapa 2 implementada e testada na homologação: login com Neon Auth (`src/lib/auth/`), cadastro em 2 passos, verificação de e-mail e recuperação de senha por código, `proxy.ts` protegendo `/painel` e `/admin` (48/48 no navegador). Dados do painel continuam para a Etapa 3. Ponto de restauração: branch `backup-antes-recriar-2026-10-20`.
 
 ## 0. Situação atual
 

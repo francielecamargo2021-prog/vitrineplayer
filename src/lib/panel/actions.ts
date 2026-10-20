@@ -1,6 +1,5 @@
 "use server";
 
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -15,7 +14,6 @@ import { stepSlugs, type StepSlug } from "./steps";
 export type FormState = { ok?: boolean; error?: string; message?: string } | undefined;
 type AthleteUpdate = Database["public"]["Tables"]["athletes"]["Update"];
 
-const CONSENT_VERSION = "2026-10";
 
 // ---------------------------------------------------------------- utilidades
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
@@ -39,55 +37,6 @@ async function authed() {
   return { supabase, user };
 }
 const refresh = (lang: string) => revalidatePath(`/${safeLang(lang)}/painel`, "layout");
-
-// ---------------------------------------------------------------- conta
-export async function signUp(lang: string, _prev: FormState, fd: FormData): Promise<FormState> {
-  const supabase = await createClient();
-  if (!supabase) return { error: "backend" };
-  const fullName = str(fd, "full_name");
-  const email = str(fd, "email").toLowerCase();
-  const whatsapp = str(fd, "whatsapp").replace(/[^\d+]/g, "");
-  const country = oneOf(str(fd, "country"), countries);
-  const password = String(fd.get("password") ?? "");
-  if (!fullName || !email || !whatsapp || !password || !country) return { error: "required" };
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "email" };
-  if (!/^\+?\d{10,15}$/.test(whatsapp)) return { error: "whatsapp" };
-  if (password.length < 8) return { error: "password" };
-  if (password !== String(fd.get("confirm") ?? "")) return { error: "mismatch" };
-  const consents = ["terms", "privacy", "guardian_declaration", "no_guarantee"];
-  if (!consents.every((c) => fd.get(c) === "on")) return { error: "consents" };
-
-  const h = await headers();
-  const ip = (h.get("x-forwarded-for") ?? "").split(",")[0].trim();
-  const l = safeLang(lang);
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: {
-        full_name: fullName, whatsapp, country, locale: l === "es" ? "es" : "pt-BR",
-        consents, consent_version: CONSENT_VERSION, consent_ip: ip, consent_ua: h.get("user-agent") ?? "",
-      },
-    },
-  });
-  if (error) return { error: /registered|exists/i.test(error.message) ? "exists" : "generic" };
-  if (!data.session) return { ok: true, message: "checkEmail" };
-  redirect(`/${l}/painel/atleta/novo`);
-}
-
-export async function signIn(lang: string, _prev: FormState, fd: FormData): Promise<FormState> {
-  const supabase = await createClient();
-  if (!supabase) return { error: "backend" };
-  const { error } = await supabase.auth.signInWithPassword({ email: str(fd, "email").toLowerCase(), password: String(fd.get("password") ?? "") });
-  if (error) return { error: "invalid" };
-  redirect(`/${safeLang(lang)}/painel`);
-}
-
-export async function signOut(lang: string) {
-  const supabase = await createClient();
-  await supabase?.auth.signOut();
-  redirect(`/${safeLang(lang)}/entrar`);
-}
 
 // ---------------------------------------------------------------- atleta
 export async function createAthlete(lang: string, _prev: FormState, fd: FormData): Promise<FormState> {

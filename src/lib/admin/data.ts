@@ -1,5 +1,6 @@
 import "server-only";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
+import { requireAdminAccount } from "@/lib/auth/session";
 import { getSession, signedPhotoUrls } from "@/lib/panel/data";
 import type { ServerClient } from "@/lib/supabase/server";
 import type { AthleteBundle, AthleteStatus } from "@/domain/athlete";
@@ -14,11 +15,11 @@ export const orgStatuses: OrgStatus[] = ["pending", "approved", "rejected", "sus
  * A garantia real está no banco: as políticas *_admin e as funções admin_review_*.
  */
 export async function requireAdmin(lang: string) {
-  const s = await getSession();
-  if (!s.supabase) return null;
-  if (!s.user || !s.profile) redirect(`/${lang}/entrar`);
-  if (s.profile.role !== "ADMIN") notFound();
-  return { supabase: s.supabase, user: s.user, profile: s.profile };
+  const s = await requireAdminAccount(lang);
+  if (!s) return null;
+  const { supabase } = await getSession();
+  if (!supabase) return null;
+  return { supabase, user: s.user, profile: s.profile };
 }
 
 const count = async (q: PromiseLike<{ count: number | null }>) => (await q).count ?? 0;
