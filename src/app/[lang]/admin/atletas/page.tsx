@@ -12,7 +12,7 @@ export default async function AdminAthletes({ params, searchParams }: PageProps<
   if (!session) return null;
   const sp = await searchParams;
   const status = (athleteStatuses as string[]).includes(String(sp.situacao)) ? (sp.situacao as AthleteStatus) : "in_review";
-  const [p, rows] = await Promise.all([getPanelDictionary("pt"), listAthletesByStatus(session.supabase, status)]);
+  const [p, rows] = await Promise.all([getPanelDictionary("pt"), listAthletesByStatus(session.db, status)]);
   const date = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" });
 
   return (

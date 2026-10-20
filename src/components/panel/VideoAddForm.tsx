@@ -16,7 +16,7 @@ export function VideoAddForm({ action, t, optional }: { action: (s: FormState, f
       <TextField label={t.title} name="title" maxLength={120} />
       <SelectField label={t.type} name="video_type" defaultValue="highlights" options={videoTypes.map((v) => ({ value: v, label: t.types[v] }))} />
       <TextField label={t.description} name="description" maxLength={280} optional={optional} className="sm:col-span-2" />
-      {state?.error && <p role="alert" className="text-[#f0c4c4] sm:col-span-2">{t.invalid}</p>}
+      {state?.error && <p role="alert" className="text-[#f0c4c4] sm:col-span-2">{state.error === "full" ? t.full : t.invalid}</p>}
       <button disabled={pending} className={`${ghostButton} sm:col-span-2 sm:justify-self-start`}>+ {t.add}</button>
     </form>
   );

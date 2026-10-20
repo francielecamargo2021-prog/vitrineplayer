@@ -85,6 +85,7 @@ try {
     check(s === 200 && must.every((m) => t.includes(m)), `${p} abre com hero, slogan e botão`, `HTTP ${s}`);
   }
   await go("/pt");
+  await page.waitForFunction(() => [...document.querySelectorAll("video")].some((v) => v.currentSrc || v.getAttribute("src")), null, { timeout: 15000 }).catch(() => {});
   const video = await page.evaluate(() => [...document.querySelectorAll("video")].map((v) => v.currentSrc || v.getAttribute("src") || ""));
   check(video.some((v) => v?.includes("hero")), "vídeo do hero presente", video.join(", "));
 
@@ -135,7 +136,7 @@ try {
   await page.fill('input[name="code"]', CODE);
   await submit();
   await page.waitForURL(/\/pt\/painel/).catch(() => {});
-  check(path() === "/pt/painel" && (await page.locator('[data-testid="painel-migracao"]').count()) === 1, "código certo confirma o e-mail e abre o painel", path());
+  check(path() === "/pt/painel" && (await has("Comece pelo")), "código certo confirma o e-mail e abre o painel", path());
   check((await text()).includes("Resp Teste A"), "painel mostra o nome do responsável");
   const verified = (await q(`select "emailVerified" v from neon_auth."user" where email = $1`, [A])).rows[0].v;
   check(verified === true, "e-mail marcado como confirmado no Neon Auth");
@@ -244,7 +245,7 @@ try {
   await page.waitForURL(/\/pt\/painel/).catch(() => {});
   await q(`update profiles set role = 'ADMIN' where id = (select id from neon_auth."user" where email = $1)`, [B]);
   await go("/pt/painel");
-  check(path() === "/pt/admin" && (await page.locator('[data-testid="admin-migracao"]').count()) === 1, "admin é levado ao /admin e acessa a área", path());
+  check(path() === "/pt/admin" && (await has("Atletas aguardando revisão")), "admin é levado ao /admin e acessa a área", path());
   await go("/es/admin");
   check(path() === "/es/admin", "admin acessa /es/admin");
   await logout();

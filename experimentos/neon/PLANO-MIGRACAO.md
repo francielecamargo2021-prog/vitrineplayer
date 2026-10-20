@@ -2,7 +2,7 @@
 
 *19/10/2026 · para aprovação.*
 
-**Andamento (20/10/2026):** Etapa 1 concluída (schema definitivo na homologação; 171/171, 39/39, 16/16). Etapa 2 implementada e testada na homologação: login com Neon Auth (`src/lib/auth/`), cadastro em 2 passos, verificação de e-mail e recuperação de senha por código, `proxy.ts` protegendo `/painel` e `/admin` (48/48 no navegador). Dados do painel continuam para a Etapa 3. Ponto de restauração: branch `backup-antes-recriar-2026-10-20`.
+**Andamento (20/10/2026):** Etapas 1, 2 e 3 concluídas na homologação. Etapa 3: painel e admin lendo dados pela Neon Data API com o JWT do usuário; IA com conexão de serviço própria; migration `0007` (perfil gratuito, modalidade, objetivos novos, 20 vídeos, maioridade do "próprio atleta"). Testes: 195 de banco, 48 de login, 31 do painel no navegador, 39 de isolamento, 16 de fotos. Pontos de restauração: `backup-antes-recriar-2026-10-20` e `backup-antes-0007-2026-10-20`.
 
 ## 0. Situação atual
 
@@ -129,3 +129,24 @@ Gemini à parte, conforme o piloto.
 | 5 | Plano da Vercel | Hobby na homologação; Pro antes da produção |
 | 6 | Criação de recursos na Vercel | Reautorizar a conexão para a equipe, **ou** você cria pelo painel |
 | 7 | Remover `supabase/` depois da etapa 3 | Sim (fica no histórico) |
+
+## 9. Nova direção de produto (20/10/2026) — proposta de sequência
+
+**Já valendo (Etapa 3):** cadastro e publicação gratuitos (envio direto para a revisão do admin), modalidade campo/futsal, objetivos clube / empresário / avaliação / escolinha / núcleo de captação, até 12 fotos e 20 vídeos garantidos no banco, maior de 18 pode administrar o próprio perfil e menor sempre tem responsável legal.
+
+**Já existe no banco e só falta tela:** bloqueio por organização (aplicado na RLS), favoritos e listas privadas da organização (`pro_favorites`, `pro_lists`), pedidos de contato (`contact_requests`), sinais de atividade sem identidade e verificação de organizações pelo admin.
+
+| Ordem | Etapa proposta | O que muda no banco | Depende de |
+|---|---|---|---|
+| 4 | Fotos (já no plano) | nada novo | — |
+| P1 | **Portal profissional básico:** cadastro do profissional, organização pendente → aprovada pelo admin, busca com filtros (posição, categoria, modalidade, país), ficha do atleta para profissionais (sem contato) | tipo de organização `school` (escolinha); papel da conta escolhido no cadastro | 4 |
+| P2 | **Interesse e contato mediado:** profissional demonstra interesse com uma mensagem curta; o responsável vê a organização (nome e tipo), aceita ou recusa; ao aceitar, a VitrinePlayer entrega o contato **do responsável** só àquela organização. Sem chat aberto com menores | política de leitura de `contact_requests` para o responsável, função `respond_contact_request`, registro do aceite, avisos na `notification_outbox`, limite de pedidos por organização | P1 + E-mails (6) |
+| P3 | **Listas privadas e acompanhamento** (favoritos, listas, notas internas da organização) | nada novo (tabelas e RLS prontas); revisar RLS de leitura das listas | P1 |
+| — | Modalidades VIP / recursos avançados | campo de plano na organização, sem cobrança | decisão comercial futura |
+
+**Pendências de segurança encontradas na Etapa 3** (entram na Etapa 7):
+- Exclusão de conta: `audit_log.actor_id`, `athletes.reviewed_by` e `athlete_org_blocks.created_by` impedem apagar o perfil. Proposta: anonimizar (`set null`) mantendo o registro.
+- Limite de tentativas de login (o Neon Auth não bloqueia senha errada repetida).
+- Formulários do painel são limpos após um erro (React 19); preservar o que foi digitado.
+
+**Decisão pendente sobre a landing:** a seção de preço e o botão fixo ainda dizem "R$ 59,90, pagamento único", em conflito com o cadastro gratuito. A landing não foi alterada (regra do projeto); o texto precisa da sua aprovação.

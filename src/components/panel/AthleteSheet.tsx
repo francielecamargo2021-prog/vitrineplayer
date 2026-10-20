@@ -34,6 +34,7 @@ export function AthleteSheet({ bundle, urls, p, locale, actions }: { bundle: Ath
     [f.primaryPosition, position ?? dash],
     [f.secondaryPositions, a.secondary_positions.length ? a.secondary_positions.map((x) => p.positions[x]).join(", ") : dash],
     [f.category, category],
+    [f.modality, a.modality ? p.modalities[a.modality] : dash],
     [f.currentClub, a.current_club ? <>{a.current_club}{a.current_club_since && <span className="text-[#6b7a71]"> · {s.since} {month(a.current_club_since)}</span>}</> : dash],
     [f.federated, a.federated ? a.federation || p.form.yes : p.form.no],
     [f.nationality, a.nationality ? region.of(a.nationality) : dash],

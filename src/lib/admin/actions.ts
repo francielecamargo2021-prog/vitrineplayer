@@ -1,7 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { userDataClient } from "@/lib/db/data-api";
+import { currentUser } from "@/lib/auth/server";
 import { hasLocale } from "@/i18n/config";
 import type { FormState } from "@/lib/panel/actions";
 
@@ -24,17 +25,19 @@ function readDecision(fd: FormData) {
   return decisions.includes(decision) ? { decision, note: note || null } : null;
 }
 
+/** Exige sessão; a permissão de admin é conferida de novo pelo banco (admin_review_*). */
 async function client() {
-  const supabase = await createClient();
-  if (!supabase) throw new Error("backend");
-  return supabase;
+  if (!(await currentUser())) throw new Error("auth");
+  const db = await userDataClient();
+  if (!db) throw new Error("backend");
+  return db;
 }
 
 export async function reviewAthlete(lang: string, id: string, _prev: FormState, fd: FormData): Promise<FormState> {
   const input = readDecision(fd);
   if (!input || !isUuid(id)) return { error: "Decisão inválida." };
-  const supabase = await client();
-  const { error } = await supabase.rpc("admin_review_athlete", { p_athlete: id, p_decision: input.decision, p_note: input.note });
+  const db = await client();
+  const { error } = await db.rpc("admin_review_athlete", { p_athlete: id, p_decision: input.decision, p_note: input.note });
   if (error) return { error: errorKey(error.message) };
   revalidatePath(`/${safeLang(lang)}/admin`, "layout");
   return { ok: true, message: "Decisão registrada. O responsável será avisado." };
@@ -43,8 +46,8 @@ export async function reviewAthlete(lang: string, id: string, _prev: FormState, 
 export async function reviewOrganization(lang: string, id: string, _prev: FormState, fd: FormData): Promise<FormState> {
   const input = readDecision(fd);
   if (!input || input.decision === "reinstate" || !isUuid(id)) return { error: "Decisão inválida." };
-  const supabase = await client();
-  const { error } = await supabase.rpc("admin_review_organization", { p_org: id, p_decision: input.decision, p_note: input.note });
+  const db = await client();
+  const { error } = await db.rpc("admin_review_organization", { p_org: id, p_decision: input.decision, p_note: input.note });
   if (error) return { error: errorKey(error.message) };
   revalidatePath(`/${safeLang(lang)}/admin`, "layout");
   return { ok: true, message: "Decisão registrada." };

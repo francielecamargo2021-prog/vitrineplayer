@@ -2,34 +2,34 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { hasLocale, htmlLang } from "@/i18n/config";
 import { getPanelDictionary } from "@/i18n/get-dictionary";
-import { getAiState, getAthleteBundle, requireGuardian, signedPhotoUrls } from "@/lib/panel/data";
+import { getAiState, getAthleteBundle, requireGuardian } from "@/lib/panel/data";
 import { cancelAiAnalysis, requestAiAnalysis } from "@/lib/panel/ai-actions";
-import { addVideo, backToDraft, removeVideo, requestPayment, resubmit, saveStep, setVisibility } from "@/lib/panel/actions";
+import { addVideo, removeVideo, saveStep, setVisibility, submitForReview, withdrawFromReview } from "@/lib/panel/actions";
 import { isStep, stepSlugs } from "@/lib/panel/steps";
 import {
-  ageOn, availabilityAnswers, categories, categoryFor, countryOptions, feet, positions, seekingKinds, sexes, traitKeys, youtubeThumb,
+  ageOn, availabilityAnswers, categories, categoryFor, countryOptions, feet, modalities, positions, seekingKinds, sexes, traitKeys, youtubeThumb, VIDEO_LIMIT,
 } from "@/domain/athlete";
 import { Choices, SectionTitle, SelectField, TextArea, TextField, ghostButton, primaryButton } from "@/components/panel/controls";
 import { StepForm } from "@/components/panel/StepForm";
 import { Repeatable } from "@/components/panel/Repeatable";
-import { PhotoManager } from "@/components/panel/PhotoManager";
 import { VideoAddForm } from "@/components/panel/VideoAddForm";
 import { BlockManager } from "@/components/panel/BlockManager";
 import { AiRequestForm } from "@/components/ai/AiRequestForm";
 
-export default async function EditStep({ params }: PageProps<"/[lang]/painel/atleta/[id]/editar/[etapa]">) {
+export default async function EditStep({ params, searchParams }: PageProps<"/[lang]/painel/atleta/[id]/editar/[etapa]">) {
   const { lang, id, etapa } = await params;
+  const sp = await searchParams;
   if (!hasLocale(lang) || !isStep(etapa)) notFound();
   const session = await requireGuardian(lang);
   if (!session) return null;
-  const { supabase, user } = session;
+  const { db, user } = session;
   const p = await getPanelDictionary(lang);
-  const bundle = await getAthleteBundle(supabase, user.id, id);
+  const bundle = await getAthleteBundle(db, user.id, id);
   const a = bundle.athlete;
   const f = p.fields;
   const idx = stepSlugs.indexOf(etapa);
   const base = `/${lang}/painel/atleta/${id}`;
-  const labels = { save: p.form.save, saveNext: p.form.saveNext, saved: p.form.saved, error: p.form.error, exit: p.form.exit };
+  const labels = { save: p.form.save, saveNext: p.form.saveNext, saved: p.form.saved, error: p.form.error, exit: p.form.exit, errors: { minorSelf: p.form.minorSelf } };
   const action = saveStep.bind(null, lang, id, etapa);
   const opts = <T extends string>(list: readonly T[], map: Record<T, string>) => list.map((v) => ({ value: v, label: map[v] }));
   const yn = [{ value: "yes", label: p.form.yes }, { value: "no", label: p.form.no }];
@@ -62,13 +62,10 @@ export default async function EditStep({ params }: PageProps<"/[lang]/painel/atl
   }
 
   if (etapa === "fotos") {
-    const urls = await signedPhotoUrls(supabase, bundle.photos.map((ph) => ph.storage_path!).filter(Boolean));
+    // Envio e exibição de fotos: Etapa 4 da migração (Vercel Blob privado + rota que confere a RLS).
     body = (
       <>
-        <PhotoManager
-          lang={lang} athleteId={id} t={p.photos}
-          photos={bundle.photos.map((ph) => ({ id: ph.id, url: urls[ph.storage_path!] ?? null, isPrimary: ph.is_primary, x: ph.focal_x, y: ph.focal_y, zoom: ph.zoom }))}
-        />
+        <p data-testid="fotos-etapa4" className="border-l-2 border-grass pl-4 text-[0.95rem] leading-relaxed text-fog">{p.photos.comingSoon}</p>
         <NextLink href={`${base}/editar/${stepSlugs[idx + 1]}`} label={p.form.saveNext} exit={`/${lang}/painel`} exitLabel={p.form.exit} />
       </>
     );
@@ -91,6 +88,7 @@ export default async function EditStep({ params }: PageProps<"/[lang]/painel/atl
     const m = (d: string | null) => (d ? d.slice(0, 7) : "");
     body = (
       <StepForm action={action} labels={labels} exitHref={`/${lang}/painel`}>
+        <Choices legend={f.modality} name="modality" options={opts(modalities, p.modalities)} value={a.modality} />
         <Choices legend={f.primaryPosition} name="primary_position" options={opts(positions, p.positions)} value={a.primary_position} />
         <Choices legend={f.secondaryPositions} name="secondary_positions" multiple options={opts(positions, p.positions)} value={a.secondary_positions} hint="máx. 3" />
         <div className="grid gap-6 sm:grid-cols-3">
@@ -147,6 +145,7 @@ export default async function EditStep({ params }: PageProps<"/[lang]/painel/atl
     body = (
       <div className="space-y-10">
         <p className="max-w-[62ch] leading-relaxed text-fog">{p.videos.lead}</p>
+        <p className="text-[0.875rem] text-ash" data-testid="videos-contagem">{bundle.videos.length} / {VIDEO_LIMIT}</p>
         {bundle.videos.length === 0 ? (
           <p className="text-ash">{p.videos.empty}</p>
         ) : (
@@ -179,7 +178,7 @@ export default async function EditStep({ params }: PageProps<"/[lang]/painel/atl
 
   if (etapa === "avaliacao") {
     const ai = p.ai;
-    const { request } = await getAiState(supabase, id);
+    const { request } = await getAiState(db, id);
     // pedido em andamento ou concluído: mostra o estado; senão, o formulário
     const showForm = !request || ["unidentified", "failed", "cancelled"].includes(request.status);
     const st = request ? ai.status[request.status] : null;
@@ -215,7 +214,7 @@ export default async function EditStep({ params }: PageProps<"/[lang]/painel/atl
   }
 
   if (etapa === "privacidade") {
-    const { data: blocked } = await supabase.rpc("athlete_blocked_organizations", { p_athlete: id });
+    const { data: blocked } = await db.rpc("athlete_blocked_organizations", { p_athlete: id });
     body = (
       <div className="space-y-10">
         <p className="max-w-[62ch] leading-relaxed text-fog">{p.privacy.lead}</p>
@@ -231,9 +230,13 @@ export default async function EditStep({ params }: PageProps<"/[lang]/painel/atl
 
   if (etapa === "publicacao") {
     const pb = p.publish;
-    const stage = { draft: 0, pending_payment: 1, in_review: 2, rejected: 2, approved: 3, suspended: 3 }[a.status];
+    const stage = { draft: 0, pending_payment: 0, in_review: 2, rejected: 1, approved: 3, suspended: 3 }[a.status];
+    const missing = [
+      !a.primary_position && f.primaryPosition, !a.modality && f.modality, !a.category && f.category,
+    ].filter((x): x is string => Boolean(x));
+    const canSubmit = ["draft", "pending_payment", "rejected"].includes(a.status);
     body = (
-      <div className="space-y-12">
+      <div className="space-y-12" data-testid="publicacao">
         <p className="max-w-[62ch] leading-relaxed text-fog">{pb.lead}</p>
         <ol className="grid grid-cols-2 border-y border-white/10 md:grid-cols-4">
           {pb.flow.map((s, i) => (
@@ -247,30 +250,32 @@ export default async function EditStep({ params }: PageProps<"/[lang]/painel/atl
 
         <section className="grid gap-8 md:grid-cols-12">
           <div className="md:col-span-5">
-            <p className="font-display text-[4rem] font-black leading-none [font-stretch:62%]">{pb.price}</p>
-            <p className="mt-2 text-fog">{pb.priceNote}</p>
+            <p className="font-display text-[4rem] font-black uppercase leading-none [font-stretch:62%]">{pb.free}</p>
+            <p className="mt-2 text-fog">{pb.freeNote}</p>
           </div>
           <div className="space-y-5 md:col-span-7">
             <p className="text-[0.9rem] leading-relaxed text-ash">{pb.disclaimer}</p>
-            {a.status === "draft" && (
-              <form action={requestPayment.bind(null, lang, id)}>
-                <button className={`${primaryButton} w-full sm:w-auto sm:min-w-[18rem]`}>{pb.toPayment}</button>
+            {sp.envio === "incompleto" && <p role="alert" className="border-l-2 border-[#e5a3a3] pl-4 text-bone">{pb.incomplete}</p>}
+            {sp.envio === "erro" && <p role="alert" className="border-l-2 border-[#e5a3a3] pl-4 text-bone">{pb.submitError}</p>}
+            {a.status === "rejected" && <p className="border-l-2 border-[#e5a3a3] pl-4 text-bone">{pb.rejected}</p>}
+            {canSubmit && missing.length > 0 && (
+              <div className="border-l-2 border-white/20 pl-4 text-[0.95rem] text-fog">
+                <p>{pb.requiredTitle}</p>
+                <ul className="mt-1 list-disc pl-5">{missing.map((m) => <li key={m}>{m}</li>)}</ul>
+              </div>
+            )}
+            {canSubmit && (
+              <form action={submitForReview.bind(null, lang, id)}>
+                <button disabled={missing.length > 0} className={`${primaryButton} w-full sm:w-auto sm:min-w-[18rem]`}>
+                  {a.status === "rejected" ? pb.resubmit : pb.submit}
+                </button>
               </form>
             )}
-            {a.status === "pending_payment" && (
+            {a.status === "in_review" && (
               <>
-                <p className="border-l-2 border-grass pl-4 text-bone">{pb.gatewayPending}</p>
-                <form action={backToDraft.bind(null, lang, id)}>
-                  <button className={ghostButton}>{pb.backToDraft}</button>
-                </form>
-              </>
-            )}
-            {a.status === "in_review" && <p className="border-l-2 border-grass pl-4 text-bone">{pb.inReview}</p>}
-            {a.status === "rejected" && (
-              <>
-                <p className="border-l-2 border-[#e5a3a3] pl-4 text-bone">{pb.rejected}</p>
-                <form action={resubmit.bind(null, lang, id)}>
-                  <button className={primaryButton}>{pb.resubmit}</button>
+                <p className="border-l-2 border-grass pl-4 text-bone">{pb.inReview}</p>
+                <form action={withdrawFromReview.bind(null, lang, id)}>
+                  <button className={ghostButton}>{pb.withdraw}</button>
                 </form>
               </>
             )}

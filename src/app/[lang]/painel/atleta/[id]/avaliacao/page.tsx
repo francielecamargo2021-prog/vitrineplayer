@@ -14,8 +14,8 @@ export default async function AiReportPage({ params }: PageProps<"/[lang]/painel
   const session = await requireGuardian(lang);
   if (!session) return null;
   const p = await getPanelDictionary(lang);
-  const bundle = await getAthleteBundle(session.supabase, session.user.id, id);
-  const { report } = await getAiState(session.supabase, id);
+  const bundle = await getAthleteBundle(session.db, session.user.id, id);
+  const { report } = await getAiState(session.db, id);
   if (!report) notFound();
   const t = p.ai.report;
   const published = report.published_at !== null;

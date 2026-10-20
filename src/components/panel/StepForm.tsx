@@ -14,7 +14,7 @@ export function StepForm({
 }: {
   action: (prev: FormState, fd: FormData) => Promise<FormState>;
   children: React.ReactNode;
-  labels: { save: string; saveNext: string; saved: string; error: string; exit: string };
+  labels: { save: string; saveNext: string; saved: string; error: string; exit: string; errors?: Record<string, string> };
   exitHref: string;
   hideNext?: boolean;
 }) {
@@ -35,7 +35,7 @@ export function StepForm({
           {labels.exit}
         </Link>
         <p aria-live="polite" className={`text-[0.875rem] ${state?.error ? "text-[#e5a3a3]" : "text-grass"}`}>
-          {pending ? "" : state?.error ? labels.error : state?.ok ? labels.saved : ""}
+          {pending ? "" : state?.error ? (labels.errors?.[state.error] ?? labels.error) : state?.ok ? labels.saved : ""}
         </p>
       </div>
     </form>

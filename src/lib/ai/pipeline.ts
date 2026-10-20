@@ -24,7 +24,7 @@ import type { Batch, FinalReport, Job, ModelOutput, RequestContext, RequestStatu
 export type JobWithRequest = Job & { request: RequestContext };
 export type NotificationTemplate = "ai_report_ready" | "ai_analysis_unidentified" | "ai_analysis_failed";
 
-/** Operações de banco usadas pelo pipeline (implementação real: repo-supabase.ts). */
+/** Operações de banco usadas pelo pipeline (implementação real: repo-db.ts). */
 export interface AiRepo {
   getSettings(): Promise<Settings>;
   requestsToPlan(limit: number): Promise<RequestContext[]>;

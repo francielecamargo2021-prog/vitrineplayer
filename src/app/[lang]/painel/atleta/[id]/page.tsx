@@ -12,8 +12,8 @@ export default async function AthletePage({ params }: PageProps<"/[lang]/painel/
   const session = await requireGuardian(lang);
   if (!session) return null;
   const p = await getPanelDictionary(lang);
-  const bundle = await getAthleteBundle(session.supabase, session.user.id, id);
-  const urls = await signedPhotoUrls(session.supabase, bundle.photos.map((ph) => ph.storage_path!).filter(Boolean));
+  const bundle = await getAthleteBundle(session.db, session.user.id, id);
+  const urls = await signedPhotoUrls(session.db, bundle.photos.map((ph) => ph.storage_path!).filter(Boolean));
   return (
     <AthleteSheet
       bundle={bundle} urls={urls} p={p} locale={htmlLang[lang]}

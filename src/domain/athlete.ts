@@ -1,9 +1,9 @@
 /**
- * Modelo de domínio do atleta — espelha supabase/migrations (0001 + 0002).
+ * Modelo de domínio do atleta — espelha db/migrations (0001–0007).
  * Dados de contato NUNCA fazem parte do atleta: pertencem ao responsável
  * (tabela `profiles`) e não são expostos a profissionais.
  */
-import type { Database } from "@/lib/supabase/database.types";
+import type { Database } from "@/lib/db/database.types";
 
 type Enums = Database["public"]["Enums"];
 export type AthleteRow = Database["public"]["Tables"]["athletes"]["Row"];
@@ -20,6 +20,7 @@ export type Availability = Enums["availability_answer"];
 export type VideoType = Enums["video_type"];
 export type ActivityKind = Enums["activity_kind"];
 export type Sex = Enums["athlete_sex"];
+export type Modality = Enums["sport_modality"];
 
 /** Ordem de campo (goleiro → ataque). Filtro futuro da busca profissional. */
 export const positions: Position[] = ["GK", "RB", "CB", "LB", "DM", "CM", "AM", "RW", "LW", "CF", "ST"];
@@ -27,10 +28,15 @@ export const feet: DominantFoot[] = ["right", "left", "both"];
 export const sexes: Sex[] = ["male", "female"];
 export const availabilityAnswers: Availability[] = ["yes", "no", "open"];
 export const videoTypes: VideoType[] = ["highlights", "full_match", "training", "goal_play", "other"];
+export const modalities: Modality[] = ["field", "futsal"];
 export const seekingKinds: Seeking[] = [
-  "club", "evaluation", "agent", "representation",
+  "club", "agent", "evaluation", "school", "scouting_hub", "representation",
   "national_opportunity", "international_opportunity", "sponsorship", "other",
 ];
+/** Limites do perfil (também garantidos no banco: 0002 fotos, 0007 vídeos). */
+export const VIDEO_LIMIT = 20;
+/** Maioridade: quem tem 18+ pode administrar o próprio perfil (vínculo "self"). */
+export const ADULT_AGE = 18;
 /** Mesmas chaves de `athlete_trait_keys()` no banco (autodeclaradas, sem nota). */
 export const traitKeys = [
   "speed", "finishing", "vision", "passing", "dribbling", "heading", "marking", "strength",
@@ -118,7 +124,7 @@ export function completeness({ athlete: a, photos, videos, clubs, achievements }
     football: {
       weight: 20,
       checks: [
-        filled(a.primary_position), filled(a.secondary_positions), filled(a.category), filled(a.current_club),
+        filled(a.modality), filled(a.primary_position), filled(a.secondary_positions), filled(a.category), filled(a.current_club),
         clubs.length > 0 || filled(a.competitions), achievements.length > 0 || filled(a.experiences),
       ],
     },

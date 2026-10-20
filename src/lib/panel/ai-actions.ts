@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { userDataClient } from "@/lib/db/data-api";
+import { currentUser } from "@/lib/auth/server";
 import { hasLocale } from "@/i18n/config";
 import { positions, type Position } from "@/domain/athlete";
 import { RUBRIC_VERSION } from "@/lib/ai/rubric";
@@ -22,11 +23,10 @@ const safeLang = (lang: string) => (hasLocale(lang) ? lang : "pt");
 const isUuid = (v: string) => /^[0-9a-f-]{36}$/i.test(v);
 
 async function authed() {
-  const supabase = await createClient();
-  if (!supabase) throw new Error("backend");
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("auth");
-  return supabase;
+  if (!(await currentUser())) throw new Error("auth");
+  const db = await userDataClient();
+  if (!db) throw new Error("backend");
+  return db;
 }
 
 const refresh = (lang: string, athleteId: string) => {
@@ -42,7 +42,7 @@ function errorKey(message: string) {
 }
 
 export async function requestAiAnalysis(lang: string, athleteId: string, _prev: FormState, fd: FormData): Promise<FormState> {
-  const supabase = await authed();
+  const db = await authed();
   if (str(fd, "consent") !== "yes") return { error: "consent" };
   const media = str(fd, "media_id");
   const videoType = str(fd, "video_type") as (typeof aiVideoTypes)[number];
@@ -57,7 +57,7 @@ export async function requestAiAnalysis(lang: string, athleteId: string, _prev: 
   }
   if ((from !== null && from >= minutes) || (to !== null && (to > minutes || (from !== null && to <= from)))) return { error: "generic" };
 
-  const { error } = await supabase.rpc("request_ai_analysis", {
+  const { error } = await db.rpc("request_ai_analysis", {
     p_media: media, p_video_type: videoType, p_video_minutes: minutes, p_shirt_number: shirt, p_shirt_color: color,
     p_position: position, p_consent_version: AI_CONSENT_VERSION, p_rubric_version: RUBRIC_VERSION, p_prompt_version: PROMPT_VERSION,
     p_range_start_min: from, p_range_end_min: to,
@@ -68,20 +68,20 @@ export async function requestAiAnalysis(lang: string, athleteId: string, _prev: 
 }
 
 export async function cancelAiAnalysis(lang: string, athleteId: string, requestId: string) {
-  const supabase = await authed();
-  await supabase.rpc("cancel_ai_analysis", { p_request: requestId });
+  const db = await authed();
+  await db.rpc("cancel_ai_analysis", { p_request: requestId });
   refresh(lang, athleteId);
 }
 
 export async function setAiReportPublished(lang: string, athleteId: string, reportId: string, published: boolean) {
-  const supabase = await authed();
-  await supabase.rpc("set_ai_report_published", { p_report: reportId, p_published: published });
+  const db = await authed();
+  await db.rpc("set_ai_report_published", { p_report: reportId, p_published: published });
   refresh(lang, athleteId);
 }
 
 export async function deleteAiReport(lang: string, athleteId: string, reportId: string) {
-  const supabase = await authed();
-  await supabase.rpc("delete_ai_report", { p_report: reportId });
+  const db = await authed();
+  await db.rpc("delete_ai_report", { p_report: reportId });
   refresh(lang, athleteId);
   redirect(`/${safeLang(lang)}/painel/atleta/${athleteId}/editar/avaliacao`);
 }

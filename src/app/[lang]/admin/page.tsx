@@ -8,7 +8,7 @@ export default async function AdminHome({ params }: PageProps<"/[lang]/admin">) 
   if (!hasLocale(lang)) notFound();
   const session = await requireAdmin(lang);
   if (!session) return null;
-  const c = await adminCounts(session.supabase);
+  const c = await adminCounts(session.db);
   const tiles = [
     { n: c.inReview, label: "Atletas aguardando revisão", href: "/atletas?situacao=in_review", urgent: c.inReview > 0 },
     { n: c.orgsPending, label: "Organizações aguardando verificação", href: "/organizacoes?situacao=pending", urgent: c.orgsPending > 0 },

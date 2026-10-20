@@ -24,7 +24,7 @@ export function NewAthleteForm({ action, p, cancelHref, locale, defaultCountry }
           options={Object.entries(p.newAthlete.relations).map(([value, label]) => ({ value, label }))}
         />
       </div>
-      {state?.error && <p role="alert" className="border-l-2 border-[#e5a3a3] pl-4 text-[#f0c4c4]">{p.form.error}</p>}
+      {state?.error && <p role="alert" className="border-l-2 border-[#e5a3a3] pl-4 text-[#f0c4c4]">{state.error === "minorSelf" ? p.form.minorSelf : p.form.error}</p>}
       <div className="flex flex-col gap-4 pt-4 sm:flex-row sm:items-center">
         <button disabled={pending} className={`${primaryButton} w-full sm:w-auto sm:min-w-[16rem]`}>{p.newAthlete.create}</button>
         <Link href={cancelHref} className="text-center text-[0.9rem] text-ash hover:text-bone">{p.form.back}</Link>

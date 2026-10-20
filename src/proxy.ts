@@ -29,5 +29,6 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next|media|favicon.ico|robots.txt|sitemap.xml|.*\\..*).*)"],
+  // /api/* fica fora: rotas de servidor (ex.: agendador da IA) não têm idioma nem sessão de navegador.
+  matcher: ["/((?!api/|_next|media|favicon.ico|robots.txt|sitemap.xml|.*\\..*).*)"],
 };

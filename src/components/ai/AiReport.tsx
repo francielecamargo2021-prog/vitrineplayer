@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { PanelDictionary } from "@/i18n/get-dictionary";
-import type { Database } from "@/lib/supabase/database.types";
+import type { Database } from "@/lib/db/database.types";
 import { criteria as catalog, type CriterionKey } from "@/lib/ai/rubric";
 import type { ReportDocument } from "@/lib/ai/types";
 

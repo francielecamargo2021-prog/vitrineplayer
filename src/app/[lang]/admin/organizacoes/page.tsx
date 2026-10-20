@@ -24,7 +24,7 @@ export default async function AdminOrganizations({ params, searchParams }: PageP
   if (!session) return null;
   const sp = await searchParams;
   const status = (orgStatuses as string[]).includes(String(sp.situacao)) ? (sp.situacao as OrgStatus) : "pending";
-  const [p, rows] = await Promise.all([getPanelDictionary("pt"), listOrganizationsByStatus(session.supabase, status)]);
+  const [p, rows] = await Promise.all([getPanelDictionary("pt"), listOrganizationsByStatus(session.db, status)]);
   const region = new Intl.DisplayNames(["pt-BR"], { type: "region" });
 
   return (

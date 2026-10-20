@@ -2,7 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { notFound, redirect } from "next/navigation";
 import { asUser, dbReady } from "@/lib/db";
-import type { Database } from "@/lib/supabase/database.types";
+import type { Database } from "@/lib/db/database.types";
 import { currentUser, getAuth, type AuthUser } from "./server";
 
 export type AppRole = Database["public"]["Enums"]["app_role"];

@@ -30,3 +30,17 @@ export async function asUser<T = Record<string, unknown>>(userId: string, query:
   ]);
   return results[2] as T[];
 }
+
+/**
+ * Conexão de SERVIÇO, só para o processador da IA (substitui a antiga service role):
+ * declara o papel `service_role` nas claims, que as funções ai_* exigem
+ * (is_privileged()). Nunca usada para atender pedidos de usuários.
+ */
+export async function asService<T = Record<string, unknown>>(query: (q: Sql) => Query): Promise<T[]> {
+  if (!sql) throw new Error("DATABASE_URL não configurada");
+  const results = await sql.transaction([
+    sql`select set_config('request.jwt.claims', ${JSON.stringify({ role: "service_role" })}, true)`,
+    query(sql),
+  ]);
+  return results[1] as T[];
+}

@@ -42,10 +42,10 @@ export default async function Dashboard({ params, searchParams }: PageProps<"/[l
   if (!hasLocale(lang)) notFound();
   const session = await requireGuardian(lang);
   if (!session) return null;
-  const { supabase, user, profile } = session;
+  const { db, user, profile } = session;
   const p = await getPanelDictionary(lang);
   const d = p.dashboard;
-  const athletes = await listMyAthletes(supabase, user.id);
+  const athletes = await listMyAthletes(db, user.id);
   const firstName = profile.full_name.split(" ")[0];
 
   if (!athletes.length) {
@@ -65,12 +65,12 @@ export default async function Dashboard({ params, searchParams }: PageProps<"/[l
   const sp = await searchParams;
   const wanted = typeof sp.atleta === "string" ? sp.atleta : null;
   const current = athletes.find((x) => x.id === wanted) ?? athletes[0];
-  const bundle = await getAthleteBundle(supabase, user.id, current.id);
+  const bundle = await getAthleteBundle(db, user.id, current.id);
   const a = bundle.athlete;
   const primary = bundle.photos.find((ph) => ph.is_primary);
   const [urls, signals] = await Promise.all([
-    signedPhotoUrls(supabase, primary?.storage_path ? [primary.storage_path] : []),
-    activitySignals(supabase, a.id),
+    signedPhotoUrls(db, primary?.storage_path ? [primary.storage_path] : []),
+    activitySignals(db, a.id),
   ]);
   const { percent, missing, ratios } = completeness(bundle);
   const next = missing[0] ? stepFor[missing[0]] : "publicacao";

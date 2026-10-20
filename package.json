@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test:ai": "node --test src/lib/ai/tests/*.test.ts",
-    "test:db": "supabase/tests/local/run.sh",
+    "test:db": "db/tests/local/run.sh",
     "test:pilot": "node --test scripts/piloto/kit.test.ts scripts/homolog/guard.test.ts",
     "homolog:ensaio": "supabase/homolog/testar-local.sh",
     "homolog:passos": "scripts/homolog/gerar-passos.sh",
@@ -19,8 +19,7 @@
   "dependencies": {
     "@neondatabase/auth": "0.6.0-beta",
     "@neondatabase/serverless": "1.2.0",
-    "@supabase/ssr": "^0.12.7",
-    "@supabase/supabase-js": "^2.117.2",
+    "@supabase/postgrest-js": "2.117.2",
     "next": "16.3.8",
     "react": "19.2.8",
     "react-dom": "19.2.8",

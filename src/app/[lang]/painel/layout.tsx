@@ -16,7 +16,7 @@ export default async function PanelLayout({ children, params }: LayoutProps<"/[l
   const { lang } = await params;
   if (!hasLocale(lang)) notFound();
   const [dict, p, account] = await Promise.all([getDictionary(lang), getPanelDictionary(lang), requireGuardianAccount(lang)]);
-  const data = account ? (await getSession()).supabase : null;
+  const data = account ? (await getSession()).db : null;
   return (
     <PanelShell lang={lang} p={p} langLabel={dict.nav.langLabel} name={account?.profile.full_name}>
       {!account ? <BackendNotice p={p} /> : data ? children : <MigrationNotice p={p} name={account.profile.full_name} />}

@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { timingSafeEqual } from "node:crypto";
 import { GeminiBatchClient } from "@/lib/ai/gemini";
 import { runCycle } from "@/lib/ai/pipeline";
-import { SupabaseAiRepo, serviceClient } from "@/lib/ai/repo-supabase";
+import { aiRepo } from "@/lib/ai/repo-db";
 
 /**
  * Ciclo do processador de avaliações por IA (agendador → POST com
@@ -26,13 +26,13 @@ function authorized(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   if (!authorized(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  const db = serviceClient();
-  if (!db) return NextResponse.json({ error: "backend not configured" }, { status: 503 });
+  const repo = aiRepo();
+  if (!repo) return NextResponse.json({ error: "backend not configured" }, { status: 503 });
 
   const paidAllowed = process.env.AI_ANALYSIS_ENABLED === "true";
   const apiKey = process.env.GEMINI_API_KEY ?? "";
   const client = paidAllowed && apiKey ? new GeminiBatchClient({ apiKey, allowPaid: true }) : null;
 
-  const summary = await runCycle({ repo: new SupabaseAiRepo(db), client, paidAllowed });
+  const summary = await runCycle({ repo, client, paidAllowed });
   return NextResponse.json(summary);
 }

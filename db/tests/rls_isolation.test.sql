@@ -93,10 +93,15 @@ select is((select count(*)::int from athlete_activity_signals((select id from id
 -- ---------------------------------------------------------------- status e pagamento
 select throws_ok(format($$ update athletes set status = 'approved' where id = %L $$, (select id from ids where k = 'athA')),
   null, 'mudança de status não permitida', 'responsável não aprova o próprio atleta');
-select lives_ok(format($$ update athletes set status = 'pending_payment' where id = %L $$, (select id from ids where k = 'athA')),
-  'rascunho → aguardando pagamento');
+-- [0007] cadastro gratuito: não existe mais "aguardando pagamento"; o perfil vai direto para revisão
+select throws_ok(format($$ update athletes set status = 'pending_payment' where id = %L $$, (select id from ids where k = 'athA')),
+  null, 'mudança de status não permitida', 'cadastro gratuito: rascunho não vai para "aguardando pagamento"');
 select throws_ok(format($$ update athletes set status = 'in_review' where id = %L $$, (select id from ids where k = 'athA')),
-  null, 'mudança de status não permitida', 'sem pagamento não vai para revisão');
+  null, 'perfil incompleto para revisão', 'perfil sem posição, modalidade e categoria não vai para revisão');
+select lives_ok(format($$ update athletes set primary_position = 'CM', modality = 'field', category = 'Sub-15', status = 'in_review' where id = %L $$, (select id from ids where k = 'athA')),
+  'perfil completo vai para revisão sem pagamento');
+select throws_ok(format($$ update athletes set status = 'approved' where id = %L $$, (select id from ids where k = 'athA')),
+  null, 'mudança de status não permitida', 'em revisão, o responsável continua sem poder aprovar');
 select throws_ok($$ select mark_payment_paid(gen_random_uuid(), 'x', 'y') $$, '42501', null, 'responsável não confirma pagamento');
 
 -- confirmação real só por service role (webhook): paga, vai para revisão; admin aprova

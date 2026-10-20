@@ -2,9 +2,9 @@ import "server-only";
 import { notFound } from "next/navigation";
 import { requireAdminAccount } from "@/lib/auth/session";
 import { getSession, signedPhotoUrls } from "@/lib/panel/data";
-import type { ServerClient } from "@/lib/supabase/server";
+import type { DataClient } from "@/lib/db/data-api";
 import type { AthleteBundle, AthleteStatus } from "@/domain/athlete";
-import type { Database } from "@/lib/supabase/database.types";
+import type { Database } from "@/lib/db/database.types";
 
 export type OrgStatus = Database["public"]["Enums"]["review_status"];
 export const athleteStatuses: AthleteStatus[] = ["in_review", "approved", "rejected", "suspended", "pending_payment", "draft"];
@@ -17,25 +17,25 @@ export const orgStatuses: OrgStatus[] = ["pending", "approved", "rejected", "sus
 export async function requireAdmin(lang: string) {
   const s = await requireAdminAccount(lang);
   if (!s) return null;
-  const { supabase } = await getSession();
-  if (!supabase) return null;
-  return { supabase, user: s.user, profile: s.profile };
+  const { db } = await getSession();
+  if (!db) return null;
+  return { db, user: s.user, profile: s.profile };
 }
 
 const count = async (q: PromiseLike<{ count: number | null }>) => (await q).count ?? 0;
 
-export async function adminCounts(supabase: ServerClient) {
+export async function adminCounts(db: DataClient) {
   const [inReview, approved, orgsPending, orgsApproved] = await Promise.all([
-    count(supabase.from("athletes").select("id", { count: "exact", head: true }).eq("status", "in_review")),
-    count(supabase.from("athletes").select("id", { count: "exact", head: true }).eq("status", "approved")),
-    count(supabase.from("organizations").select("id", { count: "exact", head: true }).eq("status", "pending")),
-    count(supabase.from("organizations").select("id", { count: "exact", head: true }).eq("status", "approved")),
+    count(db.from("athletes").select("id", { count: "exact", head: true }).eq("status", "in_review")),
+    count(db.from("athletes").select("id", { count: "exact", head: true }).eq("status", "approved")),
+    count(db.from("organizations").select("id", { count: "exact", head: true }).eq("status", "pending")),
+    count(db.from("organizations").select("id", { count: "exact", head: true }).eq("status", "approved")),
   ]);
   return { inReview, approved, orgsPending, orgsApproved };
 }
 
-export async function listAthletesByStatus(supabase: ServerClient, status: AthleteStatus) {
-  const { data } = await supabase
+export async function listAthletesByStatus(db: DataClient, status: AthleteStatus) {
+  const { data } = await db
     .from("athletes")
     .select("id, full_name, sport_name, birth_date, primary_position, country, state, city, status, submitted_at, updated_at, review_note")
     .eq("status", status)
@@ -45,16 +45,16 @@ export async function listAthletesByStatus(supabase: ServerClient, status: Athle
 }
 
 /** Ficha completa para revisão + responsável principal (contato visível só ao admin). */
-export async function getAthleteForReview(supabase: ServerClient, id: string) {
+export async function getAthleteForReview(db: DataClient, id: string) {
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
-  const { data: athlete } = await supabase.from("athletes").select("*").eq("id", id).maybeSingle();
+  const { data: athlete } = await db.from("athletes").select("*").eq("id", id).maybeSingle();
   if (!athlete) notFound();
   const [media, clubs, achievements, guardian, history] = await Promise.all([
-    supabase.from("athlete_media").select("*").eq("athlete_id", id).order("position").order("created_at"),
-    supabase.from("athlete_clubs").select("*").eq("athlete_id", id).order("started_on", { ascending: false, nullsFirst: false }),
-    supabase.from("athlete_achievements").select("*").eq("athlete_id", id).order("position"),
-    supabase.from("athlete_guardians").select("relation, profiles(full_name, email, whatsapp, country)").eq("athlete_id", id).eq("is_primary", true).maybeSingle(),
-    supabase.from("audit_log").select("action, created_at, meta").eq("entity_id", id).like("action", "athlete.review.%").order("created_at", { ascending: false }).limit(20),
+    db.from("athlete_media").select("*").eq("athlete_id", id).order("position").order("created_at"),
+    db.from("athlete_clubs").select("*").eq("athlete_id", id).order("started_on", { ascending: false, nullsFirst: false }),
+    db.from("athlete_achievements").select("*").eq("athlete_id", id).order("position"),
+    db.from("athlete_guardians").select("relation, profiles(full_name, email, whatsapp, country)").eq("athlete_id", id).eq("is_primary", true).maybeSingle(),
+    db.from("audit_log").select("action, created_at, meta").eq("entity_id", id).like("action", "athlete.review.%").order("created_at", { ascending: false }).limit(20),
   ]);
   const all = media.data ?? [];
   const bundle: AthleteBundle = {
@@ -64,12 +64,12 @@ export async function getAthleteForReview(supabase: ServerClient, id: string) {
     clubs: clubs.data ?? [],
     achievements: achievements.data ?? [],
   };
-  const urls = await signedPhotoUrls(supabase, bundle.photos.map((p) => p.storage_path!).filter(Boolean));
+  const urls = await signedPhotoUrls(db, bundle.photos.map((p) => p.storage_path!).filter(Boolean));
   return { bundle, urls, guardian: guardian.data, history: history.data ?? [] };
 }
 
-export async function listOrganizationsByStatus(supabase: ServerClient, status: OrgStatus) {
-  const { data } = await supabase
+export async function listOrganizationsByStatus(db: DataClient, status: OrgStatus) {
+  const { data } = await db
     .from("organizations")
     .select("id, name, kind, country, document, website, status, created_at, reviewed_at")
     .eq("status", status)

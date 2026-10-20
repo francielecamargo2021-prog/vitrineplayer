@@ -28,7 +28,7 @@ export default async function AdminAthlete({ params }: PageProps<"/[lang]/admin/
   if (!hasLocale(lang)) notFound();
   const session = await requireAdmin(lang);
   if (!session) return null;
-  const [p, { bundle, urls, guardian, history }] = await Promise.all([getPanelDictionary("pt"), getAthleteForReview(session.supabase, id)]);
+  const [p, { bundle, urls, guardian, history }] = await Promise.all([getPanelDictionary("pt"), getAthleteForReview(session.db, id)]);
   const a = bundle.athlete;
   const g = guardian?.profiles;
   const date = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" });

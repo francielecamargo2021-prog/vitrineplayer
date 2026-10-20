@@ -2,7 +2,6 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { createBrowserSupabase } from "@/lib/supabase/client";
 import { PHOTO_BUCKET, PHOTO_LIMIT } from "@/domain/athlete";
 import type { PanelDictionary } from "@/i18n/get-dictionary";
 import { deletePhoto, movePhoto, registerPhoto, replacePhoto, setFraming, setPrimaryPhoto } from "@/lib/panel/actions";
@@ -43,12 +42,12 @@ export function PhotoManager({ lang, athleteId, photos, t }: { lang: string; ath
   const primary = photos.find((p) => p.isPrimary);
   const room = PHOTO_LIMIT - photos.length;
 
-  const upload = async (file: File) => {
-    const { blob, w, h } = await compress(file);
-    const path = `${athleteId}/${crypto.randomUUID().replaceAll("-", "")}.webp`;
-    const { error: e } = await createBrowserSupabase().storage.from(PHOTO_BUCKET).upload(path, blob, { contentType: "image/webp", upsert: false });
-    if (e) throw e;
-    return { path, w, h };
+  // Envio direto ao armazenamento privado: Etapa 4 (Vercel Blob com token curto emitido
+  // só depois de o banco autorizar). Até lá o componente não envia arquivos.
+  const upload = async (file: File): Promise<{ path: string; w: number; h: number }> => {
+    await compress(file);
+    void athleteId; void PHOTO_BUCKET;
+    throw new Error("photosLater");
   };
 
   const pick = (files: FileList | null) => {

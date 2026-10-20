@@ -12,7 +12,7 @@ export default async function AdminLayout({ children, params }: LayoutProps<"/[l
   const { lang } = await params;
   if (!hasLocale(lang)) notFound();
   const account = await requireAdminAccount(lang);
-  const data = account ? (await getSession()).supabase : null;
+  const data = account ? (await getSession()).db : null;
   return (
     <AdminShell lang={lang} name={account?.profile.full_name} env={process.env.VP_ENV ?? null}>
       {!account ? (

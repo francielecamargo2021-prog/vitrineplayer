@@ -55,14 +55,13 @@ select pg_temp.as_user('a0000000-0000-0000-0000-00000000000a');
 insert into ids values ('ath', create_athlete('Atleta Teste', 'Teste', '2011-03-10', 'BR'));
 insert into ids values ('draft', create_athlete('Atleta Rascunho', 'Rascunho', '2012-05-01', 'BR'));
 
--- pagamento confirmado pelo "webhook" → em revisão
+-- [0007] cadastro gratuito: o responsável completa o perfil e envia para revisão
+update athletes set primary_position = 'CM', modality = 'field', category = 'Sub-15', status = 'in_review'
+  where id = (select id from ids where k = 'ath');
 select pg_temp.as_service();
-insert into payments (id, athlete_id, payer_id) values
-  ('f0000000-0000-0000-0000-0000000000f1', (select id from ids where k = 'ath'), 'a0000000-0000-0000-0000-00000000000a');
-select mark_payment_paid('f0000000-0000-0000-0000-0000000000f1', 'TEST', 'TEST-1');
 insert into storage.objects (bucket_id, name) values
   ('athlete-photos', (select id from ids where k = 'ath') || '/foto.webp');
-select is((select status::text from athletes where id = (select id from ids where k = 'ath')), 'in_review', 'pagamento leva o atleta para revisão');
+select is((select status::text from athletes where id = (select id from ids where k = 'ath')), 'in_review', 'perfil completo vai para revisão sem pagamento');
 
 select has_function('public', 'admin_review_athlete', array['uuid', 'text', 'text'], 'admin_review_athlete existe');
 select has_function('public', 'admin_review_organization', array['uuid', 'text', 'text'], 'admin_review_organization existe');
