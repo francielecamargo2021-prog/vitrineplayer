@@ -3,11 +3,11 @@ import { NextResponse } from "next/server";
 import { defaultLocale, hasLocale } from "@/i18n/config";
 import { getAuth } from "@/lib/auth/server";
 
-const protectedArea = /^\/(pt|es)\/(painel|admin)(\/|$)/;
+const protectedArea = /^\/(pt|es)\/(painel|admin|portal)(\/|$)/;
 
 /**
  * 1. Rotas sem prefixo de idioma vão para /pt ou /es (Accept-Language).
- * 2. /painel e /admin exigem sessão do Neon Auth (sem sessão → /{idioma}/entrar) e
+ * 2. /painel, /admin e /portal exigem sessão do Neon Auth (sem sessão → /{idioma}/entrar) e
  *    renovam o cookie da sessão quando necessário.
  * É só a primeira barreira: cada página e cada ação conferem a sessão de novo, e o
  * banco aplica a RLS em todas as consultas.

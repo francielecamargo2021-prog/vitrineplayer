@@ -45,7 +45,21 @@ export async function requireGuardianAccount(lang: string) {
   const s = await requireAccount(lang);
   if (!s) return null;
   if (s.profile.role === "ADMIN") redirect(`/${lang}/admin`);
+  if (s.profile.role === "PROFESSIONAL" || s.profile.role === "SCOUT") redirect(`/${lang}/portal`);
   if (s.profile.role !== "RESPONSIBLE") redirect(`/${lang}`);
+  return s;
+}
+
+/**
+ * Área do profissional. Família vai para o painel, admin para /admin.
+ * Se a organização ainda não foi aprovada, a página mostra "em verificação":
+ * quem garante isso de verdade é o banco (funções pro_* e athlete_visible_to_pro).
+ */
+export async function requireProAccount(lang: string) {
+  const s = await requireAccount(lang);
+  if (!s) return null;
+  if (s.profile.role === "ADMIN") redirect(`/${lang}/admin`);
+  if (s.profile.role !== "PROFESSIONAL" && s.profile.role !== "SCOUT") redirect(`/${lang}/painel`);
   return s;
 }
 

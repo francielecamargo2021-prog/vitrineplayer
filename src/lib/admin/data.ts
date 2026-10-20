@@ -71,9 +71,30 @@ export async function getAthleteForReview(db: DataClient, id: string) {
 export async function listOrganizationsByStatus(db: DataClient, status: OrgStatus) {
   const { data } = await db
     .from("organizations")
-    .select("id, name, kind, country, document, website, status, created_at, reviewed_at")
+    .select("id, name, kind, country, state, city, document, license, website, about, contact_name, contact_role, contact_email, contact_phone, review_note, status, created_at, reviewed_at")
     .eq("status", status)
     .order("created_at", { ascending: status === "pending" })
     .limit(200);
   return data ?? [];
+}
+
+/** Denúncias feitas pelas famílias, por organização (o motivo é visto só pelo admin). */
+export async function reportsByOrganization(db: DataClient) {
+  const { data } = await db
+    .from("contact_requests")
+    .select("organization_id, report_reason, reported_at")
+    .not("reported_at", "is", null)
+    .order("reported_at", { ascending: false })
+    .limit(500);
+  const map = new Map<string, { reason: string | null; at: string | null }[]>();
+  for (const r of data ?? []) {
+    map.set(r.organization_id, [...(map.get(r.organization_id) ?? []), { reason: r.report_reason, at: r.reported_at }]);
+  }
+  return map;
+}
+
+export type PortalSettings = { profile_views_per_day: number; interests_per_month: number; interest_expiry_days: number; updated_at: string };
+export async function portalSettings(db: DataClient) {
+  const { data } = await db.from("portal_settings").select("profile_views_per_day, interests_per_month, interest_expiry_days, updated_at").maybeSingle();
+  return data as PortalSettings | null;
 }

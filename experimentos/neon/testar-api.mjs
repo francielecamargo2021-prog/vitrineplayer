@@ -121,11 +121,15 @@ try {
   await db.query("select set_config('request.jwt.claims', '{\"role\":\"service_role\"}', true)");
   await db.query({ text: `update athletes set status = 'approved', approved_at = now() where id = $1`, values: [athA] });
   await db.query("commit");
-  r = await rest(tok.p, "/athletes?select=id,full_name"); check(r.json?.length === 1, "profissional aprovado vê o atleta aprovado");
+  // 0008: o profissional não lê a tabela; recebe só o cartão pela função do portal (sem nome completo)
+  r = await rest(tok.p, "/athletes?select=id,full_name"); check(Array.isArray(r.json) && r.json.length === 0, "profissional não lê a tabela de atletas (0008)");
+  r = await rpc(tok.p, "pro_search_athletes", {});
+  check(r.json?.length === 1 && r.json[0].id === athA && !("full_name" in r.json[0]) && !("birth_date" in r.json[0]),
+    "profissional aprovado vê o atleta aprovado só pelo cartão do portal", `HTTP ${r.status}`);
   r = await rest(tok.p, "/profiles?select=id,email,whatsapp"); check(r.json?.length === 1 && r.json[0].id === ids.p, "profissional nunca lê contato do responsável");
   r = await rest(tok.a, "/athlete_org_blocks", { method: "POST", body: { athlete_id: athA, organization_id: org.id }, prefer: "return=minimal" });
   check(r.status === 201, "responsável bloqueia a organização", `HTTP ${r.status}`);
-  r = await rest(tok.p, "/athletes?select=id"); check(Array.isArray(r.json) && r.json.length === 0, "organização bloqueada deixa de ver o atleta");
+  r = await rpc(tok.p, "pro_search_athletes", {}); check(Array.isArray(r.json) && r.json.length === 0, "organização bloqueada deixa de ver o atleta");
 
   // ---------------------------------------------------------------- 4. autorização das fotos (caminho do servidor)
   console.log("— 4. Autorização das fotos (servidor verifica o JWT e consulta o banco como o usuário)");

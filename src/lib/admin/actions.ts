@@ -52,3 +52,16 @@ export async function reviewOrganization(lang: string, id: string, _prev: FormSt
   revalidatePath(`/${safeLang(lang)}/admin`, "layout");
   return { ok: true, message: "Decisão registrada." };
 }
+
+/** Limites do portal (fichas por dia, interesses por mês, prazo). O banco confere o admin. */
+export async function updatePortalSettings(lang: string, _prev: FormState, fd: FormData): Promise<FormState> {
+  const n = (k: string) => Number(fd.get(k));
+  const views = n("views"), interests = n("interests"), expiry = n("expiry");
+  const ok = (v: number, max: number) => Number.isInteger(v) && v >= 1 && v <= max;
+  if (!ok(views, 10000) || !ok(interests, 1000) || !ok(expiry, 365)) return { error: "Valores inválidos (fichas 1–10000, interesses 1–1000, prazo 1–365 dias)." };
+  const db = await client();
+  const { error } = await db.rpc("admin_update_portal_settings", { p_views: views, p_interests: interests, p_expiry: expiry });
+  if (error) return { error: errorKey(error.message) };
+  revalidatePath(`/${safeLang(lang)}/admin`, "layout");
+  return { ok: true, message: "Limites atualizados." };
+}

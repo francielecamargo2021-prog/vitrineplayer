@@ -232,13 +232,13 @@ isOneToOne: false
                   ]
                 },"contact_requests": {
                   Row: {
-                    "athlete_id": string,"created_at": string,"id": string,"message": string,"organization_id": string,"requested_by": string,"resolved_at": string | null,"status": Database["public"]['Enums']["contact_status"]
+                    "athlete_id": string,"created_at": string,"id": string,"message": string,"organization_id": string,"requested_by": string,"resolved_at": string | null,"status": Database["public"]['Enums']["contact_status"],"responded_by": string | null,"reported_at": string | null,"report_reason": string | null
                   }
                   Insert: {
-                    "athlete_id": string,"created_at"?: string,"id"?: string,"message": string,"organization_id": string,"requested_by": string,"resolved_at"?: string | null,"status"?: Database["public"]['Enums']["contact_status"]
+                    "athlete_id": string,"created_at"?: string,"id"?: string,"message": string,"organization_id": string,"requested_by": string,"resolved_at"?: string | null,"status"?: Database["public"]['Enums']["contact_status"],"responded_by"?: string | null,"reported_at"?: string | null,"report_reason"?: string | null
                   }
                   Update: {
-                    "athlete_id"?: string,"created_at"?: string,"id"?: string,"message"?: string,"organization_id"?: string,"requested_by"?: string,"resolved_at"?: string | null,"status"?: Database["public"]['Enums']["contact_status"]
+                    "athlete_id"?: string,"created_at"?: string,"id"?: string,"message"?: string,"organization_id"?: string,"requested_by"?: string,"resolved_at"?: string | null,"status"?: Database["public"]['Enums']["contact_status"],"responded_by"?: string | null,"reported_at"?: string | null,"report_reason"?: string | null
                   }
                   Relationships: [
                     {
@@ -307,13 +307,13 @@ isOneToOne: false
                   ]
                 },"organizations": {
                   Row: {
-                    "country": string,"created_at": string,"document": string | null,"id": string,"kind": Database["public"]['Enums']["pro_org_kind"],"name": string,"reviewed_at": string | null,"reviewed_by": string | null,"status": Database["public"]['Enums']["review_status"],"website": string | null
+                    "country": string,"created_at": string,"document": string | null,"id": string,"kind": Database["public"]['Enums']["pro_org_kind"],"name": string,"reviewed_at": string | null,"reviewed_by": string | null,"status": Database["public"]['Enums']["review_status"],"website": string | null,"state": string | null,"city": string | null,"license": string | null,"contact_name": string | null,"contact_role": string | null,"contact_email": string | null,"contact_phone": string | null,"about": string | null,"review_note": string | null
                   }
                   Insert: {
-                    "country": string,"created_at"?: string,"document"?: string | null,"id"?: string,"kind": Database["public"]['Enums']["pro_org_kind"],"name": string,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"status"?: Database["public"]['Enums']["review_status"],"website"?: string | null
+                    "country": string,"created_at"?: string,"document"?: string | null,"id"?: string,"kind": Database["public"]['Enums']["pro_org_kind"],"name": string,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"status"?: Database["public"]['Enums']["review_status"],"website"?: string | null,"state"?: string | null,"city"?: string | null,"license"?: string | null,"contact_name"?: string | null,"contact_role"?: string | null,"contact_email"?: string | null,"contact_phone"?: string | null,"about"?: string | null,"review_note"?: string | null
                   }
                   Update: {
-                    "country"?: string,"created_at"?: string,"document"?: string | null,"id"?: string,"kind"?: Database["public"]['Enums']["pro_org_kind"],"name"?: string,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"status"?: Database["public"]['Enums']["review_status"],"website"?: string | null
+                    "country"?: string,"created_at"?: string,"document"?: string | null,"id"?: string,"kind"?: Database["public"]['Enums']["pro_org_kind"],"name"?: string,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"status"?: Database["public"]['Enums']["review_status"],"website"?: string | null,"state"?: string | null,"city"?: string | null,"license"?: string | null,"contact_name"?: string | null,"contact_role"?: string | null,"contact_email"?: string | null,"contact_phone"?: string | null,"about"?: string | null,"review_note"?: string | null
                   }
                   Relationships: [
                     {
@@ -324,6 +324,17 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"portal_settings": {
+                  Row: {
+                    "id": boolean,"profile_views_per_day": number,"interests_per_month": number,"interest_expiry_days": number,"updated_at": string,"updated_by": string | null
+                  }
+                  Insert: {
+                    "id"?: boolean,"profile_views_per_day"?: number,"interests_per_month"?: number,"interest_expiry_days"?: number,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Update: {
+                    "id"?: boolean,"profile_views_per_day"?: number,"interests_per_month"?: number,"interest_expiry_days"?: number,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Relationships: []
                 },"payments": {
                   Row: {
                     "amount_cents": number,"athlete_id": string,"created_at": string,"currency": string,"id": string,"paid_at": string | null,"payer_id": string,"provider": string | null,"provider_ref": string | null,"status": Database["public"]['Enums']["payment_status"]
@@ -514,6 +525,9 @@ isOneToOne: false
             "admin_review_athlete":
 { Args: { "p_athlete": string,"p_decision": string,"p_note"?: string | null }; Returns: Database["public"]['Enums']["athlete_status"]
                            },
+"admin_update_portal_settings":
+{ Args: { "p_views": number,"p_interests": number,"p_expiry": number }; Returns: undefined
+                           },
 "admin_review_organization":
 { Args: { "p_org": string,"p_decision": string,"p_note"?: string | null }; Returns: Database["public"]['Enums']["review_status"]
                            },
@@ -591,7 +605,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "activity_kind": "view"|"search_appearance"|"interest","app_role": "RESPONSIBLE"|"PROFESSIONAL"|"SCOUT"|"ADMIN","athlete_sex": "male"|"female","athlete_status": "draft"|"pending_payment"|"in_review"|"approved"|"rejected"|"suspended","availability_answer": "yes"|"no"|"open","ai_analysis_status": "awaiting_payment"|"queued"|"processing"|"completed"|"unidentified"|"failed"|"cancelled","ai_confidence": "low"|"medium"|"high","consent_kind": "terms"|"privacy"|"guardian_declaration"|"pro_visibility"|"no_guarantee"|"marketing_whatsapp"|"ai_video_analysis","contact_status": "requested"|"forwarded"|"accepted"|"declined"|"expired","dominant_foot": "right"|"left"|"both","football_position": "GK"|"RB"|"CB"|"LB"|"DM"|"CM"|"AM"|"RW"|"LW"|"CF"|"ST","guardian_relation": "mother"|"father"|"legal_guardian"|"self"|"other","media_kind": "photo"|"youtube"|"video_link","notify_channel": "email"|"whatsapp"|"sms","payment_status": "pending"|"paid"|"failed"|"refunded","pro_org_kind": "club"|"scout"|"agent"|"company"|"scouting_hub"|"brand","profile_visibility": "active"|"paused"|"hidden","review_status": "pending"|"approved"|"rejected"|"suspended","seeking_kind": "club"|"representation"|"agent"|"sponsorship"|"evaluation"|"other"|"national_opportunity"|"international_opportunity"|"school"|"scouting_hub","sport_modality": "field"|"futsal","video_type": "highlights"|"full_match"|"training"|"goal_play"|"other"
+            "activity_kind": "view"|"search_appearance"|"interest","app_role": "RESPONSIBLE"|"PROFESSIONAL"|"SCOUT"|"ADMIN","athlete_sex": "male"|"female","athlete_status": "draft"|"pending_payment"|"in_review"|"approved"|"rejected"|"suspended","availability_answer": "yes"|"no"|"open","ai_analysis_status": "awaiting_payment"|"queued"|"processing"|"completed"|"unidentified"|"failed"|"cancelled","ai_confidence": "low"|"medium"|"high","consent_kind": "terms"|"privacy"|"guardian_declaration"|"pro_visibility"|"no_guarantee"|"marketing_whatsapp"|"ai_video_analysis"|"pro_conduct","contact_status": "requested"|"forwarded"|"accepted"|"declined"|"expired","dominant_foot": "right"|"left"|"both","football_position": "GK"|"RB"|"CB"|"LB"|"DM"|"CM"|"AM"|"RW"|"LW"|"CF"|"ST","guardian_relation": "mother"|"father"|"legal_guardian"|"self"|"other","media_kind": "photo"|"youtube"|"video_link","notify_channel": "email"|"whatsapp"|"sms","payment_status": "pending"|"paid"|"failed"|"refunded","pro_org_kind": "club"|"scout"|"agent"|"company"|"scouting_hub"|"brand"|"school"|"manager","profile_visibility": "active"|"paused"|"hidden","review_status": "pending"|"approved"|"rejected"|"suspended","seeking_kind": "club"|"representation"|"agent"|"sponsorship"|"evaluation"|"other"|"national_opportunity"|"international_opportunity"|"school"|"scouting_hub","sport_modality": "field"|"futsal","video_type": "highlights"|"full_match"|"training"|"goal_play"|"other"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -707,7 +721,7 @@ export type CompositeTypes<
 export const Constants = {
   "public": {
           Enums: {
-            "activity_kind": ["view", "search_appearance", "interest"],"app_role": ["RESPONSIBLE", "PROFESSIONAL", "SCOUT", "ADMIN"],"athlete_sex": ["male", "female"],"athlete_status": ["draft", "pending_payment", "in_review", "approved", "rejected", "suspended"],"availability_answer": ["yes", "no", "open"],"ai_analysis_status": ["awaiting_payment", "queued", "processing", "completed", "unidentified", "failed", "cancelled"],"ai_confidence": ["low", "medium", "high"],"consent_kind": ["terms", "privacy", "guardian_declaration", "pro_visibility", "no_guarantee", "marketing_whatsapp", "ai_video_analysis"],"contact_status": ["requested", "forwarded", "accepted", "declined", "expired"],"dominant_foot": ["right", "left", "both"],"football_position": ["GK", "RB", "CB", "LB", "DM", "CM", "AM", "RW", "LW", "CF", "ST"],"guardian_relation": ["mother", "father", "legal_guardian", "self", "other"],"media_kind": ["photo", "youtube", "video_link"],"notify_channel": ["email", "whatsapp", "sms"],"payment_status": ["pending", "paid", "failed", "refunded"],"pro_org_kind": ["club", "scout", "agent", "company", "scouting_hub", "brand"],"profile_visibility": ["active", "paused", "hidden"],"review_status": ["pending", "approved", "rejected", "suspended"],"seeking_kind": ["club", "representation", "agent", "sponsorship", "evaluation", "other", "national_opportunity", "international_opportunity", "school", "scouting_hub"],"sport_modality": ["field", "futsal"],"video_type": ["highlights", "full_match", "training", "goal_play", "other"]
+            "activity_kind": ["view", "search_appearance", "interest"],"app_role": ["RESPONSIBLE", "PROFESSIONAL", "SCOUT", "ADMIN"],"athlete_sex": ["male", "female"],"athlete_status": ["draft", "pending_payment", "in_review", "approved", "rejected", "suspended"],"availability_answer": ["yes", "no", "open"],"ai_analysis_status": ["awaiting_payment", "queued", "processing", "completed", "unidentified", "failed", "cancelled"],"ai_confidence": ["low", "medium", "high"],"consent_kind": ["terms", "privacy", "guardian_declaration", "pro_visibility", "no_guarantee", "marketing_whatsapp", "ai_video_analysis", "pro_conduct"],"contact_status": ["requested", "forwarded", "accepted", "declined", "expired"],"dominant_foot": ["right", "left", "both"],"football_position": ["GK", "RB", "CB", "LB", "DM", "CM", "AM", "RW", "LW", "CF", "ST"],"guardian_relation": ["mother", "father", "legal_guardian", "self", "other"],"media_kind": ["photo", "youtube", "video_link"],"notify_channel": ["email", "whatsapp", "sms"],"payment_status": ["pending", "paid", "failed", "refunded"],"pro_org_kind": ["club", "scout", "agent", "company", "scouting_hub", "brand", "school", "manager"],"profile_visibility": ["active", "paused", "hidden"],"review_status": ["pending", "approved", "rejected", "suspended"],"seeking_kind": ["club", "representation", "agent", "sponsorship", "evaluation", "other", "national_opportunity", "international_opportunity", "school", "scouting_hub"],"sport_modality": ["field", "futsal"],"video_type": ["highlights", "full_match", "training", "goal_play", "other"]
           }
         }
 } as const

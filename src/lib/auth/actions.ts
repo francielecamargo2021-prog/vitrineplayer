@@ -202,3 +202,92 @@ export async function resetPassword(lang: string, _prev: AuthFormState, fd: Form
   if (!r.ok) return { error: r.status === 429 ? "tooMany" : r.status === 400 ? "code" : "generic" };
   return { ok: true, message: "passwordChanged" };
 }
+
+// ---------------------------------------------------------------- cadastro profissional
+const PRO_CONSENTS = ["terms", "privacy", "pro_conduct"] as const;
+const PRO_KINDS = ["club", "manager", "agent", "scout", "school", "scouting_hub"];
+
+/** Dados da organização + WhatsApp, país e consentimentos do profissional. */
+function proDetails(fd: FormData) {
+  const whatsapp = cleanPhone(str(fd, "whatsapp"));
+  const country = (countries as readonly string[]).includes(str(fd, "country")) ? str(fd, "country") : null;
+  const orgCountry = (countries as readonly string[]).includes(str(fd, "org_country")) ? str(fd, "org_country") : country;
+  const kind = str(fd, "kind");
+  const org = {
+    name: str(fd, "org_name").slice(0, 120), kind, country: orgCountry, document: str(fd, "document").slice(0, 40),
+    license: str(fd, "license").slice(0, 80), state: str(fd, "state").slice(0, 80), city: str(fd, "city").slice(0, 80),
+    website: str(fd, "website").slice(0, 200), about: str(fd, "about").slice(0, 600), contact_role: str(fd, "contact_role").slice(0, 80),
+  };
+  if (!PRO_KINDS.includes(kind)) return { error: "kind" } as const;
+  if (!whatsapp || !country || org.name.length < 2 || org.document.length < 3 || org.contact_role.length < 2) return { error: "required" } as const;
+  if (!/^\+?\d{10,15}$/.test(whatsapp)) return { error: "whatsapp" } as const;
+  if (org.website && !/^https?:\/\/\S+$/i.test(org.website)) return { error: "website" } as const;
+  if (!PRO_CONSENTS.every((c) => fd.get(c) === "on")) return { error: "consents" } as const;
+  return { whatsapp, country, org } as const;
+}
+
+async function completeProAs(userId: string, lang: string, d: { whatsapp: string; country: string; org: Record<string, string | null> }) {
+  const h = await headers();
+  const ip = (h.get("x-forwarded-for") ?? "").split(",")[0].trim() || null;
+  const ua = h.get("user-agent") ?? null;
+  const locale = lang === "es" ? "es" : "pt-BR";
+  await asUser(userId, (q) => q`select complete_professional_signup(${d.whatsapp}, ${d.country}, ${locale},
+    ${[...PRO_CONSENTS]}::text[], ${CONSENT_VERSION}, ${JSON.stringify(d.org)}::jsonb, ${ip}, ${ua})`);
+}
+
+const proError = (e: unknown) => {
+  const m = String((e as Error).message);
+  if (/already completed/.test(m)) return "done";
+  if (/not allowed/.test(m)) return "notAllowed";
+  if (/website/.test(m)) return "website";
+  if (/consents/.test(m)) return "consents";
+  if (/invalid kind/.test(m)) return "kind";
+  if (/organization required|country/.test(m)) return "required";
+  return "generic";
+};
+
+/** Cadastro profissional: conta (Neon Auth) + organização "pendente" (banco). */
+export async function proSignUp(lang: string, _prev: AuthFormState, fd: FormData): Promise<AuthFormState> {
+  const auth = ready();
+  if (!auth) return { error: "backend" };
+  const fullName = str(fd, "full_name");
+  const email = lower(fd, "email");
+  const password = String(fd.get("password") ?? "");
+  if (fullName.length < 3 || !email || !password) return { error: "required" };
+  if (!isEmail(email)) return { error: "email" };
+  if (password.length < 8 || password.length > 128) return { error: "password" };
+  if (password !== String(fd.get("confirm") ?? "")) return { error: "mismatch" };
+  const details = proDetails(fd);
+  if ("error" in details) return { error: details.error };
+
+  const l = safeLang(lang);
+  const { data, error } = await auth.signUp.email({ email, password, name: fullName });
+  if (error || !data?.user?.id) {
+    if (/exist/i.test(code(error)) || status(error) === 422) return { error: "exists" };
+    return { error: status(error) === 429 ? "tooMany" : "generic" };
+  }
+  try {
+    await completeProAs(data.user.id, l, details);
+  } catch {
+    /* segue: depois de confirmar o e-mail, a pessoa conclui em /profissional/cadastro */
+  }
+  await sendCode(email, "email-verification");
+  redirect(`/${l}/entrar/verificar`);
+}
+
+/** Conclusão do cadastro profissional para uma conta já criada (sem atletas). */
+export async function completeProSignup(lang: string, _prev: AuthFormState, fd: FormData): Promise<AuthFormState> {
+  if (!ready()) return { error: "backend" };
+  const user = await currentUser();
+  const l = safeLang(lang);
+  if (!user) redirect(`/${l}/entrar`);
+  const details = proDetails(fd);
+  if ("error" in details) return { error: details.error };
+  try {
+    await completeProAs(user.id, l, details);
+  } catch (e) {
+    const k = proError(e);
+    if (k !== "done") return { error: k };
+  }
+  redirect(`/${l}/portal`);
+}

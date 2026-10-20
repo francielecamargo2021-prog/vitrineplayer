@@ -1,6 +1,11 @@
 # VitrinePlayer — Plano do portal dos profissionais (proposta, NÃO implementado)
 
-Status: aguardando aprovação (20/10/2026). Nada deste documento foi executado.
+Status (20/10/2026): **implementado na homologação** (P1–P6), com as 7 decisões aprovadas.
+Migration `0008_portal_profissionais.sql`; telas `/profissional/cadastro`, `/portal` (busca, ficha, favoritos,
+listas, interesses), `/painel/interesses` (família) e `/admin/organizacoes` (verificação, denúncias e limites).
+Testes: 93 pgTAP do portal (289 no total no Neon), 47 no navegador (`db/tests/testar-portal.mjs`).
+Fica para depois: envio de documento em arquivo na verificação, notas internas e avaliações na tela
+(as tabelas já existem), e-mail de aviso (depende do provedor de e-mail).
 
 Público: clubes, empresários (agentes), escolinhas, núcleos de captação e olheiros,
 sempre **verificados pela equipe VitrinePlayer** antes de ver qualquer atleta.

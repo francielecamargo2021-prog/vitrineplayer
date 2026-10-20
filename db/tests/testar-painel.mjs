@@ -26,7 +26,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const { client } = await conectar();
 const q = (t, v) => client.query(v ? { text: t, values: v } : t);
 async function knownCode(email) {
-  for (let i = 0; i < 20; i++) {
+  // o Neon Auth grava o código depois de enviar o e-mail (remetente gratuito compartilhado):
+  // às vezes leva mais de 10 s, por isso a espera vai até 30 s
+  for (let i = 0; i < 60; i++) {
     const { rowCount } = await q(`update neon_auth.verification set value = $1 where identifier = $2`, [`${CODE_HASH}:0`, `email-verification-otp-${email}`]);
     if (rowCount) return true;
     await sleep(500);

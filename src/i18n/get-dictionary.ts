@@ -17,3 +17,12 @@ const panelDictionaries = {
 /** Textos da área autenticada (separados para não pesar nas páginas públicas). */
 export const getPanelDictionary = (locale: Locale) => panelDictionaries[locale]();
 export type { PanelDictionary } from "./dictionaries/panel-pt";
+
+const portalDictionaries = {
+  pt: () => import("./dictionaries/portal-pt").then((m) => m.default),
+  es: () => import("./dictionaries/portal-es").then((m) => m.default),
+};
+
+/** Textos do portal dos profissionais e do cadastro profissional. */
+export const getPortalDictionary = (locale: Locale) => portalDictionaries[locale]();
+export type { PortalDictionary } from "./dictionaries/portal-pt";

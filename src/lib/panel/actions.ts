@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { userDataClient } from "@/lib/db/data-api";
 import { currentUser } from "@/lib/auth/server";
 import { removePhoto } from "@/lib/photos/server";
+import { asUser } from "@/lib/db";
 import {
   availabilityAnswers, ageOn, categories, countries, feet, modalities, positions, seekingKinds, sexes, traitKeys, videoTypes, youtubeId,
   ADULT_AGE, VIDEO_LIMIT,
@@ -263,4 +264,20 @@ export async function setVisibility(lang: string, id: string, fd: FormData) {
   const v = oneOf(str(fd, "visibility"), ["active", "paused", "hidden"] as const);
   if (v) await db.from("athletes").update({ visibility: v }).eq("id", id);
   refresh(lang);
+}
+
+// ---------------------------------------------------------------- interesses recebidos
+/** Resposta da família a um interesse: aceitar, recusar, bloquear ou denunciar (o banco confere o vínculo). */
+export async function respondInterest(lang: string, requestId: string, action: "accept" | "decline" | "block" | "report", reason?: string) {
+  const { user } = await authed();
+  if (!/^[0-9a-f-]{36}$/i.test(requestId) || !["accept", "decline", "block", "report"].includes(action)) return { error: "generic" };
+  const r = (reason ?? "").trim().slice(0, 500);
+  if (action === "report" && r.length < 5) return { error: "reason" };
+  try {
+    await asUser(user.id, (q) => q`select respond_interest(${requestId}::uuid, ${action}, ${r || null})`);
+  } catch (e) {
+    return { error: /reason required/.test(String((e as Error).message)) ? "reason" : "generic" };
+  }
+  revalidatePath(`/${hasLocale(lang) ? lang : "pt"}/painel`, "layout");
+  return { ok: true };
 }

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { hasLocale, htmlLang } from "@/i18n/config";
 import { getPanelDictionary } from "@/i18n/get-dictionary";
 import { activitySignals, getAthleteBundle, listMyAthletes, requireGuardian, signedPhotoUrls } from "@/lib/panel/data";
+import { receivedInterests } from "@/lib/panel/interests";
 import { ageOn, categoryFor, completeness, completenessGroups, type ActivityKind, type CompletenessGroup } from "@/domain/athlete";
 import type { StepSlug } from "@/lib/panel/steps";
 import { FramedPhoto } from "@/components/panel/FramedPhoto";
@@ -68,10 +69,12 @@ export default async function Dashboard({ params, searchParams }: PageProps<"/[l
   const bundle = await getAthleteBundle(db, user.id, current.id);
   const a = bundle.athlete;
   const primary = bundle.photos.find((ph) => ph.is_primary);
-  const [urls, signals] = await Promise.all([
+  const [urls, signals, interests] = await Promise.all([
     signedPhotoUrls(db, primary?.storage_path ? [primary.storage_path] : []),
     activitySignals(db, a.id),
+    receivedInterests(user.id),
   ]);
+  const waiting = interests.filter((x) => x.status === "requested").length;
   const { percent, missing, ratios } = completeness(bundle);
   const next = missing[0] ? stepFor[missing[0]] : "publicacao";
   const base = `/${lang}/painel/atleta/${a.id}`;
@@ -109,6 +112,13 @@ export default async function Dashboard({ params, searchParams }: PageProps<"/[l
             + {d.addAthlete}
           </Link>
         </div>
+        {interests.length > 0 && (
+          <Link href={`/${lang}/painel/interesses`} data-testid="link-interesses"
+            className={`mt-6 flex min-h-14 items-center justify-between gap-4 border px-4 text-[0.95rem] transition-colors ${waiting ? "border-grass bg-grass/10 text-bone" : "border-white/15 text-fog hover:border-white/40"}`}>
+            <span>{waiting ? <><span className="font-mono">{waiting}</span> {p.interests.pending}</> : p.interests.link}</span>
+            <span aria-hidden>›</span>
+          </Link>
+        )}
         {athletes.length > 1 && (
           <nav aria-label={d.switchLabel} className="-mx-4 mt-6 flex gap-6 overflow-x-auto px-4 md:mx-0 md:px-0">
             {athletes.map((x) => (
