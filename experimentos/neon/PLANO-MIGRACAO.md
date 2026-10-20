@@ -2,7 +2,7 @@
 
 *19/10/2026 · para aprovação.*
 
-**Andamento (20/10/2026):** Etapa 1, fase 1 concluída: pasta `db/` criada e testada no Postgres local e num branch temporário do Neon (já apagado). O banco principal de homologação **não foi alterado**: recriar o schema dele (decisão 4) aguarda autorização. Blob privado confirmado com arquivo fictício (já apagado).
+**Andamento (20/10/2026):** Etapa 1 concluída. Schema definitivo (`db/`, 7 migrations) aplicado no banco principal de homologação com `migrar.mjs recriar`, depois de confirmar zero dados e as travas. Testes no principal: 171/171 de banco e segurança, 39/39 de login + Data API, 16/16 de fotos privadas. Ponto de restauração: branch Neon `backup-antes-recriar-2026-10-20` (sem computação). Etapa 2 aguarda autorização.
 
 ## 0. Situação atual
 
