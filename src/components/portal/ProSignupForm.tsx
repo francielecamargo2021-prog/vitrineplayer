@@ -6,6 +6,7 @@ import type { PanelDictionary, PortalDictionary } from "@/i18n/get-dictionary";
 import type { AuthFormState } from "@/lib/auth/actions";
 import { countryOptions } from "@/domain/athlete";
 import { SelectField, TextArea, TextField, primaryButton } from "@/components/panel/controls";
+import { LegalLinks } from "@/components/panel/AuthForms";
 
 type Action = (prev: AuthFormState, fd: FormData) => Promise<AuthFormState>;
 
@@ -70,6 +71,7 @@ export function ProSignupForm({ action, t, a, lang, locale, select, optional, wi
         <Consent name="terms">{t.terms}</Consent>
         <Consent name="privacy">{t.privacy}</Consent>
         <Consent name="pro_conduct">{t.conduct}</Consent>
+        <LegalLinks a={a} lang={lang === "es" ? "es" : "pt"} />
       </div>
       {err && <p role="alert" className="border-l-2 border-[#e5a3a3] pl-4 text-[#f0c4c4]">{err}</p>}
       <button disabled={pending} className={`${primaryButton} w-full`}>{withAccount ? t.create : t.complete}</button>

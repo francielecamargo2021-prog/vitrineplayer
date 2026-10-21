@@ -7,6 +7,7 @@ import { hasLocale } from "@/i18n/config";
 import { asUser, dbReady } from "@/lib/db";
 import { authEnv, currentUser, getAuth } from "./server";
 import { closeMfa } from "./mfa";
+import { getLimiter, rememberDevice, requestIp, trustedDevice } from "./rate-limit";
 
 export type AuthFormState = { ok?: boolean; error?: string; message?: string } | undefined;
 
@@ -50,12 +51,20 @@ async function completeSignupAs(userId: string, lang: string, d: { whatsapp: str
 /** Envia o código de 6 dígitos. Erros não são revelados (não confirma se a conta existe). */
 async function sendCode(email: string, type: "email-verification" | "forget-password") {
   const auth = getAuth();
+  const limit = await getLimiter()?.otpSend({ email, ip: await requestIp() });
+  if (limit && !limit.ok) return "tooMany";
   try {
     const r = await auth?.emailOtp.sendVerificationOtp({ email, type });
     return status(r?.error) === 429 ? "tooMany" : null;
   } catch {
     return null;
   }
+}
+
+/** Criação de conta: limite por IP (contas em massa). */
+async function signupAllowed() {
+  const d = await getLimiter()?.signup({ ip: await requestIp() });
+  return !d || d.ok;
 }
 
 // ---------------------------------------------------------------- cadastro (passo 1 + passo 2)
@@ -73,6 +82,7 @@ export async function signUp(lang: string, _prev: AuthFormState, fd: FormData): 
   if ("error" in details) return { error: details.error };
 
   const l = safeLang(lang);
+  if (!(await signupAllowed())) return { error: "tooMany" };
   const { data, error } = await auth.signUp.email({ email, password, name: fullName });
   if (error || !data?.user?.id) {
     if (/exist/i.test(code(error)) || status(error) === 422) return { error: "exists" };
@@ -113,14 +123,23 @@ export async function signIn(lang: string, _prev: AuthFormState, fd: FormData): 
   const password = String(fd.get("password") ?? "");
   const l = safeLang(lang);
   if (!isEmail(email) || !password) return { error: "invalid" };
+  // Limite antes de conferir a senha. Mesma resposta exista ou não a conta.
+  const limiter = getLimiter();
+  const who = { email, ip: await requestIp(), trusted: await trustedDevice(email) };
+  const allowed = await limiter?.signinAllowed(who);
+  if (allowed && !allowed.ok) return { error: "tooMany" };
   const { data, error } = await auth.signIn.email({ email, password });
   if (error) {
     if (/not_verified/i.test(code(error))) {
       await sendCode(email, "email-verification");
       redirect(`/${l}/entrar/verificar?email=${encodeURIComponent(email)}`);
     }
-    return { error: status(error) === 429 ? "tooMany" : "invalid" };
+    if (status(error) === 429) return { error: "tooMany" };
+    await limiter?.signinFailed(who);
+    return { error: "invalid" };
   }
+  await limiter?.signinSucceeded(who);
+  await rememberDevice(email);
   if (data?.user && !data.user.emailVerified) {
     await sendCode(email, "email-verification");
     redirect(`/${l}/entrar/verificar`);
@@ -150,8 +169,17 @@ export async function verifyEmail(lang: string, _prev: AuthFormState, fd: FormDa
   const email = await emailFor(fd);
   const otp = str(fd, "code");
   if (!isEmail(email) || !isCode(otp)) return { error: "code" };
+  const limiter = getLimiter();
+  const who = { email, ip: await requestIp() };
+  const allowed = await limiter?.otpVerifyAllowed(who);
+  if (allowed && !allowed.ok) return { error: "tooMany" };
   const { error } = await auth.emailOtp.verifyEmail({ email, otp });
-  if (error) return { error: status(error) === 429 ? "tooMany" : "code" };
+  if (error) {
+    if (status(error) === 429) return { error: "tooMany" };
+    await limiter?.otpVerifyFailed(who);
+    return { error: "code" };
+  }
+  await limiter?.otpVerifySucceeded(who);
   redirect(`/${safeLang(lang)}/painel`);
 }
 
@@ -188,6 +216,10 @@ export async function resetPassword(lang: string, _prev: AuthFormState, fd: Form
   if (!isEmail(email) || !isCode(otp)) return { error: "code" };
   if (password.length < 8 || password.length > 128) return { error: "password" };
   if (password !== String(fd.get("confirm") ?? "")) return { error: "mismatch" };
+  const limiter = getLimiter();
+  const who = { email, ip: await requestIp() };
+  const allowed = await limiter?.otpVerifyAllowed(who);
+  if (allowed && !allowed.ok) return { error: "tooMany" };
   const h = await headers();
   const origin = h.get("origin") ?? `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}`;
   let r: Response;
@@ -201,7 +233,11 @@ export async function resetPassword(lang: string, _prev: AuthFormState, fd: Form
   } catch {
     return { error: "generic" };
   }
-  if (!r.ok) return { error: r.status === 429 ? "tooMany" : r.status === 400 ? "code" : "generic" };
+  if (!r.ok) {
+    if (r.status === 400) await limiter?.otpVerifyFailed(who);
+    return { error: r.status === 429 ? "tooMany" : r.status === 400 ? "code" : "generic" };
+  }
+  await limiter?.otpVerifySucceeded(who);
   return { ok: true, message: "passwordChanged" };
 }
 
@@ -263,6 +299,7 @@ export async function proSignUp(lang: string, _prev: AuthFormState, fd: FormData
   if ("error" in details) return { error: details.error };
 
   const l = safeLang(lang);
+  if (!(await signupAllowed())) return { error: "tooMany" };
   const { data, error } = await auth.signUp.email({ email, password, name: fullName });
   if (error || !data?.user?.id) {
     if (/exist/i.test(code(error)) || status(error) === 422) return { error: "exists" };
@@ -330,6 +367,7 @@ export async function proJoinSignUp(lang: string, token: string, _prev: AuthForm
   const details = joinDetails(fd);
   if ("error" in details) return { error: details.error };
   const l = safeLang(lang);
+  if (!(await signupAllowed())) return { error: "tooMany" };
   const { data, error } = await auth.signUp.email({ email, password, name: fullName });
   if (error || !data?.user?.id) {
     if (/exist/i.test(code(error)) || status(error) === 422) return { error: "exists" };

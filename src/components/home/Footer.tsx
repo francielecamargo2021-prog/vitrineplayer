@@ -17,9 +17,9 @@ export function Footer({ lang, dict }: { lang: Locale; dict: Dictionary }) {
           <p className="mt-3 text-xs leading-relaxed text-ash">{f.legal}</p>
         </div>
         <nav className="flex flex-wrap gap-x-8 gap-y-3 font-sans text-[0.875rem] text-fog">
-          <Link href={`/${lang}`} className="hover:text-bone">{f.privacy}</Link>
-          <Link href={`/${lang}`} className="hover:text-bone">{f.terms}</Link>
-          <Link href={`/${lang}`} className="hover:text-bone">{f.contact}</Link>
+          <Link href={`/${lang}/privacidade`} className="hover:text-bone">{f.privacy}</Link>
+          <Link href={`/${lang}/termos`} className="hover:text-bone">{f.terms}</Link>
+          <Link href={`/${lang}/contato`} className="hover:text-bone">{f.contact}</Link>
         </nav>
       </div>
       <p className="eyebrow mt-10">© {new Date().getFullYear()} VITRINEPLAYER. {f.rights}</p>

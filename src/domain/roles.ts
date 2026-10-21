@@ -1,6 +1,6 @@
 /**
  * Papéis e permissões da aplicação. É a camada de conveniência da UI/servidor;
- * a garantia real fica nas políticas RLS do banco (supabase/migrations).
+ * a garantia real fica nas políticas RLS do banco (db/migrations).
  */
 export const roles = ["RESPONSIBLE", "PROFESSIONAL", "SCOUT", "ADMIN"] as const;
 export type Role = (typeof roles)[number];

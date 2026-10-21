@@ -2,7 +2,7 @@
 
 Migrations definitivas para o Neon e as ferramentas para aplicá-las e testá-las.
 É uma ferramenta de linha de comando, separada do app Next.js. A pasta `supabase/`
-continua no projeto até a etapa 3 da migração e não é usada aqui.
+é só arquivo histórico (fonte original de 0001–0005) e não é usada aqui nem pelo app.
 
 | Caminho | O que é |
 |---|---|

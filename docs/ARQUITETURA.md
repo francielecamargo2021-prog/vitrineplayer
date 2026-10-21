@@ -11,7 +11,7 @@
 | Estilo | **Tailwind CSS v4** com tokens em `src/app/globals.css` | Design system em um lugar; sem biblioteca de UI pronta |
 | Movimento | **CSS + 1 runtime de ~1 KB** (`MotionRuntime`) | Reveal, parallax, contadores e tilt sem framer-motion/GSAP |
 | i18n | Rotas `/pt` e `/es` + dicionários tipados | ES herda a tipagem do PT: chave faltando quebra o build |
-| Banco/Auth (próxima etapa) | **Supabase (Postgres + Auth + Storage)** | RLS garante permissões **no banco**; `supabase/migrations/0001_init.sql` já preparado |
+| Banco/Auth | **Neon (Postgres + Neon Auth + Data API)** e **Vercel Blob** privado para fotos | RLS garante permissões **no banco**; migrations em `db/migrations/` aplicadas por `db/migrar.mjs` (com travas) |
 | Pagamento (futuro) | Provedor com Pix + cartão (ex.: Mercado Pago/Stripe) via webhook → `payments` | Não implementado nesta etapa |
 | WhatsApp (futuro) | API oficial (Cloud API) consumindo `notification_outbox` | A aplicação só enfileira; worker envia |
 
@@ -20,7 +20,7 @@
 ```
 src/
   app/[lang]/            páginas por idioma (home, cadastro, atleta/exemplo, profissional)
-  app/robots.ts          só a home é indexável
+  app/robots.ts          produção: só páginas públicas; fora da produção: nada indexado
   proxy.ts               redireciona "/" → /pt ou /es (Accept-Language)
   i18n/                  config de locales + dicionários pt/es
   components/
@@ -33,7 +33,9 @@ src/
   domain/                tipos do atleta e matriz de papéis/permissões
   content/media.ts       slots de vídeo/fotos licenciados
   mocks/                 dados 100% fictícios
-supabase/migrations/     esquema + RLS
+db/migrations/           esquema + RLS (fonte oficial)
+db/tests/                testes do banco (pgTAP)
+supabase/                arquivo histórico da versão Supabase (não usado pelo app)
 ```
 
 ## Papéis e privacidade (LGPD)
@@ -66,18 +68,17 @@ Fotos dos blocos em tela cheia: `media.stills`.
 - Profissional vê atleta somente se `status = approved`, `visibility = active` e nenhuma organização da qual é membro foi ocultada pelo responsável (`athlete_visible_to_pro`).
 - Responsável recebe só sinais de atividade (`athlete_activity_signals`): sem contagem e sem identidade.
 - Pagamento único: `draft → pending_payment` pelo responsável; `pending_payment → in_review` só por `mark_payment_paid` (webhook com service role ou admin). Não há checkout fictício.
-- Fotos no bucket privado `athlete-photos` (`{athlete_id}/{arquivo}.webp`), lidas por URL assinada.
+- Fotos no Vercel Blob privado, entregues só por `/api/fotos/[athleteId]/[file]` depois de o banco confirmar a permissão.
 
 ### Rodar localmente
 
 ```bash
-npx supabase start            # Postgres, Auth, Storage, API (Docker); portas 553xx
-npx supabase db reset         # aplica migrations + seed local ([DEV] organizações)
-npx supabase test db          # testes de isolamento RLS (pgTAP)
-# .env.local: NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY de `npx supabase status`
+npm run test:db               # migrations + RLS num PostgreSQL local temporário (sem Docker, sem rede)
+npm run test:auth             # regras do limite de tentativas de login
+npm run dev                   # .env.local com as variáveis de .env.example (Neon + Blob + ADMIN_MFA_KEY)
 ```
 
-`supabase/seed.sql` só roda localmente. Ele contém `dev_test_simulate_payment()` (DEV/TEST, executável apenas por conexão direta ao banco local) para testar o fluxo de revisão sem gateway.
+Sem as variáveis, o site público funciona e as áreas autenticadas mostram "backend não configurado" — sempre por requisição, nunca gravado no build. Com `VP_ENV=homolog` ou `production`, o build recusa variáveis faltando.
 
 ## Decisões de escopo e visão do ecossistema (out/2026)
 
@@ -142,11 +143,11 @@ Triagem **preliminar** a partir de um único vídeo, para ajudar profissionais a
 - **Travas de custo:** nada é enviado sem `ai_settings.enabled = true` (padrão `false`), `AI_ANALYSIS_ENABLED=true`, `GEMINI_API_KEY` (somente servidor) e orçamento disponível.
 - **Relatório:** rubrica por posição versionada (`src/lib/ai/rubric.ts`), notas 1–5 relativas à categoria, só com ≥ 2 lances citados com minuto; nota geral só com cobertura ≥ 60% e atleta identificado; melhores momentos limitam a confiança a "média"; sem identificação segura não há avaliação (`unidentified`). Guardado em `ai_video_reports` + `ai_report_scores` (uma linha por fundamento observado — base dos filtros futuros; atleta sem avaliação não perde nada na busca).
 - **Publicação:** nasce não publicado; o responsável publica, retira ou exclui (`set_ai_report_published`, `delete_ai_report`, que revoga o consentimento). Profissional só lê relatório publicado, de atleta visível para ele (`athlete_visible_to_pro`) e como membro de organização esportiva aprovada (`is_sport_pro`: marcas nunca).
-- **Testes sem custo:** `npm run test:ai` (pipeline com Gemini simulado) e `npm run test:db` (migrations + RLS em PostgreSQL local, sem Docker; no Supabase: `npx supabase test db`).
+- **Testes sem custo:** `npm run test:ai` (pipeline com Gemini simulado) e `npm run test:db` (migrations + RLS em PostgreSQL local, sem Docker).
 
 ## Homologação e revisão pelo admin (0005)
 
 - **Revisão:** `admin_review_athlete` e `admin_review_organization` são os únicos caminhos de decisão (aprovar, pedir ajustes ou recusar, suspender, reativar). Rejeitar e suspender exigem motivo. Cada decisão grava autor, data e auditoria e avisa o responsável pela `notification_outbox`. Só administradores humanos decidem; o service role não. O admin lê as fotos do atleta em revisão (`photos_admin_read`).
 - **Painel:** `/[lang]/admin` com visão geral, fila de atletas por situação, ficha completa para revisão e organizações por situação. Quem não é admin recebe 404, e o admin que entra é levado direto para lá.
-- **Homologação:** `supabase/homolog/` traz o roteiro, os passos SQL com travas (projeto vazio e marcado, ordem, sem repetição, transação única), a verificação e as utilidades. `npm run homolog:ensaio` ensaia tudo num PostgreSQL local. Os scripts em `scripts/homolog/` recusam rodar fora do projeto de homologação, ou se houver chave do Gemini no ambiente.
+- **Homologação:** `db/migrar.mjs` aplica as migrations com travas (projeto e branch do Neon, marca do ambiente, impressão digital de cada arquivo, transação única); ver `db/README.md`. As ferramentas antigas de homologação no Supabase foram removidas.
 - **Piloto da IA:** `scripts/piloto/` só simula. Monta os pedidos exatos de cada variante (partida inteira em resolução baixa × trechos em resolução alta), estima o custo e compara a resposta com o gabarito de um treinador (identificação, camisa, posição, pé, lado, minutagem, notas, conteúdo proibido).

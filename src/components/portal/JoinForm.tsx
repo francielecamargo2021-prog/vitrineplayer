@@ -5,6 +5,7 @@ import type { PanelDictionary, PortalDictionary } from "@/i18n/get-dictionary";
 import type { AuthFormState } from "@/lib/auth/actions";
 import { countryOptions } from "@/domain/athlete";
 import { SelectField, TextField, primaryButton } from "@/components/panel/controls";
+import { LegalLinks } from "@/components/panel/AuthForms";
 
 type Action = (prev: AuthFormState, fd: FormData) => Promise<AuthFormState>;
 
@@ -36,6 +37,7 @@ export function JoinForm({ action, t, a, locale, select, withAccount }: {
             <span>{k === "pro_conduct" ? s.conduct : s[k]}</span>
           </label>
         ))}
+        <LegalLinks a={a} lang={locale.startsWith("es") ? "es" : "pt"} />
       </div>
       {state?.error && <p role="alert" className="border-l-2 border-[#e5a3a3] pl-4 text-[#f0c4c4]">{errors[state.error] ?? a.errors.generic}</p>}
       <button disabled={pending} className={`${primaryButton} w-full`}>{withAccount ? t.join.create : t.join.complete}</button>

@@ -9,10 +9,8 @@
     "lint": "eslint",
     "test:ai": "node --test src/lib/ai/tests/*.test.ts",
     "test:db": "db/tests/local/run.sh",
-    "test:pilot": "node --test scripts/piloto/kit.test.ts scripts/homolog/guard.test.ts",
-    "homolog:ensaio": "supabase/homolog/testar-local.sh",
-    "homolog:passos": "scripts/homolog/gerar-passos.sh",
-    "homolog:verificar-api": "node scripts/homolog/verificar-api.ts",
+    "test:pilot": "node --test scripts/piloto/kit.test.ts",
+    "test:auth": "node --test src/lib/auth/tests/*.test.ts",
     "piloto:simular": "node scripts/piloto/simular.ts",
     "piloto:comparar": "node scripts/piloto/comparar.ts"
   },

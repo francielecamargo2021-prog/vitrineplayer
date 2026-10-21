@@ -20,6 +20,19 @@ function Consent({ name, children }: { name: string; children: React.ReactNode }
   );
 }
 
+/** Links para ler Termos e Privacidade (nova aba: o formulário não se perde). */
+export function LegalLinks({ a, lang }: { a: A; lang: "pt" | "es" }) {
+  const cls = "text-bone underline underline-offset-4 hover:text-grass";
+  return (
+    <p className="text-[0.85rem] text-ash">
+      {a.legalRead}{" "}
+      <Link href={`/${lang}/termos`} target="_blank" rel="noopener" className={cls}>{a.termsLink}</Link>
+      {" · "}
+      <Link href={`/${lang}/privacidade`} target="_blank" rel="noopener" className={cls}>{a.privacyLink}</Link>
+    </p>
+  );
+}
+
 function Feedback({ state, a }: { state: AuthFormState; a: A }) {
   const info = state?.message && (a as Record<string, unknown>)[state.message];
   if (typeof info === "string") return <p role="status" className="border-l-2 border-grass pl-4 text-bone">{info}</p>;
@@ -39,6 +52,7 @@ function SignupDetails({ a, locale, select }: { a: A; locale: string; select: st
         <Consent name="privacy">{a.privacy}</Consent>
         <Consent name="guardian_declaration">{a.guardian}</Consent>
         <Consent name="no_guarantee">{a.noGuarantee}</Consent>
+        <LegalLinks a={a} lang={locale.startsWith("es") ? "es" : "pt"} />
       </div>
     </>
   );

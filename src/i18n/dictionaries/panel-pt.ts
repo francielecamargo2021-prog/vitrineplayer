@@ -24,6 +24,9 @@ const panel = {
       "Declaro ser responsável legal pelo(s) atleta(s) que cadastrar e autorizo o tratamento dos dados dele(s) para a finalidade da plataforma.",
     noGuarantee:
       "Estou ciente de que o cadastro não garante avaliação, visualização, contato, teste, contratação, patrocínio ou oportunidade.",
+    legalRead: "Leia antes de aceitar:",
+    termsLink: "Termos de Uso",
+    privacyLink: "Política de Privacidade",
     create: "Criar conta",
     enter: "Entrar",
     haveAccount: "Já tem conta?",

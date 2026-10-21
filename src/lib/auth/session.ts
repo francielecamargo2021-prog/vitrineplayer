@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { notFound, redirect } from "next/navigation";
+import { connection } from "next/server";
 import { asUser, dbReady } from "@/lib/db";
 import type { Database } from "@/lib/db/database.types";
 import { currentUser, getAuth, type AuthUser } from "./server";
@@ -17,6 +18,9 @@ export type AccountProfile = { id: string; full_name: string; role: AppRole; cou
 export const getAccount = cache(async (): Promise<
   { backend: false; user: null; profile: null } | { backend: true; user: AuthUser | null; profile: AccountProfile | null }
 > => {
+  // Sempre por requisição: sem isto, um build sem variáveis gravaria o aviso
+  // "backend não configurado" numa página estática, mesmo depois de configurar o ambiente.
+  await connection();
   if (!getAuth() || !dbReady()) return { backend: false, user: null, profile: null };
   const user = await currentUser();
   if (!user) return { backend: true, user: null, profile: null };

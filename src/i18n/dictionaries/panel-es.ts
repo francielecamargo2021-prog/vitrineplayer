@@ -25,6 +25,9 @@ const panel: PanelDictionary = {
       "Declaro ser responsable legal del/los atleta(s) que registre y autorizo el tratamiento de sus datos para la finalidad de la plataforma.",
     noGuarantee:
       "Entiendo que el registro no garantiza evaluación, visualización, contacto, prueba, contratación, patrocinio ni oportunidad.",
+    legalRead: "Lea antes de aceptar:",
+    termsLink: "Términos de Uso",
+    privacyLink: "Política de Privacidad",
     create: "Crear cuenta",
     enter: "Ingresar",
     haveAccount: "¿Ya tenés cuenta?",

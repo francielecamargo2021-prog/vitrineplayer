@@ -4,6 +4,7 @@ import { Archivo, IBM_Plex_Mono } from "next/font/google";
 import { hasLocale, htmlLang, locales } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { MotionRuntime } from "@/components/motion/MotionRuntime";
+import { indexable } from "@/lib/seo";
 import "../globals.css";
 
 const archivo = Archivo({
@@ -33,6 +34,7 @@ export async function generateMetadata({ params }: LayoutProps<"/[lang]">): Prom
     title: dict.meta.title,
     description: dict.meta.description,
     alternates: { languages: { "pt-BR": "/pt", es: "/es" } },
+    ...(indexable ? {} : { robots: { index: false, follow: false } }),
   };
 }
 
