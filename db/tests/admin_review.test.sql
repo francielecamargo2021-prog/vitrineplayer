@@ -21,6 +21,15 @@ begin
 end $vp$;
 create trigger vp_signup after insert on vp_test_signup for each row execute function pg_temp.vp_signup();
 
+-- admin COM segundo fator: sessão de teste no banco + prova na requisição (0010)
+create function pg_temp.as_admin(p_id uuid) returns void language plpgsql as $$
+begin
+  execute 'reset role';
+  insert into admin_mfa_sessions (token_hash, profile_id, expires_at)
+  values (encode(sha256(convert_to('teste-' || p_id, 'UTF8')), 'hex'), p_id, now() + interval '1 hour') on conflict do nothing;
+  perform set_config('request.jwt.claims', json_build_object('sub', p_id, 'role', 'authenticated', 'vp_mfa', 'teste-' || p_id)::text, true);
+  execute 'set local role authenticated';
+end $$;
 create function pg_temp.as_user(p_id uuid) returns void language plpgsql as $$
 begin
   perform set_config('request.jwt.claims', json_build_object('sub', p_id, 'role', 'authenticated')::text, true);
@@ -86,7 +95,7 @@ select throws_ok($$ select admin_review_organization('d0000000-0000-0000-0000-00
   '42501', null, 'anônimo não executa as funções de revisão');
 
 -- ---------------------------------------------------------------- admin: atleta
-select pg_temp.as_user('e0000000-0000-0000-0000-0000000000e1');
+select pg_temp.as_admin('e0000000-0000-0000-0000-0000000000e1');
 select is((select count(*)::int from storage.objects where name like (select id from ids where k = 'ath') || '/%'), 1,
   'admin lê as fotos do atleta em revisão');
 select throws_ok(format($$ select admin_review_athlete(%L, 'approve') $$, (select id from ids where k = 'draft')),
@@ -106,7 +115,7 @@ select pg_temp.as_user('a0000000-0000-0000-0000-00000000000a');
 update athletes set status = 'in_review' where id = (select id from ids where k = 'ath');
 select is((select status::text from athletes where id = (select id from ids where k = 'ath')), 'in_review', 'responsável reenvia após rejeição');
 
-select pg_temp.as_user('e0000000-0000-0000-0000-0000000000e1');
+select pg_temp.as_admin('e0000000-0000-0000-0000-0000000000e1');
 select is(admin_review_athlete((select id from ids where k = 'ath'), 'approve'), 'approved'::athlete_status, 'admin aprova');
 select ok((select approved_at is not null and reviewed_by = 'e0000000-0000-0000-0000-0000000000e1'
            from athletes where id = (select id from ids where k = 'ath')), 'aprovação grava data e autor');
@@ -122,7 +131,7 @@ select throws_ok(format($$ select admin_review_athlete(%L, 'approve') $$, (selec
 select pg_temp.as_user('c0000000-0000-0000-0000-0000000000c1');
 select is((select count(*)::int from pro_search_athletes()), 0, 'profissional de organização pendente não vê atletas');
 
-select pg_temp.as_user('e0000000-0000-0000-0000-0000000000e1');
+select pg_temp.as_admin('e0000000-0000-0000-0000-0000000000e1');
 select throws_ok($$ select admin_review_organization('d0000000-0000-0000-0000-0000000000d1', 'suspend', 'motivo qualquer') $$,
   'P0001', 'invalid transition', 'organização pendente não pode ser suspensa');
 select is(admin_review_organization('d0000000-0000-0000-0000-0000000000d1', 'approve'), 'approved'::review_status, 'admin aprova a organização');
@@ -132,14 +141,14 @@ select pg_temp.as_user('c0000000-0000-0000-0000-0000000000c1');
 select is((select count(*)::int from pro_search_athletes()), 1, 'profissional aprovado passa a ver o atleta aprovado');
 
 -- suspensões
-select pg_temp.as_user('e0000000-0000-0000-0000-0000000000e1');
+select pg_temp.as_admin('e0000000-0000-0000-0000-0000000000e1');
 select throws_ok(format($$ select admin_review_athlete(%L, 'suspend') $$, (select id from ids where k = 'ath')),
   'P0001', 'note required', 'suspender atleta exige motivo');
 select is(admin_review_athlete((select id from ids where k = 'ath'), 'suspend', 'Denúncia em verificação'), 'suspended'::athlete_status, 'admin suspende atleta');
 select pg_temp.as_user('c0000000-0000-0000-0000-0000000000c1');
 select is((select count(*)::int from pro_search_athletes()), 0, 'atleta suspenso some para profissionais');
 
-select pg_temp.as_user('e0000000-0000-0000-0000-0000000000e1');
+select pg_temp.as_admin('e0000000-0000-0000-0000-0000000000e1');
 select is(admin_review_athlete((select id from ids where k = 'ath'), 'reinstate'), 'approved'::athlete_status, 'admin reativa atleta');
 select is(admin_review_organization('d0000000-0000-0000-0000-0000000000d1', 'suspend', 'Documento vencido'), 'suspended'::review_status, 'admin suspende organização');
 select pg_temp.as_user('c0000000-0000-0000-0000-0000000000c1');

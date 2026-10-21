@@ -107,7 +107,7 @@ select is((select whatsapp from profiles where id = 'e0000000-0000-0000-0000-000
 select pg_temp.as_user('e0000000-0000-0000-0000-0000000000e1');
 select is((select count(*)::int from profiles), 1, 'usuário vê só o próprio perfil');
 select is((select count(*)::int from consents), 2, 'usuário vê só os próprios consentimentos');
-select throws_ok($$ update profiles set role = 'ADMIN' where id = 'e0000000-0000-0000-0000-0000000000e1' $$, '42501', null,
+select throws_ok($$ update profiles set role = 'ADMIN' where id = 'e0000000-0000-0000-0000-0000000000e1' $$, 'P0001', 'campo não editável',
   'usuário não consegue se promover a ADMIN');
 select pg_temp.as_anon();
 select is((select count(*)::int from profiles), 0, 'anônimo não vê perfis');

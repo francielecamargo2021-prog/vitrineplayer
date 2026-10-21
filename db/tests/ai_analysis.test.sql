@@ -90,8 +90,14 @@ select throws_ok(format($$ insert into ai_analysis_requests (athlete_id, media_i
   select a.id, v.id, public.vp_uid(), gen_random_uuid(), 'highlights', 'AAAAAAAAAAA', 4, 9, 'verde', 'ST', 'r', 'p', 'm' from ids a, ids v where a.k = 'athA' and v.k = 'vidA' $$),
   '42501', null, 'pedido não é criado direto na tabela');
 
+select throws_ok(format($$ select request_ai_analysis(%L, 'highlights', 4, 9, 'verde', 'ST', 'v1', 'r1', 'p1') $$, (select id from ids where k = 'vidA')),
+  null, 'no analyses available', 'sem crédito não há pedido (nenhuma análise incluída no cadastro gratuito)');
+-- crédito (cortesia agora; compra no futuro) para os dois atletas
+select pg_temp.as_service();
+insert into ai_analysis_grants (athlete_id, quantity, reason) select id, 1, 'crédito de teste' from ids where k in ('athA', 'athB');
+select pg_temp.as_user('a1000000-0000-0000-0000-00000000000a');
 insert into ids select 'reqA', request_ai_analysis((select id from ids where k = 'vidA'), 'highlights', 4, 9, 'verde', 'ST', '2026-10', 'rubric-2026.10-v1', 'prompt-2026.10-v1');
-select is((select status::text from ai_analysis_requests where id = (select id from ids where k = 'reqA')), 'awaiting_payment', 'sem pagamento: aguarda (não vai para a fila)');
+select is((select status::text from ai_analysis_requests where id = (select id from ids where k = 'reqA')), 'queued', 'com crédito: entra direto na fila (sem pagamento do cadastro)');
 select is((select count(*)::int from consents where kind = 'ai_video_analysis' and athlete_id = (select id from ids where k = 'athA')), 1, 'consentimento específico registrado');
 select is((select report_locale from ai_analysis_requests where id = (select id from ids where k = 'reqA')), 'pt-BR', 'idioma do relatório segue a conta');
 select throws_ok(format($$ select request_ai_analysis(%L, 'highlights', 4, 9, 'verde', 'ST', 'v1', 'r1', 'p1') $$, (select id from ids where k = 'vidA')),
@@ -107,11 +113,8 @@ select is((select count(*)::int from ai_analysis_requests), 0, 'B não vê pedid
 select throws_ok(format($$ select cancel_ai_analysis(%L) $$, (select id from ids where k = 'reqA')), null, 'not allowed', 'B não cancela pedido de A');
 select throws_ok($$ select ai_claim_jobs(array[gen_random_uuid()], gen_random_uuid()) $$, '42501', null, 'usuário não opera a fila do processador');
 
--- ---------------------------------------------------------------- pagamento confirmado libera a fila
+-- ---------------------------------------------------------------- fila
 select pg_temp.as_service();
-insert into payments (id, athlete_id, payer_id) values ('e1000000-0000-0000-0000-0000000000e1', (select id from ids where k = 'athA'), 'a1000000-0000-0000-0000-00000000000a');
-select mark_payment_paid('e1000000-0000-0000-0000-0000000000e1', 'test', 'ref-ia');
-select is((select status::text from ai_analysis_requests where id = (select id from ids where k = 'reqA')), 'queued', 'pagamento confirmado → pedido entra na fila');
 select ok((select queued_at is not null from ai_analysis_requests where id = (select id from ids where k = 'reqA')), 'horário de entrada na fila registrado');
 
 -- ---------------------------------------------------------------- processador: reserva única, devolução, conclusão única
@@ -151,16 +154,16 @@ select set_ai_report_published('a9000000-0000-0000-0000-000000000001', true);
 insert into athlete_org_blocks (athlete_id, organization_id) select id, 'd1000000-0000-0000-0000-0000000000d2' from ids where k = 'athA';
 
 select pg_temp.as_user('c1000000-0000-0000-0000-0000000000c1');
-select is((select count(*)::int from ai_video_reports), 1, 'clube autorizado vê o relatório publicado');
-select is((select count(*)::int from ai_report_scores where criterion = 'finishing' and score >= 4), 1, 'notas publicadas filtráveis por fundamento');
+select ok(pro_ai_report((select id from ids where k = 'athA')) is not null, 'clube autorizado vê o relatório publicado (pela função do portal)');
+select ok(exists (select 1 from jsonb_array_elements(pro_ai_report((select id from ids where k = 'athA'))->'scores') x where x->>'criterion' = 'finishing' and (x->>'score')::int >= 4), 'notas publicadas por fundamento chegam ao profissional');
 select is((select count(*)::int from ai_analysis_requests), 0, 'profissional não vê pedidos (dados do pedido)');
 
 select pg_temp.as_user('c1000000-0000-0000-0000-0000000000c2');
-select is((select count(*)::int from ai_video_reports), 0, 'organização bloqueada não vê o relatório');
+select ok(pro_ai_report((select id from ids where k = 'athA')) is null, 'organização bloqueada não vê o relatório');
 select is((select count(*)::int from ai_report_scores), 0, 'organização bloqueada não vê as notas');
 
 select pg_temp.as_user('c1000000-0000-0000-0000-0000000000c3');
-select is((select count(*)::int from ai_video_reports), 0, 'marca não tem acesso a avaliações esportivas');
+select ok(pro_ai_report((select id from ids where k = 'athA')) is null, 'marca não tem acesso a avaliações esportivas');
 
 select pg_temp.as_anon();
 select is((select count(*)::int from ai_video_reports), 0, 'anônimo não vê relatórios');
@@ -169,7 +172,7 @@ select is((select count(*)::int from ai_video_reports), 0, 'anônimo não vê re
 select pg_temp.as_user('a1000000-0000-0000-0000-00000000000a');
 update athletes set visibility = 'paused' where id = (select id from ids where k = 'athA');
 select pg_temp.as_user('c1000000-0000-0000-0000-0000000000c1');
-select is((select count(*)::int from ai_video_reports), 0, 'perfil pausado esconde o relatório');
+select ok(pro_ai_report((select id from ids where k = 'athA')) is null, 'perfil pausado esconde o relatório');
 select pg_temp.as_user('a1000000-0000-0000-0000-00000000000a');
 update athletes set visibility = 'active' where id = (select id from ids where k = 'athA');
 
@@ -180,20 +183,20 @@ select is((select count(*)::int from ai_video_reports), 0, 'despublicado some da
 
 select pg_temp.as_user('a1000000-0000-0000-0000-00000000000a');
 select throws_ok(format($$ select request_ai_analysis(%L, 'highlights', 4, 9, 'verde', 'ST', 'v1', 'r1', 'p1') $$, (select id from ids where k = 'vidA')),
-  null, 'no analyses available', 'avaliação incluída já consumida: novo pedido bloqueado');
+  null, 'no analyses available', 'crédito já consumido: novo pedido bloqueado');
 select delete_ai_report('a9000000-0000-0000-0000-000000000001');
 select is((select count(*)::int from ai_video_reports), 0, 'responsável exclui o relatório');
 select ok((select revoked_at is not null from consents where kind = 'ai_video_analysis' and athlete_id = (select id from ids where k = 'athA')), 'excluir revoga o consentimento da análise');
 select throws_ok(format($$ select request_ai_analysis(%L, 'highlights', 4, 9, 'verde', 'ST', 'v1', 'r1', 'p1') $$, (select id from ids where k = 'vidA')),
-  null, 'no analyses available', 'excluir não libera nova avaliação incluída');
+  null, 'no analyses available', 'excluir não devolve o crédito consumido');
 
 -- avaliação adicional concedida (cortesia/compra futura) libera novo pedido
 select pg_temp.as_service();
 insert into ai_analysis_grants (athlete_id, quantity, reason) select id, 1, 'teste' from ids where k = 'athA';
 select pg_temp.as_user('a1000000-0000-0000-0000-00000000000a');
 select lives_ok(format($$ select request_ai_analysis(%L, 'highlights', 4, 9, 'verde', 'ST', 'v1', 'r1', 'p1') $$, (select id from ids where k = 'vidA')),
-  'avaliação adicional concedida permite novo pedido (já pago: entra na fila)');
-select is((select count(*)::int from ai_analysis_requests where status = 'queued'), 1, 'novo pedido entra direto na fila (pagamento já confirmado)');
+  'novo crédito concedido permite novo pedido');
+select is((select count(*)::int from ai_analysis_requests where status = 'queued'), 1, 'novo pedido entra direto na fila');
 
 -- cancelamento
 select cancel_ai_analysis((select id from ai_analysis_requests where status = 'queued'));

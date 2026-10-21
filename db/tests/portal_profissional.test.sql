@@ -5,6 +5,15 @@ begin;
 create extension if not exists pgtap;
 select no_plan();
 
+-- admin COM segundo fator: sessão de teste no banco + prova na requisição (0010)
+create function pg_temp.as_admin(p_id uuid) returns void language plpgsql as $$
+begin
+  execute 'reset role';
+  insert into admin_mfa_sessions (token_hash, profile_id, expires_at)
+  values (encode(sha256(convert_to('teste-' || p_id, 'UTF8')), 'hex'), p_id, now() + interval '1 hour') on conflict do nothing;
+  perform set_config('request.jwt.claims', json_build_object('sub', p_id, 'role', 'authenticated', 'vp_mfa', 'teste-' || p_id)::text, true);
+  execute 'set local role authenticated';
+end $$;
 create function pg_temp.as_user(p_id uuid) returns void language plpgsql as $$
 begin
   perform set_config('request.jwt.claims', json_build_object('sub', p_id, 'role', 'authenticated')::text, true);
@@ -93,7 +102,7 @@ insert into ids values ('org2', complete_professional_signup('+5511988880003', '
   '{"name":"Agência Pedro","kind":"manager","document":"12.345.678/0001-90","contact_role":"Empresário"}'));
 
 -- verificação pelo admin
-select pg_temp.as_user('f6000000-0000-0000-0000-0000000000f6');
+select pg_temp.as_admin('f6000000-0000-0000-0000-0000000000f6');
 select throws_ok(format($$ select admin_review_organization(%L, 'reject') $$, (select id from ids where k = 'org')), 'P0001', 'note required', 'recusa exige motivo');
 select is(admin_review_organization((select id from ids where k = 'org'), 'approve')::text, 'approved', 'admin aprova a olheira');
 select is(admin_review_organization((select id from ids where k = 'org2'), 'approve')::text, 'approved', 'admin aprova o empresário');
@@ -201,7 +210,7 @@ select pg_temp.as_user('f4000000-0000-0000-0000-0000000000f4');
 select is((select status from pro_my_interests() where id = (select id from ids where k = 'req2')), 'declined', 'organização vê só "não aceito" (sem denúncia)');
 select ok((select athlete_name from pro_my_interests() where id = (select id from ids where k = 'req2')) is null, 'atleta que bloqueou fica indisponível');
 select is((select count(*)::int from pro_search_athletes() where id = (select id from ids where k = 'minor2')), 0, 'bloqueio tira a atleta da busca');
-select pg_temp.as_user('f6000000-0000-0000-0000-0000000000f6');
+select pg_temp.as_admin('f6000000-0000-0000-0000-0000000000f6');
 select is((select count(*)::int from contact_requests where reported_at is not null), 1, 'admin vê a denúncia');
 
 -- limite mensal e expiração
@@ -225,7 +234,7 @@ select pg_temp.as_user('f4000000-0000-0000-0000-0000000000f4');
 select throws_ok($$ select admin_update_portal_settings(1000, 1000, 30) $$, 'P0001', 'not allowed', 'profissional não muda os limites');
 update portal_settings set profile_views_per_day = 9999;
 select is((select profile_views_per_day from portal_settings), 100, 'nem direto na tabela');
-select pg_temp.as_user('f6000000-0000-0000-0000-0000000000f6');
+select pg_temp.as_admin('f6000000-0000-0000-0000-0000000000f6');
 select lives_ok($$ select admin_update_portal_settings(120, 40, 30) $$, 'admin ajusta os limites');
 select is((select interests_per_month from portal_settings), 40, 'limite novo vale');
 
