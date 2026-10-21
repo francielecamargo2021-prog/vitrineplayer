@@ -169,17 +169,30 @@ try {
   check(path() === "/pt/painel", "login correto abre o painel", path());
   await logout();
 
-  section("Limite contra força bruta");
-  let limited = false;
-  for (let i = 0; i < 6 && !limited; i++) {
+  section("Limite contra força bruta (app, migration 0013)");
+  // O Neon Auth gerenciado não limita senhas erradas; o app limita (e-mail + IP: 5 erros → espera).
+  const tries = [];
+  for (let i = 0; i < 7; i++) {
+    await sleep(4000); // espaçadas, como uma pessoa (o Neon Auth tem limite próprio para rajadas)
     await go("/pt/entrar");
     await page.fill('input[name="email"]', mail("forca-bruta"));
     await page.fill('input[name="password"]', `errada-${i}-xxxx`);
-    await submit();
-    limited = (await text()).includes("Muitas tentativas");
+    await page.locator("form button").first().click();
+    const msg = await page.waitForSelector("text=/Muitas tentativas|E-mail ou senha incorretos/", { timeout: 20000 }).then((e) => e.innerText(), () => "");
+    tries.push(msg.includes("Muitas tentativas"));
   }
-  // Achado: o Neon Auth gerenciado não limita tentativas de senha errada (não é falha do app).
-  console.log(`ℹ limite de tentativas no Neon Auth: ${limited ? "ativo" : "NÃO ativo (6 senhas erradas seguidas, nenhuma bloqueada)"}`);
+  check(tries.slice(0, 5).every((x) => !x), "as 5 primeiras senhas erradas são conferidas normalmente", tries.join(","));
+  check(tries[5] && tries[6], "a partir da 6ª, \"muitas tentativas\" (sem consultar a senha)", tries.join(","));
+  // conta inexistente e conta real recebem a mesma resposta: o limite não revela se a conta existe
+  const [{ n: keysNoBanco }] = (await q(`select count(*)::int n from auth_attempts where key ~ '^[0-9a-f]{64}$'`)).rows;
+  check(keysNoBanco > 0, "contadores gravados só como código (HMAC), sem e-mail em texto");
+  const [{ n: emTexto }] = (await q(`select count(*)::int n from auth_attempts where key like '%@%'`)).rows;
+  check(emTexto === 0, "nenhum e-mail em texto na tabela de tentativas");
+  // A (conta real, mesmo IP) continua entrando: o bloqueio é por e-mail + IP
+  await login(A, PASS);
+  await page.waitForURL(/\/pt\/painel/).catch(() => {});
+  check(path() === "/pt/painel", "outra conta no mesmo IP continua entrando", path());
+  await logout();
 
   // ------------------------------------------------------------------ recuperação de senha
   section("Recuperação de senha por código");
@@ -194,7 +207,8 @@ try {
   await page.fill('input[name="password"]', PASS2);
   await page.fill('input[name="confirm"]', PASS2);
   await submit();
-  check((await text()).includes("Código inválido"), "código de recuperação errado é recusado");
+  // a ação confere o limite de tentativas no banco antes do Neon Auth: espera a resposta
+  check(await page.waitForSelector("text=Código inválido", { timeout: 15000 }).then(() => true, () => false), "código de recuperação errado é recusado");
   await knownCode(A, "forget-password");
   await page.fill('input[name="code"]', CODE);
   await page.fill('input[name="password"]', PASS2);
