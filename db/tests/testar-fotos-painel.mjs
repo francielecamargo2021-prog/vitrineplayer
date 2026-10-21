@@ -9,6 +9,7 @@ import sharp from "sharp";
 import { del, head, list } from "@vercel/blob";
 import { chromium } from "playwright-core";
 import { conectar } from "../conexao.mjs";
+import { adminSecondFactor } from "./lib/segundo-fator.mjs";
 
 const APP = process.env.APP_URL ?? "http://localhost:3300";
 const TOKEN = process.env.BLOB_READ_WRITE_TOKEN;
@@ -164,8 +165,13 @@ try {
   await A.page.locator(`li:has(img[src*="${toDelete.storage_path}"]) button:has-text("Excluir")`).click();
   for (let i = 0; i < 40; i++) { rows = await photos(athleteId); if (rows.length === 1) break; await sleep(500); }
   check(rows.length === 1 && !rows.some((r) => r.id === toDelete.id), "excluir remove a foto da galeria");
-  check(!(await blobExists(toDelete.blob_url)) && !(await q(`select 1 from storage.objects where name = $1`, [toDelete.storage_path])).rowCount,
-    "excluir apaga o arquivo do Blob e o registro");
+  // o registro sai primeiro; o arquivo no Blob logo depois (mesma ação)
+  let delGone = false;
+  for (let i = 0; i < 20 && !delGone; i++) {
+    delGone = !(await blobExists(toDelete.blob_url)) && !(await q(`select 1 from storage.objects where name = $1`, [toDelete.storage_path])).rowCount;
+    if (!delGone) await sleep(500);
+  }
+  check(delGone, "excluir apaga o arquivo do Blob e o registro");
 
   section("Limite de 12 fotos");
   let last = null;
@@ -177,7 +183,9 @@ try {
   section("Admin e profissionais");
   const C = await account("admin", "Admin Fotos");
   await q(`update profiles set role = 'ADMIN' where id = $1`, [C.id]);
-  check((await C.fetchPhoto(`/api/fotos/${(await photos(athleteId))[0].storage_path}`)).status === 200, "admin vê a foto para revisar");
+  check((await C.fetchPhoto(`/api/fotos/${(await photos(athleteId))[0].storage_path}`)).status === 404, "admin sem segundo fator não vê a foto");
+  await adminSecondFactor(C.page, APP);
+  check((await C.fetchPhoto(`/api/fotos/${(await photos(athleteId))[0].storage_path}`)).status === 200, "admin com segundo fator vê a foto para revisar");
   const P = await account("pro", "Pro Fotos");
   await q(`update profiles set role = 'PROFESSIONAL' where id = $1`, [P.id]);
   const org = (await q(`insert into organizations (name, kind, country, status) values ($1, 'club', 'BR', 'approved') returning id`, [ORG])).rows[0].id;

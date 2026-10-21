@@ -10,6 +10,7 @@
 import { createHash } from "node:crypto";
 import { chromium } from "playwright-core";
 import { conectar } from "../conexao.mjs";
+import { adminSecondFactor } from "./lib/segundo-fator.mjs";
 
 const APP = process.env.APP_URL ?? "http://localhost:3300";
 const AUTH = process.env.NEON_AUTH_BASE_URL;
@@ -245,7 +246,9 @@ try {
   await page.waitForURL(/\/pt\/painel/).catch(() => {});
   await q(`update profiles set role = 'ADMIN' where id = (select id from neon_auth."user" where email = $1)`, [B]);
   await go("/pt/painel");
-  check(path() === "/pt/admin" && (await has("Atletas aguardando revisão")), "admin é levado ao /admin e acessa a área", path());
+  check(path() === "/pt/entrar/segundo-fator", "admin sem segundo fator é levado à configuração do segundo fator", path());
+  await adminSecondFactor(page, APP);
+  check(path() === "/pt/admin" && (await has("Atletas aguardando revisão")), "com o segundo fator, o admin acessa a área", path());
   await go("/es/admin");
   check(path() === "/es/admin", "admin acessa /es/admin");
   await logout();

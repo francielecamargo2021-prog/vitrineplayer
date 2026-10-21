@@ -6,6 +6,7 @@ import { countries } from "@/domain/athlete";
 import { hasLocale } from "@/i18n/config";
 import { asUser, dbReady } from "@/lib/db";
 import { authEnv, currentUser, getAuth } from "./server";
+import { closeMfa } from "./mfa";
 
 export type AuthFormState = { ok?: boolean; error?: string; message?: string } | undefined;
 
@@ -128,6 +129,7 @@ export async function signIn(lang: string, _prev: AuthFormState, fd: FormData): 
 }
 
 export async function signOut(lang: string) {
+  await closeMfa().catch(() => {});
   try {
     await getAuth()?.signOut();
   } catch {
@@ -287,6 +289,73 @@ export async function completeProSignup(lang: string, _prev: AuthFormState, fd: 
     await completeProAs(user.id, l, details);
   } catch (e) {
     const k = proError(e);
+    if (k !== "done") return { error: k };
+  }
+  redirect(`/${l}/portal`);
+}
+
+// ---------------------------------------------------------------- convite para a equipe (B2)
+function joinDetails(fd: FormData) {
+  const whatsapp = cleanPhone(str(fd, "whatsapp"));
+  const country = (countries as readonly string[]).includes(str(fd, "country")) ? str(fd, "country") : null;
+  if (!whatsapp || !country) return { error: "required" } as const;
+  if (!/^\+?\d{10,15}$/.test(whatsapp)) return { error: "whatsapp" } as const;
+  if (!PRO_CONSENTS.every((c) => fd.get(c) === "on")) return { error: "consents" } as const;
+  return { whatsapp, country } as const;
+}
+
+async function joinAs(userId: string, lang: string, token: string, d: { whatsapp: string; country: string }) {
+  const h = await headers();
+  const ip = (h.get("x-forwarded-for") ?? "").split(",")[0].trim() || null;
+  const ua = h.get("user-agent") ?? null;
+  await asUser(userId, (q) => q`select complete_professional_join(${d.whatsapp}, ${d.country}, ${lang === "es" ? "es" : "pt-BR"},
+    ${[...PRO_CONSENTS]}::text[], ${CONSENT_VERSION}, ${token}, ${ip}, ${ua})`);
+}
+const joinError = (e: unknown) => {
+  const m = String((e as Error).message);
+  return /invalid invite/.test(m) ? "invite" : /team full/.test(m) ? "full" : /not allowed/.test(m) ? "notAllowed" : /already completed/.test(m) ? "done" : "generic";
+};
+
+/** Conta nova pelo convite: cria o login e entra na equipe (o banco confere o convite). */
+export async function proJoinSignUp(lang: string, token: string, _prev: AuthFormState, fd: FormData): Promise<AuthFormState> {
+  const auth = ready();
+  if (!auth) return { error: "backend" };
+  const fullName = str(fd, "full_name");
+  const email = lower(fd, "email");
+  const password = String(fd.get("password") ?? "");
+  if (fullName.length < 3 || !email || !password) return { error: "required" };
+  if (!isEmail(email)) return { error: "email" };
+  if (password.length < 8 || password.length > 128) return { error: "password" };
+  if (password !== String(fd.get("confirm") ?? "")) return { error: "mismatch" };
+  const details = joinDetails(fd);
+  if ("error" in details) return { error: details.error };
+  const l = safeLang(lang);
+  const { data, error } = await auth.signUp.email({ email, password, name: fullName });
+  if (error || !data?.user?.id) {
+    if (/exist/i.test(code(error)) || status(error) === 422) return { error: "exists" };
+    return { error: status(error) === 429 ? "tooMany" : "generic" };
+  }
+  try {
+    await joinAs(data.user.id, l, token, details);
+  } catch {
+    /* depois de confirmar o e-mail, a pessoa conclui pelo mesmo link */
+  }
+  await sendCode(email, "email-verification");
+  redirect(`/${l}/entrar/verificar`);
+}
+
+/** Conta já criada (sem cadastro concluído) entra na equipe pelo convite. */
+export async function completeProJoin(lang: string, token: string, _prev: AuthFormState, fd: FormData): Promise<AuthFormState> {
+  if (!ready()) return { error: "backend" };
+  const user = await currentUser();
+  const l = safeLang(lang);
+  if (!user) redirect(`/${l}/entrar`);
+  const details = joinDetails(fd);
+  if ("error" in details) return { error: details.error };
+  try {
+    await joinAs(user.id, l, token, details);
+  } catch (e) {
+    const k = joinError(e);
     if (k !== "done") return { error: k };
   }
   redirect(`/${l}/portal`);

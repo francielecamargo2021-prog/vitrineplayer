@@ -1,16 +1,18 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { PendingNotice } from "@/components/portal/PortalShell";
 import { hasLocale, htmlLang } from "@/i18n/config";
 import { getPortalDictionary } from "@/i18n/get-dictionary";
-import { myInterests, requireApprovedPro } from "@/lib/portal/data";
+import { myInterests, requirePro } from "@/lib/portal/data";
 import { PortalTitle } from "@/components/portal/PortalTitle";
 
 /** Interesses enviados pela organização: só o status (a família decide; nada dela é compartilhado). */
 export default async function PortalInterests({ params }: PageProps<"/[lang]/portal/interesses">) {
   const { lang } = await params;
   if (!hasLocale(lang)) notFound();
-  const s = await requireApprovedPro(lang);
+  const s = await requirePro(lang);
   if (!s) return null;
+  if (!s.pro.approved) return <PendingNotice t={await getPortalDictionary(lang)} pro={s.pro} lang={lang} />;
   const [t, rows] = await Promise.all([getPortalDictionary(lang), myInterests(s.user.id)]);
   const date = new Intl.DateTimeFormat(htmlLang[lang], { dateStyle: "medium" });
   return (

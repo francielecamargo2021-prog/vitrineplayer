@@ -4,13 +4,14 @@ import { getDictionary, getPanelDictionary, getPortalDictionary } from "@/i18n/g
 import { privateMetadata } from "@/lib/seo";
 import { requirePro } from "@/lib/portal/data";
 import { BackendNotice } from "@/components/panel/PanelShell";
-import { PendingNotice, PortalShell } from "@/components/portal/PortalShell";
+import { PortalShell } from "@/components/portal/PortalShell";
 
 export const metadata = privateMetadata;
 
 /**
  * Portal dos profissionais. Sessão e papel conferidos aqui (e de novo em cada página
- * e ação). Organização não aprovada vê só o aviso de verificação.
+ * e ação). Cada página de atletas mostra o aviso de verificação se a organização não
+ * estiver aprovada; "Minha conta" fica sempre acessível.
  */
 export default async function PortalLayout({ children, params }: LayoutProps<"/[lang]/portal">) {
   const { lang } = await params;
@@ -19,7 +20,7 @@ export default async function PortalLayout({ children, params }: LayoutProps<"/[
   if (!s) return <BackendNotice p={p} />;
   return (
     <PortalShell lang={lang} p={p} t={t} langLabel={dict.nav.langLabel} name={s.profile.full_name} pro={s.pro}>
-      {s.pro.approved ? children : <PendingNotice t={t} pro={s.pro} />}
+      {children}
     </PortalShell>
   );
 }

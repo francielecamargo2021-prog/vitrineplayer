@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { hasLocale, htmlLang } from "@/i18n/config";
 import { getPanelDictionary } from "@/i18n/get-dictionary";
 import { activitySignals, getAthleteBundle, listMyAthletes, requireGuardian, signedPhotoUrls } from "@/lib/panel/data";
-import { receivedInterests } from "@/lib/panel/interests";
+import { openCorrections, receivedInterests } from "@/lib/panel/interests";
+import { resolveCorrection } from "@/lib/panel/actions";
 import { ageOn, categoryFor, completeness, completenessGroups, type ActivityKind, type CompletenessGroup } from "@/domain/athlete";
 import type { StepSlug } from "@/lib/panel/steps";
 import { FramedPhoto } from "@/components/panel/FramedPhoto";
@@ -69,10 +70,11 @@ export default async function Dashboard({ params, searchParams }: PageProps<"/[l
   const bundle = await getAthleteBundle(db, user.id, current.id);
   const a = bundle.athlete;
   const primary = bundle.photos.find((ph) => ph.is_primary);
-  const [urls, signals, interests] = await Promise.all([
+  const [urls, signals, interests, corrections] = await Promise.all([
     signedPhotoUrls(db, primary?.storage_path ? [primary.storage_path] : []),
     activitySignals(db, a.id),
     receivedInterests(user.id),
+    openCorrections(user.id, a.id),
   ]);
   const waiting = interests.filter((x) => x.status === "requested").length;
   const { percent, missing, ratios } = completeness(bundle);
@@ -112,6 +114,12 @@ export default async function Dashboard({ params, searchParams }: PageProps<"/[l
             + {d.addAthlete}
           </Link>
         </div>
+        {corrections.map((c) => (
+          <div key={c.id} className="mt-6 flex flex-col gap-3 border border-signal/50 bg-signal/10 p-4 sm:flex-row sm:items-center sm:justify-between" data-testid="pedido-correcao">
+            <p className="text-[0.95rem] text-bone"><span className="eyebrow block text-fog">{p.corrections.title}</span>{c.note}</p>
+            <form action={resolveCorrection.bind(null, lang, c.id)}><button className="min-h-11 border border-white/25 px-4 text-[0.875rem] text-bone hover:border-bone">{p.corrections.resolved}</button></form>
+          </div>
+        ))}
         {interests.length > 0 && (
           <Link href={`/${lang}/painel/interesses`} data-testid="link-interesses"
             className={`mt-6 flex min-h-14 items-center justify-between gap-4 border px-4 text-[0.95rem] transition-colors ${waiting ? "border-grass bg-grass/10 text-bone" : "border-white/15 text-fog hover:border-white/40"}`}>

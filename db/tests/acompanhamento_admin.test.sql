@@ -129,12 +129,21 @@ select lives_ok(format($$ insert into pro_tracking (organization_id, athlete_id,
 select throws_ok(format($$ insert into pro_tracking (organization_id, athlete_id, stage, updated_by) values (%L, %L, 'contratado', public.vp_uid()) $$,
   (select id from ids where k = 'orgA'), (select id from ids where k = 'ath2')), '23514', null, 'só as etapas aprovadas');
 select ok((select count(*) from pro_athlete_timeline((select id from ids where k = 'ath'))) >= 3, 'linha do tempo reúne nota, avaliação e etapa');
+select is((pro_workspace((select id from ids where k = 'ath'))->>'stage'), 'evaluated', 'área de trabalho mostra a etapa do funil');
+select is((pro_workspace((select id from ids where k = 'ath'))->'notes'->0->>'author'), 'Olheiro Dono', 'nota com o nome de quem escreveu');
+select is(jsonb_array_length(pro_workspace((select id from ids where k = 'ath'))->'evaluations'), 1, 'avaliação aparece na área de trabalho');
+select is((pro_workspace((select id from ids where k = 'ath'))->'evaluations'->0->>'youtube'), 'abcdefghijk', 'com o vídeo citado');
+select is((select count(*)::int from pro_athlete_videos((select id from ids where k = 'ath'))), 1, 'vídeos do atleta com id para citar na avaliação');
+select is((select stage from pro_tracked_athletes('evaluated') limit 1), 'evaluated', 'aba de acompanhamento lista por etapa');
+select is((select display_name from pro_tracked_athletes() limit 1), 'Pedrinho', 'com o nome esportivo do menor');
 
 select pg_temp.as_user('a9000000-0000-0000-0000-0000000000b2');
 select is((select count(*)::int from pro_notes), 0, 'outra organização não vê as notas');
 select is((select count(*)::int from scout_evaluations), 0, 'nem as avaliações');
 select is((select count(*)::int from pro_tracking), 0, 'nem o funil');
 select is((select count(*)::int from pro_athlete_timeline((select id from ids where k = 'ath'))), 0, 'nem a linha do tempo');
+select is(jsonb_array_length(pro_workspace((select id from ids where k = 'ath'))->'notes') + jsonb_array_length(pro_workspace((select id from ids where k = 'ath'))->'evaluations'), 0, 'a área de trabalho dela começa vazia (nada da outra organização)');
+select is((select count(*)::int from pro_tracked_athletes()), 0, 'nem os acompanhados');
 
 -- bloqueio esconde (não apaga)
 select pg_temp.as_user('a9000000-0000-0000-0000-0000000000a1');
@@ -143,6 +152,7 @@ select pg_temp.as_user('a9000000-0000-0000-0000-0000000000b1');
 select is((select count(*)::int from pro_notes), 0, 'com bloqueio, as notas ficam ocultas');
 select is((select count(*)::int from scout_evaluations), 0, 'as avaliações também');
 select is((select count(*)::int from pro_tracking), 0, 'e o funil');
+select is((select count(*)::int from pro_athlete_videos((select id from ids where k = 'ath'))), 0, 'nem os vídeos');
 select pg_temp.as_owner();
 select is((select count(*)::int from pro_notes where organization_id = (select id from ids where k = 'orgA')), 1, 'ocultas, mas não apagadas');
 select pg_temp.as_user('a9000000-0000-0000-0000-0000000000a1');

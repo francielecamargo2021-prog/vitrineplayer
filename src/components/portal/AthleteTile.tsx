@@ -5,8 +5,8 @@ import { FramedPhoto } from "@/components/panel/FramedPhoto";
 import { FavoriteButton } from "./PortalWidgets";
 
 /** Cartão do atleta no portal: foto grande, nome, idade, posição e local (estado/país). */
-export function AthleteTile({ a, lang, p, t, region, extra }: {
-  a: AthleteCard; lang: string; p: PanelDictionary; t: PortalDictionary; region: Intl.DisplayNames; extra?: React.ReactNode;
+export function AthleteTile({ a, lang, p, t, region, extra, updated = false, badge }: {
+  a: AthleteCard; lang: string; p: PanelDictionary; t: PortalDictionary; region: Intl.DisplayNames; extra?: React.ReactNode; updated?: boolean; badge?: string;
 }) {
   const pos = a.primary_position ? (p.positions as Record<string, string>)[a.primary_position] ?? a.primary_position : null;
   const place = [a.state, region.of(a.country) ?? a.country].filter(Boolean).join(", ");
@@ -23,6 +23,12 @@ export function AthleteTile({ a, lang, p, t, region, extra }: {
           <p className="mt-0.5 truncate text-[0.8rem] text-ash">{place}{a.has_video ? ` · ${t.search.video}` : ""}</p>
         </div>
       </Link>
+      {(updated || badge) && (
+        <span className="absolute left-2 top-2 flex flex-col items-start gap-1">
+          {updated && <span className="bg-grass px-2 py-0.5 text-[0.7rem] font-medium uppercase tracking-[0.08em] text-ink" title={t.workspace.updatedHint} data-testid="atualizado">{t.workspace.updated}</span>}
+          {badge && <span className="bg-ink/80 px-2 py-0.5 text-[0.7rem] text-bone">{badge}</span>}
+        </span>
+      )}
       <div className="absolute right-2 top-2">
         <FavoriteButton lang={lang} athleteId={a.id} on={a.is_favorite} labels={{ on: t.profile.unfavorite, off: t.profile.favorite }} compact />
       </div>

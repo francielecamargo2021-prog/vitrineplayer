@@ -1,12 +1,8 @@
 import Link from "next/link";
 import { Logo } from "@/components/brand/Logo";
 import { signOut } from "@/lib/auth/actions";
+import { AdminNav } from "./AdminNav";
 
-const nav = [
-  { href: "", label: "Visão geral" },
-  { href: "/atletas", label: "Atletas" },
-  { href: "/organizacoes", label: "Organizações" },
-];
 
 /** Moldura da área administrativa (interna, em português). */
 export function AdminShell({ lang, name, env, children }: { lang: string; name?: string; env: string | null; children: React.ReactNode }) {
@@ -33,13 +29,7 @@ export function AdminShell({ lang, name, env, children }: { lang: string; name?:
             )}
           </div>
         </div>
-        <nav aria-label="Seções" className="-mb-px flex gap-6 overflow-x-auto text-[0.9rem]">
-          {nav.map((n) => (
-            <Link key={n.href} href={`${base}${n.href}`} className="whitespace-nowrap border-b-2 border-transparent pb-3 text-fog transition-colors hover:border-white/30 hover:text-bone">
-              {n.label}
-            </Link>
-          ))}
-        </nav>
+        <AdminNav base={base} />
       </header>
       {children}
     </div>

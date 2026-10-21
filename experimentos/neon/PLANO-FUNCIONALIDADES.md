@@ -1,6 +1,8 @@
 # VitrinePlayer — Plano para completar as funcionalidades antes da publicação
 
-Status: **proposta para aprovação (20/10/2026). Nada deste documento foi implementado.**
+Status (21/10/2026): **fases A, B1, B2, C1–C5 e D1 implementadas na homologação** (decisões 1–8 aprovadas).
+Migrations 0009–0012; testes: 416 pgTAP no Neon, 62 no navegador (`db/tests/testar-funcionalidades.mjs`) além das suítes anteriores.
+**D2–D4 (piloto real da IA, cobrança e filtros por nota) aguardam nova autorização.** A IA real continua desligada.
 Base: Etapas 1–4 e portal dos profissionais concluídos (migrations 0000–0008).
 
 Complexidade: **P** = pequena (1 migration curta ou 1–2 telas) · **M** = média (migration + 3–6 telas + testes)

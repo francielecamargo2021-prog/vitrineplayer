@@ -11,7 +11,9 @@ const tabs = [
   ["search", ""],
   ["favorites", "/favoritos"],
   ["lists", "/listas"],
+  ["tracking", "/acompanhamento"],
   ["interests", "/interesses"],
+  ["team", "/equipe"],
 ] as const;
 
 /** Moldura do portal: marca, organização, abas, idioma e sair. */
@@ -24,7 +26,8 @@ export function PortalShell({ lang, p, t, langLabel, name, pro, children }: {
         <div className="gutter flex h-16 items-center justify-between">
           <Link href={`/${lang}/portal`} aria-label={t.shell.portal} className="text-bone"><Logo variant="editorial" /></Link>
           <div className="flex items-center gap-5 md:gap-8">
-            <span className="hidden text-[0.875rem] text-fog md:inline">{name}{pro.organization ? ` · ${pro.organization.name}` : ""}</span>
+            <Link href={`/${lang}/portal/conta`} className="hidden text-[0.875rem] text-fog hover:text-bone md:inline" title={p.account.link}>{name}{pro.organization ? ` · ${pro.organization.name}` : ""}</Link>
+            <Link href={`/${lang}/portal/conta`} className="text-[0.875rem] text-fog hover:text-bone md:hidden">{p.account.link}</Link>
             <LangSwitch current={lang} label={langLabel} />
             <form action={signOut.bind(null, lang)}>
               <button className="text-[0.875rem] font-medium text-fog transition-colors hover:text-bone">{p.shell.logout}</button>
@@ -41,7 +44,7 @@ export function PortalShell({ lang, p, t, langLabel, name, pro, children }: {
 }
 
 /** Organização ainda não aprovada (ou recusada/suspensa): nenhum atleta é mostrado. */
-export function PendingNotice({ t, pro }: { t: PortalDictionary; pro: ProAccount }) {
+export function PendingNotice({ t, pro, lang }: { t: PortalDictionary; pro: ProAccount; lang: string }) {
   const st = pro.organization?.status ?? "pending";
   const title = st === "rejected" ? t.pending.rejected : st === "suspended" ? t.pending.suspended : t.pending.title;
   return (
@@ -56,6 +59,7 @@ export function PendingNotice({ t, pro }: { t: PortalDictionary; pro: ProAccount
       </p>
       {pro.organization?.review_note && <p className="mt-4 border-l-2 border-white/20 pl-4 text-bone">{pro.organization.review_note}</p>}
       <p className="mt-6 text-[0.9rem] text-ash">{t.pending.contact}</p>
+      <p className="mt-3 text-[0.9rem]"><Link href={`/${lang}/portal/conta`} className="text-fog underline-offset-4 hover:text-bone hover:underline">{t.pending.account}</Link></p>
     </main>
   );
 }

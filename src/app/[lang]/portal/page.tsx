@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { PendingNotice } from "@/components/portal/PortalShell";
 import { hasLocale, htmlLang } from "@/i18n/config";
 import { getPanelDictionary, getPortalDictionary } from "@/i18n/get-dictionary";
-import { readFilters, requireApprovedPro, searchAthletes } from "@/lib/portal/data";
+import { readFilters, requirePro, searchAthletes, updatedIds } from "@/lib/portal/data";
 import { countryOptions, feet, modalities, positions, seekingKinds, sexes } from "@/domain/athlete";
 import { SelectField, TextField, ghostButton, primaryButton } from "@/components/panel/controls";
 import { AthleteTile } from "@/components/portal/AthleteTile";
@@ -11,14 +12,16 @@ import { AthleteTile } from "@/components/portal/AthleteTile";
 export default async function PortalSearch({ params, searchParams }: PageProps<"/[lang]/portal">) {
   const { lang } = await params;
   if (!hasLocale(lang)) notFound();
-  const s = await requireApprovedPro(lang);
+  const s = await requirePro(lang);
   if (!s) return null;
+  if (!s.pro.approved) return <PendingNotice t={await getPortalDictionary(lang)} pro={s.pro} lang={lang} />;
   const sp = await searchParams;
   const filters = readFilters(sp);
   const page = Math.max(1, Math.min(500, Number(sp.pagina) || 1));
   const [p, t, result] = await Promise.all([getPanelDictionary(lang), getPortalDictionary(lang), searchAthletes(s.user.id, filters, page)]);
   const f = t.search;
   const region = new Intl.DisplayNames([htmlLang[lang]], { type: "region" });
+  const updated = await updatedIds(s.user.id, result.rows.map((x) => x.id));
   const pages = Math.max(1, Math.ceil(result.total / result.pageSize));
   const qs = (n: number) => {
     const u = new URLSearchParams();
@@ -92,7 +95,7 @@ export default async function PortalSearch({ params, searchParams }: PageProps<"
             <p className="mt-8 text-fog">{f.none}</p>
           ) : (
             <ul className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-              {result.rows.map((a) => <AthleteTile key={a.id} a={a} lang={lang} p={p} t={t} region={region} />)}
+              {result.rows.map((a) => <AthleteTile key={a.id} a={a} lang={lang} p={p} t={t} region={region} updated={updated.has(a.id)} />)}
             </ul>
           )}
           {pages > 1 && (

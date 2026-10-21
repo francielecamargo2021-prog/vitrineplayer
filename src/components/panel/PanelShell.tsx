@@ -14,7 +14,8 @@ export function PanelShell({ lang, p, name, langLabel, children }: { lang: Local
           <Logo variant="editorial" />
         </Link>
         <div className="flex items-center gap-5 md:gap-8">
-          {name && <span className="hidden text-[0.875rem] text-fog md:inline">{name}</span>}
+          {name && <Link href={`/${lang}/painel/conta`} className="hidden text-[0.875rem] text-fog hover:text-bone md:inline" title={p.account.link}>{name}</Link>}
+          {name && <Link href={`/${lang}/painel/conta`} className="text-[0.875rem] text-fog hover:text-bone md:hidden">{p.account.link}</Link>}
           <LangSwitch current={lang} label={langLabel} />
           {name && (
             <form action={signOut.bind(null, lang)}>

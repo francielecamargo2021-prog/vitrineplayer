@@ -1,6 +1,7 @@
 import { type NextRequest } from "next/server";
 import { currentUser } from "@/lib/auth/server";
 import { photoBlobPath, photosReady, readPhoto } from "@/lib/photos/server";
+import { mfaToken } from "@/lib/auth/mfa";
 
 /**
  * Entrega uma foto do atleta SOMENTE se o banco permitir ao usuário logado (RLS de
@@ -27,7 +28,8 @@ export async function GET(req: NextRequest, ctx: RouteContext<"/api/fotos/[athle
   const user = await currentUser();
   if (!user) return new Response(null, { status: 401 });
   const name = `${athleteId}/${file}`;
-  const url = await photoBlobPath(user.id, name);
+  // admin: a prova do segundo fator (cookie) acompanha a consulta; sem ela, o banco não reconhece o admin
+  const url = await photoBlobPath(user.id, name, { mfa: await mfaToken() });
   if (!url) return new Response(null, { status: 404 });
   const etag = `"${file}"`;
   if (req.headers.get("if-none-match") === etag) return new Response(null, { status: 304, headers: headers(etag) });

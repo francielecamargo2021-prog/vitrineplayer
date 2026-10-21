@@ -281,3 +281,11 @@ export async function respondInterest(lang: string, requestId: string, action: "
   revalidatePath(`/${hasLocale(lang) ? lang : "pt"}/painel`, "layout");
   return { ok: true };
 }
+
+/** A família marca um pedido de correção da equipe como resolvido. */
+export async function resolveCorrection(lang: string, id: string) {
+  const { user } = await authed();
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return;
+  await asUser(user.id, (q) => q`select resolve_correction(${id}::uuid)`).catch(() => {});
+  revalidatePath(`/${hasLocale(lang) ? lang : "pt"}/painel`, "layout");
+}

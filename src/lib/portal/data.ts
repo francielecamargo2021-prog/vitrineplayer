@@ -133,3 +133,54 @@ export type SentInterest = { id: string; athlete_id: string; athlete_name: strin
 export async function myInterests(userId: string) {
   return asUser<SentInterest>(userId, (q) => q`select * from pro_my_interests()`);
 }
+
+// ---------------------------------------------------------------- área de trabalho (B1), relatório de IA (D1) e equipe (B2)
+export const stages = ["watching", "evaluated", "interest", "talking", "archived"] as const;
+export type Stage = (typeof stages)[number];
+
+export type Workspace = {
+  stage: Stage | null;
+  notes: { id: string; body: string; tags: string[]; created_at: string; author: string; mine: boolean }[];
+  evaluations: { id: string; created_at: string; author: string; mine: boolean; position_group: string; rubric_version: string; scores: Record<string, number>; observation: string | null; context: string | null; video_minute: number | null; youtube: string | null }[];
+};
+export async function workspace(userId: string, athleteId: string) {
+  const [r] = await asUser<{ w: Workspace | null }>(userId, (q) => q`select pro_workspace(${athleteId}::uuid) as w`);
+  return r?.w ?? null;
+}
+export async function athleteVideos(userId: string, athleteId: string) {
+  return asUser<{ id: string; youtube: string; title: string | null; video_type: string | null }>(userId, (q) => q`select * from pro_athlete_videos(${athleteId}::uuid)`);
+}
+export type TimelineRow = { at: string; kind: string; detail: string | null; author: string | null };
+export async function timeline(userId: string, athleteId: string) {
+  const [r] = await asUser<{ j: TimelineRow[] }>(userId, (q) => q`select coalesce(jsonb_agg(to_jsonb(t)), '[]') as j from pro_athlete_timeline(${athleteId}::uuid) t`);
+  return r?.j ?? [];
+}
+export type ProAiReport = {
+  position: string; position_group: string; video_type: string; category: string | null; overall_score: number | null; coverage: number;
+  confidence: string; summary: string; strengths: string[]; development: string[]; created_at: string; youtube: string | null;
+  scores: { criterion: string; score: number; confidence: string; evidence: number }[];
+};
+export async function aiReport(userId: string, athleteId: string) {
+  const [r] = await asUser<{ j: ProAiReport | null }>(userId, (q) => q`select pro_ai_report(${athleteId}::uuid) as j`);
+  return r?.j ?? null;
+}
+export async function trackedAthletes(userId: string, stage?: Stage) {
+  const [r] = await asUser<{ j: (AthleteCard & { stage: Stage; stage_updated_at: string })[] }>(userId, (q) =>
+    q`select coalesce(jsonb_agg(to_jsonb(t)), '[]') as j from pro_tracked_athletes(${stage ?? null}) t`);
+  return r?.j ?? [];
+}
+/** Ids de atletas com novidade desde a última visita da organização. */
+export async function updatedIds(userId: string, ids: string[]) {
+  if (!ids.length) return new Set<string>();
+  const rows = await asUser<{ id: string }>(userId, (q) => q`select pro_updates(${ids}::uuid[]) as id`);
+  return new Set(rows.map((r) => r.id));
+}
+export type TeamMember = { profile_id: string; full_name: string; email: string; is_owner: boolean; joined_at: string };
+export async function team(userId: string) {
+  const [members, invites] = await Promise.all([
+    asUser<TeamMember>(userId, (q) => q`select profile_id, full_name, email, is_owner, joined_at::text from org_team()`),
+    asUser<{ id: string; created_at: string; expires_at: string }>(userId, (q) =>
+      q`select id, created_at::text, expires_at::text from organization_invites where used_at is null and revoked_at is null and expires_at > now() order by created_at desc`),
+  ]);
+  return { members, invites };
+}

@@ -1,16 +1,18 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { PendingNotice } from "@/components/portal/PortalShell";
 import { hasLocale } from "@/i18n/config";
 import { getPortalDictionary } from "@/i18n/get-dictionary";
-import { myLists, requireApprovedPro } from "@/lib/portal/data";
+import { myLists, requirePro } from "@/lib/portal/data";
 import { CreateListForm } from "@/components/portal/PortalWidgets";
 import { PortalTitle } from "@/components/portal/PortalTitle";
 
 export default async function PortalLists({ params }: PageProps<"/[lang]/portal/listas">) {
   const { lang } = await params;
   if (!hasLocale(lang)) notFound();
-  const s = await requireApprovedPro(lang);
+  const s = await requirePro(lang);
   if (!s) return null;
+  if (!s.pro.approved) return <PendingNotice t={await getPortalDictionary(lang)} pro={s.pro} lang={lang} />;
   const [t, lists] = await Promise.all([getPortalDictionary(lang), myLists(s.user.id)]);
   return (
     <main className="gutter mx-auto max-w-4xl py-10 md:py-14">

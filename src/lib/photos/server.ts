@@ -141,10 +141,10 @@ export async function removePhoto(userId: string, athleteId: string, mediaId: st
 }
 
 /** Endereço do arquivo SE o banco permitir ao usuário ver a foto (RLS). `null` = não existe ou não pode ver. */
-export async function photoBlobPath(userId: string, name: string) {
+export async function photoBlobPath(userId: string, name: string, opts: { mfa?: string | null } = {}) {
   if (!isPhotoName(name)) return null;
   const rows = await asUser<{ blob_url: string | null }>(userId, (q) =>
-    q`select blob_url from storage.objects where bucket_id = ${PHOTO_BUCKET} and name = ${name}`);
+    q`select blob_url from storage.objects where bucket_id = ${PHOTO_BUCKET} and name = ${name}`, opts);
   return rows[0]?.blob_url ?? null;
 }
 
@@ -157,3 +157,10 @@ export async function readPhoto(url: string) {
 
 /** Endereço interno (mesma origem) pelo qual o navegador pede a foto. */
 export const photoUrl = (name: string) => `/api/fotos/${name}`;
+
+/** Apaga arquivos no Blob (moderação e exclusão de conta). Melhor esforço: o registro já saiu do banco. */
+export async function deleteBlobFiles(paths: string[]) {
+  const list = paths.filter((p) => typeof p === "string" && p.startsWith(BLOB_PREFIX));
+  if (!list.length || !process.env.BLOB_READ_WRITE_TOKEN) return;
+  await del(list, { token: token() }).catch((e) => console.error("[fotos] apagar:", (e as Error).message));
+}

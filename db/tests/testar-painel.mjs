@@ -8,6 +8,7 @@
 import { createHash } from "node:crypto";
 import { chromium } from "playwright-core";
 import { conectar } from "../conexao.mjs";
+import { adminSecondFactor } from "./lib/segundo-fator.mjs";
 
 const APP = process.env.APP_URL ?? "http://localhost:3300";
 const CHROME = process.env.CHROME_PATH ?? "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
@@ -208,13 +209,14 @@ try {
   section("Admin revisa e aprova");
   await C.signup(mail("admin"), "Admin Teste");
   await q(`update profiles set role = 'ADMIN' where id = (select id from neon_auth."user" where email = $1)`, [mail("admin")]);
+  await adminSecondFactor(C.page, APP);
   await C.go("/pt/admin");
-  check(C.path() === "/pt/admin" && (await C.has("Atletas aguardando revisão")), "admin vê o painel de revisão com contadores");
+  check(C.path() === "/pt/admin" && (await C.has("Atletas aguardando revisão")), "admin (com segundo fator) vê o painel de revisão com contadores");
   await C.go("/pt/admin/atletas?situacao=in_review");
   check(await C.has(NAME), "atleta enviado aparece na fila de revisão");
   await C.go(`/pt/admin/atletas/${ath.id}`);
   const adminTxt = (await C.page.locator("body").innerText()).replace(/\s+/g, " ");
-  check(await C.has("Lucas", "Carla Teste A", "visível só para administradores"), "admin vê o atleta e o responsável (contato só para o admin)");
+  check(await C.has("Lucas", "Carla Teste A", "visível só para o admin"), "admin vê o atleta e o responsável (contato só para o admin)");
   await C.click('button[name="decision"][value="approve"]');
   await C.page.waitForTimeout(1500);
   row = await athleteOf(NAME);

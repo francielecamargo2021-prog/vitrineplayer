@@ -8,6 +8,7 @@
 import { createHash } from "node:crypto";
 import { chromium } from "playwright-core";
 import { conectar } from "../conexao.mjs";
+import { adminSecondFactor } from "./lib/segundo-fator.mjs";
 
 const APP = process.env.APP_URL ?? "http://localhost:3300";
 const CHROME = process.env.CHROME_PATH ?? "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
@@ -146,6 +147,7 @@ try {
   section("Admin verifica a organização");
   await A.guardianSignup(mail("admin"), "Admin Portal");
   await q(`update profiles set role = 'ADMIN' where id = (select id from neon_auth."user" where email = $1)`, [mail("admin")]);
+  await adminSecondFactor(A.page, APP);
   await A.go("/pt/admin/organizacoes?situacao=pending");
   check(await A.has(ORG, "123.456.789-00", "Olheira autônoma", mail("pro"), "https://paula.example"), "admin vê documento, responsável, contato e site");
   await shot(A.page, "04-admin-organizacoes");
@@ -235,9 +237,12 @@ try {
   await P.go("/pt/portal/interesses");
   check(await P.has("Atleta indisponível") && !(await P.has("Insistiu")), "profissional não vê a denúncia");
   await A.go("/pt/admin/organizacoes?situacao=approved");
-  check(await A.has(ORG, "1 denúncia(s) de famílias", "Insistiu em contato fora da plataforma"), "admin vê a denúncia");
+  check(await A.has(ORG, "1 denúncia(s) de famílias"), "admin vê que a organização foi denunciada");
+  await A.go("/pt/admin/denuncias");
+  check(await A.has(ORG, "Insistiu em contato fora da plataforma"), "e o motivo na fila de denúncias");
 
   section("Limites configuráveis e áreas separadas");
+  await A.go("/pt/admin/configuracoes");
   await A.page.fill('input[name="views"]', "120");
   await A.click('button:has-text("Salvar limites")');
   check(await until(async () => (await q(`select profile_views_per_day from portal_settings`)).rows[0].profile_views_per_day === 120), "admin ajusta o limite diário de fichas");

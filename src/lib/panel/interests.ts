@@ -17,3 +17,9 @@ export type ReceivedInterest = {
 export async function receivedInterests(userId: string) {
   return asUser<ReceivedInterest>(userId, (q) => q`select * from guardian_interests()`);
 }
+
+/** Pedidos de correção (e avisos de mídia removida) ainda em aberto para o atleta. */
+export async function openCorrections(userId: string, athleteId: string) {
+  return asUser<{ id: string; note: string; created_at: string }>(userId, (q) =>
+    q`select id, note, created_at::text from athlete_correction_requests where athlete_id = ${athleteId}::uuid and resolved_at is null order by created_at`);
+}

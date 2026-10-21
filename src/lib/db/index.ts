@@ -18,11 +18,15 @@ export const dbReady = () => sql !== null;
 type Sql = NonNullable<typeof sql>;
 type Query = ReturnType<Sql>;
 
-/** Executa uma consulta como o usuário `userId` (RLS aplicada) e devolve as linhas. */
-export async function asUser<T = Record<string, unknown>>(userId: string, query: (q: Sql) => Query): Promise<T[]> {
+/**
+ * Executa uma consulta como o usuário `userId` (RLS aplicada) e devolve as linhas.
+ * `mfa`: prova do segundo fator do admin (cookie HttpOnly lido pelo servidor). Sem
+ * ela, o banco não reconhece o papel ADMIN (is_admin() de 0010).
+ */
+export async function asUser<T = Record<string, unknown>>(userId: string, query: (q: Sql) => Query, opts: { mfa?: string | null } = {}): Promise<T[]> {
   if (!sql) throw new Error("DATABASE_URL não configurada");
   if (!/^[0-9a-f-]{36}$/i.test(userId)) throw new Error("usuário inválido");
-  const claims = JSON.stringify({ sub: userId, role: "authenticated" });
+  const claims = JSON.stringify({ sub: userId, role: "authenticated", ...(opts.mfa ? { vp_mfa: opts.mfa } : {}) });
   const results = await sql.transaction([
     sql`select set_config('request.jwt.claims', ${claims}, true)`,
     sql`set local role authenticated`,

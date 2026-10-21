@@ -83,6 +83,7 @@ export async function sendInterest(lang: string, athleteId: string, _prev: Porta
   const me = await uid(lang);
   try {
     await asUser(me, (q) => q`select pro_send_interest(${athleteId}::uuid, ${message})`);
+    await advanceStage(me, athleteId, "interest", ["watching", "evaluated"]);
   } catch (e) {
     const m = String((e as Error).message);
     const key = /message length/.test(m) ? "length" : /message contact/.test(m) ? "contact" : /already open/.test(m) ? "open"
@@ -91,4 +92,117 @@ export async function sendInterest(lang: string, athleteId: string, _prev: Porta
   }
   refresh(lang);
   return { ok: true };
+}
+
+// ---------------------------------------------------------------- área de trabalho (B1)
+/** O funil só anda para a frente sozinho: cria a etapa ou avança a partir das anteriores. */
+async function advanceStage(me: string, athleteId: string, stage: string, from: string[]) {
+  await asUser(me, (q) => q`insert into pro_tracking (organization_id, athlete_id, stage, updated_by) values (my_pro_org(), ${athleteId}, ${stage}, ${me})
+    on conflict (organization_id, athlete_id) do update set stage = excluded.stage, updated_by = excluded.updated_by, updated_at = now()
+    where pro_tracking.stage = any (${from}::text[])`).catch(() => {});
+}
+const STAGES = ["watching", "evaluated", "interest", "talking", "archived"];
+
+export async function addNote(lang: string, athleteId: string, _prev: PortalState, fd: FormData): Promise<PortalState> {
+  if (!isUuid(athleteId)) return { error: "generic" };
+  const body = String(fd.get("body") ?? "").trim().slice(0, 2000);
+  const tags = String(fd.get("tags") ?? "").split(",").map((t) => t.trim().toLowerCase().slice(0, 30)).filter(Boolean).slice(0, 8);
+  if (!body) return { error: "required" };
+  const me = await uid(lang);
+  try {
+    await asUser(me, (q) => q`insert into pro_notes (organization_id, athlete_id, author_id, body, tags) values (my_pro_org(), ${athleteId}, ${me}, ${body}, ${tags}::text[])`);
+  } catch {
+    return { error: "save" };
+  }
+  refresh(lang);
+  return { ok: true, message: String(Date.now()) };
+}
+
+export async function deleteNote(lang: string, noteId: string) {
+  if (!isUuid(noteId)) return;
+  const me = await uid(lang);
+  await asUser(me, (q) => q`delete from pro_notes where id = ${noteId} and author_id = ${me}`).catch(() => {});
+  refresh(lang);
+}
+
+/** Avaliação pela rubrica da posição: notas 1–5 só nos fundamentos observados. */
+export async function addEvaluation(lang: string, athleteId: string, group: string, rubric: string, keys: string[], _prev: PortalState, fd: FormData): Promise<PortalState> {
+  if (!isUuid(athleteId)) return { error: "generic" };
+  const scores: Record<string, number> = {};
+  for (const k of keys) {
+    const v = Number(fd.get(`s_${k}`));
+    if ([1, 2, 3, 4, 5].includes(v)) scores[k] = v;
+  }
+  if (!Object.keys(scores).length) return { error: "scores" };
+  const context = ["video", "live", "training", "other"].includes(String(fd.get("context"))) ? String(fd.get("context")) : null;
+  const media = String(fd.get("media") ?? "");
+  const minuteRaw = String(fd.get("minute") ?? "").trim();
+  const minute = minuteRaw === "" ? null : Number(minuteRaw);
+  if (minute !== null && (!Number.isInteger(minute) || minute < 0 || minute > 200)) return { error: "minute" };
+  const observation = String(fd.get("observation") ?? "").trim().slice(0, 2000) || null;
+  const me = await uid(lang);
+  try {
+    await asUser(me, (q) => q`insert into scout_evaluations (organization_id, athlete_id, author_id, rubric_version, position_group, scores, media_id, video_minute, context, observation)
+      values (my_pro_org(), ${athleteId}, ${me}, ${rubric}, ${group}, ${JSON.stringify(scores)}::jsonb, ${isUuid(media) ? media : null}, ${minute}, ${context}, ${observation})`);
+    await advanceStage(me, athleteId, "evaluated", ["watching"]);
+  } catch {
+    return { error: "save" };
+  }
+  refresh(lang);
+  return { ok: true, message: String(Date.now()) };
+}
+
+export async function deleteEvaluation(lang: string, evaluationId: string) {
+  if (!isUuid(evaluationId)) return;
+  const me = await uid(lang);
+  await asUser(me, (q) => q`delete from scout_evaluations where id = ${evaluationId} and author_id = ${me}`).catch(() => {});
+  refresh(lang);
+}
+
+export async function setStage(lang: string, athleteId: string, stage: string) {
+  if (!isUuid(athleteId)) return { error: "invalid" };
+  const me = await uid(lang);
+  try {
+    if (stage === "") {
+      await asUser(me, (q) => q`delete from pro_tracking where organization_id = my_pro_org() and athlete_id = ${athleteId}`);
+    } else {
+      if (!STAGES.includes(stage)) return { error: "invalid" };
+      await asUser(me, (q) => q`insert into pro_tracking (organization_id, athlete_id, stage, updated_by) values (my_pro_org(), ${athleteId}, ${stage}, ${me})
+        on conflict (organization_id, athlete_id) do update set stage = excluded.stage, updated_by = excluded.updated_by, updated_at = now()`);
+    }
+  } catch {
+    return { error: "save" };
+  }
+  refresh(lang);
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------- equipe (B2)
+export type InviteState = { ok?: boolean; error?: string; link?: string } | undefined;
+
+/** Dono gera um convite de uso único (7 dias). O link aparece só uma vez. */
+export async function createInvite(lang: string, _prev: InviteState): Promise<InviteState> {
+  void _prev;
+  const me = await uid(lang);
+  try {
+    const [r] = await asUser<{ token: string }>(me, (q) => q`select org_invite_create() as token`);
+    refresh(lang);
+    return { ok: true, link: `/${safeLang(lang)}/profissional/convite/${r.token}` };
+  } catch (e) {
+    return { error: /team full/.test(String((e as Error).message)) ? "full" : "generic" };
+  }
+}
+
+export async function revokeTeamInvite(lang: string, inviteId: string) {
+  if (!isUuid(inviteId)) return;
+  const me = await uid(lang);
+  await asUser(me, (q) => q`select org_invite_revoke(${inviteId}::uuid)`).catch(() => {});
+  refresh(lang);
+}
+
+export async function removeTeamMember(lang: string, profileId: string) {
+  if (!isUuid(profileId)) return;
+  const me = await uid(lang);
+  await asUser(me, (q) => q`select org_remove_member(my_pro_org(), ${profileId}::uuid)`).catch(() => {});
+  refresh(lang);
 }
