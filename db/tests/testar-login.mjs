@@ -11,6 +11,7 @@ import { createHash } from "node:crypto";
 import { chromium } from "playwright-core";
 import { conectar } from "../conexao.mjs";
 import { adminSecondFactor } from "./lib/segundo-fator.mjs";
+import { deriveKey } from "../../src/lib/auth/limits.ts";
 
 const APP = process.env.APP_URL ?? "http://localhost:3300";
 const AUTH = process.env.NEON_AUTH_BASE_URL;
@@ -194,6 +195,54 @@ try {
   check(path() === "/pt/painel", "outra conta no mesmo IP continua entrando", path());
   await logout();
 
+  // ------------------------------------------------------------------ proteção por conta (E2, migration 0014)
+  section("Proteção por conta: desafio por código, sem bloqueio (0014)");
+  // Cada tentativa vem de outra rede (cabeçalho X-Forwarded-For, aceito só no app local)
+  // e de outro "aparelho" (contexto novo, sem cookies): a proteção é por conta.
+  const fromNetwork = async (ip) => {
+    const c = await browser.newContext({ locale: "pt-BR", extraHTTPHeaders: { "x-forwarded-for": ip } });
+    const p = await c.newPage();
+    p.setDefaultTimeout(30000);
+    return { c, p };
+  };
+  const tryPassword = async (p, pw) => {
+    await p.goto(`${APP}/pt/entrar`);
+    await p.fill('input[name="email"]', A);
+    await p.fill('input[name="password"]', pw);
+    await p.locator("form button").first().click();
+    return p.waitForSelector("text=/incorretos|Confirme que é você|Muitas tentativas|falha temporária/", { timeout: 30000 }).then((e) => e.innerText(), () => "");
+  };
+  const wrong = [];
+  for (let i = 0; i < 5; i++) {
+    await sleep(4000);
+    const { c, p } = await fromNetwork(`198.51.100.${i + 1}`);
+    wrong.push((await tryPassword(p, `errada-${i}-xxxx`)).includes("incorretos"));
+    await c.close();
+  }
+  check(wrong.every(Boolean), "5 senhas erradas, de 5 redes e aparelhos diferentes, são conferidas e recusadas", wrong.join(","));
+  await sleep(4000);
+  const victim = await fromNetwork("198.51.100.50");
+  const msg = await tryPassword(victim.p, PASS);
+  check(msg.includes("Confirme que é você") && (await victim.p.locator('[data-testid="login-codigo"]').count()) === 1,
+    "6ª tentativa, mesmo com a senha CERTA e de outra rede: pede o código (a senha nem é conferida)", msg.slice(0, 60));
+  check(await knownCode(A, "sign-in"), "um código de entrada foi enviado ao e-mail da conta");
+  await victim.p.fill('input[name="code"]', "000000");
+  await victim.p.locator('button[value="code"]').click();
+  check(await victim.p.waitForSelector("text=Código inválido", { timeout: 15000 }).then(() => true, () => false), "código errado é recusado");
+  await knownCode(A, "sign-in");
+  await victim.p.fill('input[name="code"]', CODE);
+  await victim.p.locator('button[value="code"]').click();
+  await victim.p.waitForURL(/\/pt\/painel/, { timeout: 30000 }).catch(() => {});
+  check(new URL(victim.p.url()).pathname === "/pt/painel", "com o código certo, a família entra", new URL(victim.p.url()).pathname);
+  const dev = (await victim.c.cookies()).find((k) => k.name === "vp_dev");
+  check(Boolean(dev?.httpOnly) && /^[A-Za-z0-9_-]{43}$/.test(dev?.value ?? ""), "o aparelho recebe um token aleatório em cookie HttpOnly");
+  const [{ n: devRows }] = (await q(`select count(*)::int n from auth_devices where token_hash ~ '^[0-9a-f]{64}$'`)).rows;
+  const [{ n: plain }] = (await q(`select count(*)::int n from auth_devices where token_hash = $1`, [dev?.value ?? ""])).rows;
+  check(devRows > 0 && plain === 0, "o banco guarda só o hash do token (nunca o token)");
+  const [{ n: guardLeft }] = (await q(`select count(*)::int n from auth_account_guard where attempts > 0`)).rows;
+  check(guardLeft === 0, "o login completo zera a proteção da conta");
+  await victim.c.close();
+
   // ------------------------------------------------------------------ recuperação de senha
   section("Recuperação de senha por código");
   await go("/pt/entrar");
@@ -215,6 +264,10 @@ try {
   await page.fill('input[name="confirm"]', PASS2);
   await submit();
   check(await page.waitForSelector("text=Senha alterada", { timeout: 15000 }).then(() => true, () => false), "código certo troca a senha");
+  // chave da conta = HMAC com o mesmo segredo do app (NEON_AUTH_COOKIE_SECRET do ambiente de teste)
+  const accKey = deriveKey(process.env.NEON_AUTH_COOKIE_SECRET ?? "", "account", A);
+  const [{ n: devAfterReset }] = (await q(`select count(*)::int n from auth_devices where account_key = $1`, [accKey])).rows;
+  check(devAfterReset === 0, "trocar a senha revoga todos os aparelhos reconhecidos da conta");
   await login(A, PASS);
   check((await text()).includes("E-mail ou senha incorretos"), "senha antiga deixa de funcionar");
   await login(A, PASS2);

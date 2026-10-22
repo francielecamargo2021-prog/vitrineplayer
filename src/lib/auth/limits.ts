@@ -1,22 +1,24 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, randomBytes } from "node:crypto";
 import { isIP } from "node:net";
 
 /**
- * Regras do limite de tentativas (login, códigos por e-mail e cadastro).
+ * Proteção do login, dos códigos por e-mail e do cadastro (regras puras, testáveis sem rede:
+ * npm run test:auth). Os dados ficam no banco (0013 e 0014), valendo para todas as
+ * instâncias serverless ao mesmo tempo.
  *
- * Os contadores ficam no banco (migration 0013): valem para todas as instâncias
- * serverless ao mesmo tempo. Este módulo só decide — não fala com o banco nem com
- * cookies — para poder ser testado sem rede (npm run test:auth).
- *
- * Contra força bruta:
- *  * e-mail + IP: 5 senhas erradas em 15 min → 15 min de espera (dobra a cada reincidência, até 2 h);
- *  * IP: 20 erros em 15 min (várias contas) → 30 min (dobra até 4 h).
- * Contra o bloqueio abusivo da conta de outra pessoa:
- *  * o limite por e-mail (10 erros/h vindos de IPs diferentes) NÃO cresce e NÃO vale para
- *    o aparelho onde a pessoa já entrou com sucesso (cookie assinado pelo servidor);
- *  * acertar a senha zera o contador de e-mail + IP e o de e-mail.
- * As mensagens são sempre as mesmas ("muitas tentativas"), exista a conta ou não.
- * Se o banco falhar, a decisão depende do tipo de falha (ver classifyFailure).
+ * 1. Limites de tentativas (0013), agora contados de forma ATÔMICA: a tentativa é contada e
+ *    decidida numa única operação no banco, antes de falar com o Neon Auth; quem acerta
+ *    devolve a própria contagem (efeito final: só as falhas contam). Pedidos simultâneos não
+ *    passam do limite. Esses limites são provisórios: saem só com autorização (etapa E3b).
+ * 2. Proteção por CONTA (0014), independente de IP e de aparelho: depois de 5 tentativas de
+ *    senha sem sucesso (10 num aparelho reconhecido), a senha deixa de ser conferida e o
+ *    login exige um código enviado ao e-mail. Nunca bloqueia a dona da conta.
+ * 3. Aparelho reconhecido (0014): token aleatório no cookie, só o hash no banco; 90 dias,
+ *    até 10 por conta, revogado na troca de senha e na exclusão da conta.
+ * 4. Espera progressiva entre envios de código para o MESMO e-mail (0014): imediato, 30 s,
+ *    1 min, 2 min, 5 min, 10 min. Por endereço, nunca por rede.
+ * Falhas do banco: ver classifyFailure.
+ * Limitação conhecida: chamadas feitas direto ao Neon Auth (fora do app) não passam por nada disto.
  */
 export type Rule = { max: number; window: number; block: number; escalate?: boolean };
 
@@ -32,18 +34,31 @@ export const RULES = {
 } satisfies Record<string, Rule>;
 export type Scope = keyof typeof RULES;
 
-/**
- * `limit`: a regra de tentativas barrou. `unavailable`: o limitador não pôde decidir com
- * segurança (configuração errada, IP ausente em ambiente publicado ou falha que não se
- * sabe classificar num fluxo sensível) e o pedido é recusado sem consultar o Neon Auth.
- */
-export type Decision = { ok: true } | { ok: false; reason: "limit" | "unavailable"; retryAfter: number };
+/** Tentativas de senha antes do desafio por código (por conta, de qualquer origem). */
+export const GUARD_LIMIT = { unknownDevice: 5, knownDevice: 10 } as const;
+export const DEVICE_DAYS = 90;
 
-/** Acesso aos contadores (no app: funções auth_limit_* do banco). */
+/**
+ * `limit`: a regra de tentativas barrou. `wait`: espera entre envios de código.
+ * `unavailable`: o limitador não pôde decidir com segurança (ver classifyFailure) e o
+ * pedido é recusado sem consultar o Neon Auth.
+ */
+export type Decision = { ok: true } | { ok: false; reason: "limit" | "wait" | "unavailable"; retryAfter: number };
+
+export type ConsumeItem = { key: string; scope: Scope; max: number; window: number; block: number; escalate: boolean };
+type Verdict = { blocked: boolean; retry_after?: number | null };
+
+/** Acesso ao banco (no app: funções auth_* de 0013/0014, só pelo servidor). */
 export interface LimitStore {
-  check(keys: string[]): Promise<{ blocked: boolean; retry_after?: number | null }>;
-  hit(key: string, scope: Scope, rule: Rule): Promise<{ blocked: boolean; retry_after?: number | null }>;
+  consume(items: ConsumeItem[]): Promise<Verdict>;
+  refund(keys: string[]): Promise<void>;
   clear(keys: string[]): Promise<void>;
+  guardBegin(account: string, trusted: boolean): Promise<"password" | "code">;
+  guardSuccess(account: string): Promise<void>;
+  deviceCheck(account: string, tokenHash: string): Promise<boolean>;
+  deviceRegister(account: string, tokenHash: string, days: number): Promise<void>;
+  deviceRevokeAll(account: string): Promise<void>;
+  sendCooldown(key: string): Promise<{ allowed: boolean; retry_after?: number | null }>;
 }
 
 // ---------------------------------------------------------------- chaves (nunca e-mail/IP em texto)
@@ -62,7 +77,7 @@ export function normalizeIp(raw: string | null | undefined) {
   const ip = (raw ?? "").split(",")[0].trim().replace(/^\[|\]$/g, "");
   const kind = isIP(ip);
   if (kind === 4) return ip;
-  if (kind !== 6) return "desconhecido";
+  if (kind !== 6) return NO_IP;
   const v4 = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/i.exec(ip);
   if (v4) return v4[1];
   const [head, tail = ""] = ip.toLowerCase().split("::");
@@ -85,29 +100,16 @@ export function exactIp(get: (name: string) => string | null) {
   return isIP(ip) ? ip : null;
 }
 
-// ---------------------------------------------------------------- aparelho confiável
-/** Cookie que marca "neste aparelho a pessoa já entrou". Guarda só marcas HMAC (até 5 contas). */
+// ---------------------------------------------------------------- aparelho reconhecido
+/** Cookie com o token do aparelho (aleatório, 256 bits). O banco guarda só o SHA-256. */
 export const DEVICE_COOKIE = "vp_dev";
-export const DEVICE_MAX_AGE = 90 * 24 * 60 * 60;
-
-export function deviceMark(secret: string, email: string) {
-  return createHmac("sha256", subkey(secret)).update(`device\n${email}`).digest("base64url").slice(0, 32);
-}
-export function isTrustedDevice(secret: string, email: string, cookie: string | null | undefined) {
-  const want = Buffer.from(deviceMark(secret, email));
-  return (cookie ?? "").split(".").some((m) => {
-    const got = Buffer.from(m);
-    return got.length === want.length && timingSafeEqual(got, want);
-  });
-}
-export function addDeviceMark(secret: string, email: string, cookie: string | null | undefined) {
-  const mark = deviceMark(secret, email);
-  const rest = (cookie ?? "").split(".").filter((m) => /^[A-Za-z0-9_-]{32}$/.test(m) && m !== mark);
-  return [mark, ...rest].slice(0, 5).join(".");
-}
+export const DEVICE_MAX_AGE = DEVICE_DAYS * 24 * 60 * 60;
+export const newDeviceToken = () => randomBytes(32).toString("base64url");
+export const isDeviceToken = (t: string | null | undefined): t is string => typeof t === "string" && /^[A-Za-z0-9_-]{43}$/.test(t);
+export const hashDeviceToken = (t: string) => createHash("sha256").update(t, "utf8").digest("hex");
 
 // ---------------------------------------------------------------- decisões
-const deny = (r: { retry_after?: number | null }): Decision => ({ ok: false, reason: "limit", retryAfter: Math.max(1, Number(r.retry_after) || 60) });
+const deny = (r: Verdict): Decision => ({ ok: false, reason: "limit", retryAfter: Math.max(1, Number(r.retry_after) || 60) });
 const unavailable: Decision = { ok: false, reason: "unavailable", retryAfter: 60 };
 
 // ---------------------------------------------------------------- falhas do limitador
@@ -174,36 +176,55 @@ const describe = (e: unknown) => {
 };
 const defaultLog = (ev: LimiterEvent) => console.error("[limite de tentativas]", JSON.stringify(ev));
 
-export type Who = { email: string; ip: string; trusted?: boolean };
+export type Who = { email: string; ip: string };
 export type LimiterOptions = {
   log?: (ev: LimiterEvent) => void;
   /** Ambiente publicado: sem IP da plataforma, recusa (é erro de configuração, não "desconhecido"). */
   requireIp?: boolean;
 };
 
+/** Resultado do início de um login por senha. */
+export type SigninStart =
+  | { ok: false; reason: "limit" | "wait" | "unavailable"; retryAfter: number }
+  | { ok: true; mode: "password" | "code"; trusted: boolean; ticket: SigninTicket };
+/** O que precisa ser devolvido/zerado se a senha estiver certa. */
+export type SigninTicket = { account: string; consumed: string[] };
+
 export function makeLimiter(store: LimitStore, secret: string, opts: LimiterOptions = {}) {
   const log = opts.log ?? defaultLog;
-  const k = (scope: Scope, value: string) => deriveKey(secret, scope, value);
-  const keys = {
-    pair: (w: Who) => k("signin_pair", `${w.email}\n${w.ip}`),
-    ip: (scope: Scope, w: Pick<Who, "ip">) => k(scope, w.ip),
-    email: (scope: Scope, w: Pick<Who, "email">) => k(scope, w.email),
+  const k = (scope: Scope | "account", value: string) => deriveKey(secret, scope, value);
+  const item = (scope: Scope, value: string): ConsumeItem => {
+    const r: Rule = RULES[scope];
+    return { key: k(scope, value), scope, max: r.max, window: r.window, block: r.block, escalate: Boolean(r.escalate) };
   };
+  const keys = {
+    pair: (w: Who) => item("signin_pair", `${w.email}\n${w.ip}`),
+    ip: (scope: Scope, w: Pick<Who, "ip">) => item(scope, w.ip),
+    email: (scope: Scope, w: Pick<Who, "email">) => item(scope, w.email),
+  };
+  const account = (email: string) => k("account", email);
 
-  /** Consulta antes da ação. Falha: passa ou recusa conforme o tipo e o fluxo. */
-  async function allow(flow: Flow, ip: string, run: () => Promise<{ blocked: boolean; retry_after?: number | null }>): Promise<Decision> {
+  /** Falha antes da ação: passa ou recusa conforme o tipo da falha e o fluxo. */
+  function onFailure(flow: Flow, step: LimiterEvent["step"], e: unknown): boolean {
+    const kind = classifyFailure(e);
+    const pass = kind === "transient" || (kind === "unknown" && OPEN_ON_UNKNOWN[flow]);
+    log({ flow, step, kind, decision: pass ? "liberado" : "recusado", ...describe(e) });
+    return pass;
+  }
+  function checkIp(ip: string) {
+    if (opts.requireIp && ip === NO_IP) throw new LimiterConfigError("IP do cliente ausente em ambiente publicado");
+  }
+  /** Conta e decide numa única operação (ver auth_limit_consume). */
+  async function consume(flow: Flow, ip: string, items: ConsumeItem[]): Promise<Decision> {
     try {
-      if (opts.requireIp && ip === NO_IP) throw new LimiterConfigError("IP do cliente ausente em ambiente publicado");
-      const r = await run();
+      checkIp(ip);
+      const r = await store.consume(items);
       return r.blocked ? deny(r) : { ok: true };
     } catch (e) {
-      const kind = classifyFailure(e);
-      const pass = kind === "transient" || (kind === "unknown" && OPEN_ON_UNKNOWN[flow]);
-      log({ flow, step: "check", kind, decision: pass ? "liberado" : "recusado", ...describe(e) });
-      return pass ? { ok: true } : unavailable;
+      return onFailure(flow, "check", e) ? { ok: true } : unavailable;
     }
   }
-  /** Registro depois da ação: a resposta à pessoa já foi decidida; a falha só é registrada. */
+  /** Registro depois da ação: a resposta já foi decidida; uma falha só é registrada. */
   async function record(flow: Flow, step: "record" | "clear", run: () => Promise<unknown>) {
     try {
       await run();
@@ -211,53 +232,92 @@ export function makeLimiter(store: LimitStore, secret: string, opts: LimiterOpti
       log({ flow, step, kind: classifyFailure(e), decision: "sem efeito", ...describe(e) });
     }
   }
-  const hit = (flow: Flow, key: string, scope: Scope) => record(flow, "record", () => store.hit(key, scope, RULES[scope]));
 
   return {
-    /** Antes de conferir a senha. */
-    async signinAllowed(w: Who): Promise<Decision> {
-      const list = [keys.pair(w), keys.ip("signin_ip", w)];
-      if (!w.trusted) list.push(keys.email("signin_email", w));
-      return allow("signin", w.ip, () => store.check(list));
+    /**
+     * Antes de conferir uma senha: limites (contagem atômica) e proteção da conta.
+     * `code`: a senha NÃO deve ser conferida; o login segue só por código no e-mail.
+     */
+    async signinStart(w: Who & { deviceToken?: string | null }): Promise<SigninStart> {
+      const acc = account(w.email);
+      let trusted = false;
+      if (isDeviceToken(w.deviceToken)) {
+        try {
+          trusted = await store.deviceCheck(acc, hashDeviceToken(w.deviceToken));
+        } catch (e) {
+          log({ flow: "signin", step: "check", kind: classifyFailure(e), decision: "sem efeito", ...describe(e) });
+        }
+      }
+      const items = [keys.pair(w), keys.ip("signin_ip", w), ...(trusted ? [] : [keys.email("signin_email", w)])];
+      const d = await consume("signin", w.ip, items);
+      if (!d.ok) return d;
+      const ticket: SigninTicket = { account: acc, consumed: items.map((i) => i.key) };
+      let mode: "password" | "code";
+      try {
+        mode = await store.guardBegin(acc, trusted);
+      } catch (e) {
+        if (!onFailure("signin", "check", e)) {
+          await record("signin", "record", () => store.refund(ticket.consumed));
+          return unavailable as SigninStart;
+        }
+        mode = "password";
+      }
+      if (mode === "code") await record("signin", "record", () => store.refund(ticket.consumed)); // nenhuma senha conferida
+      return { ok: true, mode, trusted, ticket };
     },
-    /** Senha errada (ou conta inexistente: mesma contagem, mesma resposta). */
-    async signinFailed(w: Who) {
-      // em paralelo: com o banco travado, a espera total fica limitada a um único tempo máximo
+    /** Senha certa: devolve as contagens e a conta volta ao normal. */
+    async signinPasswordOk(t: SigninTicket) {
       await Promise.all([
-        hit("signin", keys.pair(w), "signin_pair"),
-        hit("signin", keys.ip("signin_ip", w), "signin_ip"),
-        w.trusted ? null : hit("signin", keys.email("signin_email", w), "signin_email"),
+        record("signin", "clear", () => store.refund(t.consumed)),
+        record("signin", "clear", () => store.guardSuccess(t.account)),
       ]);
     },
-    /** Senha certa: zera e-mail + IP e o contador do e-mail (o do IP continua). */
-    async signinSucceeded(w: Who) {
-      await record("signin", "clear", () => store.clear([keys.pair(w), keys.email("signin_email", w)]));
+    /** Login por código concluído: a conta volta ao normal. */
+    async codeSigninOk(w: Who) {
+      await Promise.all([
+        record("signin", "clear", () => store.guardSuccess(account(w.email))),
+        record("otp_verify", "clear", () => store.refund([keys.ip("otp_verify_ip", w).key])),
+        record("otp_verify", "clear", () => store.clear([keys.email("otp_verify_email", w).key])),
+      ]);
     },
-    /** Envio de código por e-mail: conta o envio; acima do limite, não envia. */
-    async otpSend(w: Pick<Who, "email" | "ip">): Promise<Decision> {
-      const em = keys.email("otp_send_email", w), ip = keys.ip("otp_send_ip", w);
-      const d = await allow("otp_send", w.ip, () => store.check([em, ip]));
-      if (!d.ok) return d;
-      await Promise.all([hit("otp_send", em, "otp_send_email"), hit("otp_send", ip, "otp_send_ip")]);
-      return d;
+    /** Envio de código: espera progressiva por e-mail e limites atuais. */
+    async otpSend(w: Who): Promise<Decision> {
+      try {
+        checkIp(w.ip);
+        const c = await store.sendCooldown(k("otp_send_email", `cooldown\n${w.email}`));
+        if (!c.allowed) return { ok: false, reason: "wait", retryAfter: Math.max(1, Number(c.retry_after) || 30) };
+      } catch (e) {
+        if (!onFailure("otp_send", "check", e)) return unavailable;
+      }
+      return consume("otp_send", w.ip, [keys.email("otp_send_email", w), keys.ip("otp_send_ip", w)]);
     },
-    /** Antes de conferir um código de 6 dígitos (verificação ou troca de senha). */
-    async otpVerifyAllowed(w: Pick<Who, "email" | "ip">): Promise<Decision> {
-      return allow("otp_verify", w.ip, () => store.check([keys.email("otp_verify_email", w), keys.ip("otp_verify_ip", w)]));
+    /** Antes de conferir um código de 6 dígitos (verificação, troca de senha ou login). */
+    async otpVerifyAllowed(w: Who): Promise<Decision> {
+      return consume("otp_verify", w.ip, [keys.email("otp_verify_email", w), keys.ip("otp_verify_ip", w)]);
     },
-    async otpVerifyFailed(w: Pick<Who, "email" | "ip">) {
-      await Promise.all([hit("otp_verify", keys.email("otp_verify_email", w), "otp_verify_email"), hit("otp_verify", keys.ip("otp_verify_ip", w), "otp_verify_ip")]);
+    /** Código certo: zera a contagem do e-mail e devolve a do IP. */
+    async otpVerifyOk(w: Who) {
+      await Promise.all([
+        record("otp_verify", "clear", () => store.clear([keys.email("otp_verify_email", w).key])),
+        record("otp_verify", "clear", () => store.refund([keys.ip("otp_verify_ip", w).key])),
+      ]);
     },
-    async otpVerifySucceeded(w: Pick<Who, "email">) {
-      await record("otp_verify", "clear", () => store.clear([keys.email("otp_verify_email", w)]));
-    },
-    /** Criação de conta: conta cada tentativa por IP. */
+    /** Criação de conta: limite atual por IP (provisório). */
     async signup(w: Pick<Who, "ip">): Promise<Decision> {
-      const key = keys.ip("signup_ip", w);
-      const d = await allow("signup", w.ip, () => store.check([key]));
-      if (!d.ok) return d;
-      await hit("signup", key, "signup_ip");
-      return d;
+      return consume("signup", w.ip, [keys.ip("signup_ip", w)]);
+    },
+    /** Depois de um login completo: (re)registra este aparelho para a conta. */
+    async rememberDevice(email: string, token: string) {
+      if (!isDeviceToken(token)) return;
+      await record("signin", "record", () => store.deviceRegister(account(email), hashDeviceToken(token), DEVICE_DAYS));
+    },
+    /** Troca de senha ou exclusão da conta: nenhum aparelho continua reconhecido e a proteção zera. */
+    async forgetAccount(email: string) {
+      const acc = account(email);
+      await Promise.all([
+        record("signin", "clear", () => store.deviceRevokeAll(acc)),
+        record("signin", "clear", () => store.guardSuccess(acc)),
+      ]);
     },
   };
 }

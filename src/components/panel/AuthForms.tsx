@@ -91,12 +91,32 @@ export function CompleteSignupForm({ action, a, locale, select }: { action: Acti
 
 export function LoginForm({ action, a, signupHref, forgotHref }: { action: Action; a: A; signupHref: string; forgotHref: string }) {
   const [state, formAction, pending] = useKeepAction(action);
+  // Conta protegida: a senha não é conferida; a entrada segue com o código enviado ao e-mail.
+  if (state?.challenge && state.email) {
+    return (
+      <form onSubmit={formAction} className="space-y-6" data-testid="login-codigo">
+        <div className="space-y-2">
+          <p className="font-medium text-bone">{a.challengeTitle}</p>
+          <p className="text-[0.95rem] leading-relaxed text-fog">{a.challengeLead}</p>
+          <p className="text-[0.95rem] text-ash">{state.email}</p>
+        </div>
+        <input type="hidden" name="email" value={state.email} />
+        <TextField label={a.code} name="code" inputMode="numeric" autoComplete="one-time-code" pattern="\d{6}" maxLength={6} />
+        <Feedback state={state} a={a} />
+        <button name="intent" value="code" disabled={pending} className={`${primaryButton} w-full`}>{a.enterWithCode}</button>
+        <div className="flex flex-wrap items-center justify-between gap-4 text-[0.9rem] text-ash">
+          <button name="intent" value="resend" disabled={pending} className={textButton}>{a.resend}</button>
+          <a href="" className={textButton}>{a.otherAccount}</a>
+        </div>
+      </form>
+    );
+  }
   return (
     <form onSubmit={formAction} className="space-y-6">
       <TextField label={a.email} name="email" type="email" autoComplete="email" required />
       <TextField label={a.password} name="password" type="password" autoComplete="current-password" required />
       <Feedback state={state} a={a} />
-      <button disabled={pending} className={`${primaryButton} w-full`}>{a.enter}</button>
+      <button name="intent" value="password" disabled={pending} className={`${primaryButton} w-full`}>{a.enter}</button>
       <div className="flex flex-wrap items-center justify-between gap-4 text-[0.9rem] text-ash">
         <p>{a.noAccount} <Link href={signupHref} className={link}>{a.signupLink}</Link></p>
         <Link href={forgotHref} className={textButton}>{a.forgot}</Link>

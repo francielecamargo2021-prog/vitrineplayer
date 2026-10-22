@@ -49,6 +49,12 @@ run_tests() {
 echo "== testes de banco (pgTAP local)"
 run_tests
 
+echo "== pedidos simultâneos (50 por cenário)"
+node "$here/simultaneidade.mjs" || status=1
+
+echo "== scripts de reversão"
+node "$here/testar-reversoes.mjs" || status=1
+
 echo "== travas do migrar.mjs"
 node "$db/tests/testar-travas.mjs" || status=1
 

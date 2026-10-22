@@ -7,10 +7,12 @@ import { hasLocale } from "@/i18n/config";
 import { asUser, dbReady } from "@/lib/db";
 import { authEnv, currentUser, getAuth } from "./server";
 import { closeMfa } from "./mfa";
-import { consentIp, getLimiter, rememberDevice, requestIp, trustedDevice } from "./rate-limit";
+import { consentIp, deviceToken, getLimiter, rememberDevice, requestIp } from "./rate-limit";
+import { codeSignIn, passwordSignIn, sendCodeFlow, type AuthPort } from "./signin-flow";
 import type { Decision } from "./limits";
 
-export type AuthFormState = { ok?: boolean; error?: string; message?: string } | undefined;
+/** `challenge`: a conta está protegida e o login segue por código enviado ao e-mail. */
+export type AuthFormState = { ok?: boolean; error?: string; message?: string; challenge?: boolean; email?: string } | undefined;
 
 const CONSENT_VERSION = "2026-10";
 const CONSENTS = ["terms", "privacy", "guardian_declaration", "no_guarantee"] as const;
@@ -49,20 +51,42 @@ async function completeSignupAs(userId: string, lang: string, d: { whatsapp: str
     ${[...CONSENTS]}::text[], ${CONSENT_VERSION}, ${ip}, ${ua})`);
 }
 
-/** Erro mostrado quando o limitador recusa: excesso de tentativas ou limitador indisponível. */
-const refused = (d: Decision | undefined) => (d && !d.ok ? (d.reason === "unavailable" ? "unavailable" : "tooMany") : null);
+/** Erro mostrado quando o limitador recusa: excesso de tentativas, espera ou limitador indisponível. */
+const refused = (d: Decision | undefined) =>
+  d && !d.ok ? (d.reason === "unavailable" ? "unavailable" : d.reason === "wait" ? "wait" : "tooMany") : null;
+
+/** Neon Auth visto pelo fluxo de entrada (./signin-flow). */
+function authPort(auth: NonNullable<ReturnType<typeof getAuth>>): AuthPort {
+  return {
+    async signInPassword(email, password) {
+      const { data, error } = await auth.signIn.email({ email, password });
+      if (error) {
+        if (/not_verified/i.test(code(error))) return { ok: false, kind: "not_verified" };
+        return { ok: false, kind: status(error) === 429 ? "rate_limited" : "invalid" };
+      }
+      return { ok: true, emailVerified: Boolean(data?.user?.emailVerified) };
+    },
+    async sendCode(email, type) {
+      try {
+        const r = await auth.emailOtp.sendVerificationOtp({ email, type });
+        return status(r?.error) === 429 ? "rate_limited" : "ok";
+      } catch {
+        return "ok"; // não revela nada: a resposta à pessoa é a mesma
+      }
+    },
+    async signInCode(email, otp) {
+      const { error } = await auth.signIn.emailOtp({ email, otp });
+      if (error) return { ok: false, kind: status(error) === 429 ? "rate_limited" : "code" };
+      return { ok: true };
+    },
+  };
+}
 
 /** Envia o código de 6 dígitos. Erros não são revelados (não confirma se a conta existe). */
 async function sendCode(email: string, type: "email-verification" | "forget-password") {
   const auth = getAuth();
-  const no = refused(await getLimiter()?.otpSend({ email, ip: await requestIp() }));
-  if (no) return no;
-  try {
-    const r = await auth?.emailOtp.sendVerificationOtp({ email, type });
-    return status(r?.error) === 429 ? "tooMany" : null;
-  } catch {
-    return null;
-  }
+  if (!auth) return null;
+  return sendCodeFlow(getLimiter(), authPort(auth), { email, ip: await requestIp() }, type);
 }
 
 /** Criação de conta: limite por IP (contas em massa). Devolve o erro a mostrar, ou null. */
@@ -123,31 +147,43 @@ export async function completeSignup(lang: string, _prev: AuthFormState, fd: For
 export async function signIn(lang: string, _prev: AuthFormState, fd: FormData): Promise<AuthFormState> {
   const auth = ready();
   if (!auth) return { error: "backend" };
-  const email = lower(fd, "email");
-  const password = String(fd.get("password") ?? "");
   const l = safeLang(lang);
-  if (!isEmail(email) || !password) return { error: "invalid" };
-  // Limite antes de conferir a senha. Mesma resposta exista ou não a conta.
+  const email = lower(fd, "email");
+  const intent = str(fd, "intent");
   const limiter = getLimiter();
-  const who = { email, ip: await requestIp(), trusted: await trustedDevice(email) };
-  const allowed = await limiter?.signinAllowed(who);
-  if (refused(allowed)) return { error: refused(allowed)! };
-  const { data, error } = await auth.signIn.email({ email, password });
-  if (error) {
-    if (/not_verified/i.test(code(error))) {
-      await sendCode(email, "email-verification");
-      redirect(`/${l}/entrar/verificar?email=${encodeURIComponent(email)}`);
+  const ip = await requestIp();
+  const port = authPort(auth);
+
+  // ---- conta protegida: entrar com o código enviado ao e-mail
+  if (intent === "code" || intent === "resend") {
+    if (!isEmail(email)) return { error: "invalid" };
+    if (intent === "resend") {
+      const err = await sendCodeFlow(limiter, port, { email, ip }, "sign-in");
+      return { challenge: true, email, ...(err ? { error: err } : { message: "codeSent" }) };
     }
-    if (status(error) === 429) return { error: "tooMany" };
-    await limiter?.signinFailed(who);
-    return { error: "invalid" };
+    const otp = str(fd, "code");
+    if (!isCode(otp)) return { challenge: true, email, error: "code" };
+    const r = await codeSignIn(limiter, port, { email, code: otp, ip });
+    if (r.kind === "error") return { challenge: true, email, error: r.error };
+    await rememberDevice(email);
+    redirect(`/${l}/painel`);
   }
-  await limiter?.signinSucceeded(who);
-  await rememberDevice(email);
-  if (data?.user && !data.user.emailVerified) {
+
+  // ---- senha (mesma resposta exista ou não a conta)
+  const password = String(fd.get("password") ?? "");
+  if (!isEmail(email) || !password) return { error: "invalid" };
+  const r = await passwordSignIn(limiter, port, { email, password, ip, deviceToken: await deviceToken() });
+  if (r.kind === "error") return { error: r.error };
+  if (r.kind === "challenge") return { challenge: true, email, ...(r.sent ? { error: r.sent } : { message: "challengeSent" }) };
+  if (r.kind === "not_verified") {
+    await sendCode(email, "email-verification");
+    redirect(`/${l}/entrar/verificar?email=${encodeURIComponent(email)}`);
+  }
+  if (r.kind === "ok" && !r.emailVerified) {
     await sendCode(email, "email-verification");
     redirect(`/${l}/entrar/verificar`);
   }
+  await rememberDevice(email);
   redirect(`/${l}/painel`);
 }
 
@@ -178,12 +214,8 @@ export async function verifyEmail(lang: string, _prev: AuthFormState, fd: FormDa
   const allowed = await limiter?.otpVerifyAllowed(who);
   if (refused(allowed)) return { error: refused(allowed)! };
   const { error } = await auth.emailOtp.verifyEmail({ email, otp });
-  if (error) {
-    if (status(error) === 429) return { error: "tooMany" };
-    await limiter?.otpVerifyFailed(who);
-    return { error: "code" };
-  }
-  await limiter?.otpVerifySucceeded(who);
+  if (error) return { error: status(error) === 429 ? "tooMany" : "code" }; // a tentativa já foi contada
+  await limiter?.otpVerifyOk(who);
   redirect(`/${safeLang(lang)}/painel`);
 }
 
@@ -237,11 +269,10 @@ export async function resetPassword(lang: string, _prev: AuthFormState, fd: Form
   } catch {
     return { error: "generic" };
   }
-  if (!r.ok) {
-    if (r.status === 400) await limiter?.otpVerifyFailed(who);
-    return { error: r.status === 429 ? "tooMany" : r.status === 400 ? "code" : "generic" };
-  }
-  await limiter?.otpVerifySucceeded(who);
+  if (!r.ok) return { error: r.status === 429 ? "tooMany" : r.status === 400 ? "code" : "generic" };
+  // senha trocada: nenhum aparelho continua reconhecido e a proteção da conta zera
+  await limiter?.otpVerifyOk(who);
+  await limiter?.forgetAccount(email);
   return { ok: true, message: "passwordChanged" };
 }
 

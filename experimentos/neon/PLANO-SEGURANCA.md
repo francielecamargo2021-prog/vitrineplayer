@@ -49,7 +49,7 @@ reversão) apresentada antes. Nenhuma etapa pode ser pulada.
 | Etapa | Conteúdo | Migração | Situação |
 |---|---|---|---|
 | E1 | Tratamento seguro de falhas do limitador | — | **Concluída** (22/10) |
-| E2 | Novas proteções de login em paralelo aos limites atuais: contagem atômica por conta, desafio "entrar com código", aparelho reconhecido no banco | 0014 | Proposta apresentada, aguardando aprovação |
+| E2 | Novas proteções de login em paralelo aos limites atuais: contagem atômica, proteção por conta com desafio "entrar com código", aparelho reconhecido no banco, espera entre envios | 0014 | **Implementada e testada localmente** (22/10). 0014 **não aplicada** no Neon: aguarda aprovação da ficha |
 | E3 | BotID Basic nas ações de autenticação; política de senhas; cadastro sem revelar conta existente | — | Pendente |
 | E3b | Validação na homologação publicada e, só então, retirada dos limites por IP | — | Pendente (exige aprovação própria) |
 | E4 | Código de ativação e troca segura do segundo fator | 0015 | Pendente |
@@ -91,3 +91,26 @@ reversão) apresentada antes. Nenhuma etapa pode ser pulada.
    default when email/password is enabled?
 7. What do you recommend to protect against credential stuffing without blocking many
    legitimate users who share one network (schools, sports clubs, carrier-grade NAT)?
+
+## E2 — o que mudou (só código e testes locais; nada aplicado no Neon)
+
+- `db/migrations/0014_protecao_conta.sql`: `auth_limit_consume`/`auth_limit_refund` (contagem
+  atômica, tudo ou nada, linhas travadas em ordem fixa), `auth_account_guard` + funções
+  (proteção por conta), `auth_devices` + funções (aparelhos: só hash, 90 dias, até 10,
+  revogáveis), `auth_send_cooldown` (espera progressiva por e-mail). Só o servidor executa.
+- `db/reversoes/0014_protecao_conta.sql`: script de volta (testado: reverter e reaplicar
+  deixa o banco idêntico).
+- `src/lib/auth/limits.ts`, `signin-flow.ts` (novo), `limit-sql.ts` (novo), `rate-limit.ts`,
+  `actions.ts`, `account-actions.ts`, `src/lib/admin/actions.ts`, `AuthForms.tsx`, dicionários.
+- Os limites de 0013 continuam ativos (agora contados sem corrida). Retirada: só na E3b.
+
+### Riscos pendentes registrados
+- **Acesso direto ao Neon Auth: NÃO resolvido.** Quem chamar o endereço do Neon Auth fora do
+  app não passa pela contagem, pela proteção por conta nem pelos aparelhos. Depende do Neon.
+- Login por código: o kit atual (@neondatabase/auth 0.6.0-beta) chama `sign-in/email-otp`
+  corretamente; falta confirmar na homologação que o Neon Auth aceita o tipo "sign-in" e como
+  trata e-mail sem conta (se cria conta ao entrar por código).
+- Com os limites atuais, 10 erros por e-mail em 1 h ainda bloqueiam aparelhos novos por 1 h
+  (comportamento de 0013, mantido até a E3b).
+- Ordem de publicação: a 0014 precisa estar aplicada ANTES do código novo rodar; sem ela, o
+  login fica indisponível de propósito (erro de configuração → recusa, ver E1).

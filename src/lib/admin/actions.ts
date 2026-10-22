@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { asUser } from "@/lib/db";
 import { currentUser } from "@/lib/auth/server";
 import { mfaToken } from "@/lib/auth/mfa";
+import { getLimiter } from "@/lib/auth/rate-limit";
 import { deleteBlobFiles } from "@/lib/photos/server";
 import { hasLocale } from "@/i18n/config";
 import type { FormState } from "@/lib/panel/actions";
@@ -105,12 +106,16 @@ export async function deleteAccountByAdmin(lang: string, profileId: string, _pre
   if (!isUuid(profileId)) return { error: "Conta inválida." };
   if (text(fd, "confirm") !== "EXCLUIR") return { error: "Digite EXCLUIR para confirmar." };
   let blobs: string[] = [];
+  let email: string | null = null;
   const r = await run(lang, async (a) => {
+    const [p] = await sql(a)<{ email: string | null }>((q) => q`select email from profiles where id = ${profileId}::uuid`);
+    email = p?.email ?? null;
     const [row] = await sql(a)<{ blobs: string[] }>((q) => q`select account_delete(${profileId}::uuid, ${text(fd, "note")}) as blobs`);
     blobs = row?.blobs ?? [];
   }, "Conta excluída.");
   if (!r?.ok) return r;
   await deleteBlobFiles(blobs);
+  if (email) await getLimiter()?.forgetAccount(String(email).toLowerCase()); // aparelhos reconhecidos e proteção da conta
   redirect(`/${safeLang(lang)}/admin/contas`);
 }
 

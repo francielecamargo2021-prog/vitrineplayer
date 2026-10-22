@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { asUser } from "@/lib/db";
 import { currentUser, getAuth } from "./server";
 import { closeMfa } from "./mfa";
+import { getLimiter } from "./rate-limit";
 import { deleteBlobFiles } from "@/lib/photos/server";
 import { hasLocale } from "@/i18n/config";
 
@@ -27,6 +28,7 @@ export async function deleteMyAccount(lang: string, _prev: AccountFormState, fd:
     return { error: "generic" };
   }
   await deleteBlobFiles(blobs);
+  await getLimiter()?.forgetAccount(user.email.toLowerCase()); // aparelhos reconhecidos e proteção da conta
   await closeMfa().catch(() => {});
   try {
     await getAuth()?.signOut();
