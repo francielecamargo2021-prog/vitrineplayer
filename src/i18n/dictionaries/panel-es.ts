@@ -68,6 +68,7 @@ const panel: PanelDictionary = {
       generic: "No fue posible completar ahora. Intentá de nuevo.",
       code: "Código inválido o vencido. Revisalo o pedí uno nuevo.",
       tooMany: "Demasiados intentos. Esperá unos minutos e intentá de nuevo.",
+      unavailable: "No fue posible completar ahora por una falla temporal del sistema. Intentá de nuevo en unos minutos.",
       backend: "El entorno de cuentas no está conectado en esta instalación.",
     },
   },

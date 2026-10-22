@@ -7,7 +7,8 @@ import { hasLocale } from "@/i18n/config";
 import { asUser, dbReady } from "@/lib/db";
 import { authEnv, currentUser, getAuth } from "./server";
 import { closeMfa } from "./mfa";
-import { getLimiter, rememberDevice, requestIp, trustedDevice } from "./rate-limit";
+import { consentIp, getLimiter, rememberDevice, requestIp, trustedDevice } from "./rate-limit";
+import type { Decision } from "./limits";
 
 export type AuthFormState = { ok?: boolean; error?: string; message?: string } | undefined;
 
@@ -41,18 +42,21 @@ function signupDetails(fd: FormData) {
 /** Grava WhatsApp, país, idioma e consentimentos COMO o próprio usuário (uma vez só). */
 async function completeSignupAs(userId: string, lang: string, d: { whatsapp: string; country: string }) {
   const h = await headers();
-  const ip = (h.get("x-forwarded-for") ?? "").split(",")[0].trim() || null;
+  const ip = await consentIp();
   const ua = h.get("user-agent") ?? null;
   const locale = lang === "es" ? "es" : "pt-BR";
   await asUser(userId, (q) => q`select complete_signup(${d.whatsapp}, ${d.country}, ${locale},
     ${[...CONSENTS]}::text[], ${CONSENT_VERSION}, ${ip}, ${ua})`);
 }
 
+/** Erro mostrado quando o limitador recusa: excesso de tentativas ou limitador indisponível. */
+const refused = (d: Decision | undefined) => (d && !d.ok ? (d.reason === "unavailable" ? "unavailable" : "tooMany") : null);
+
 /** Envia o código de 6 dígitos. Erros não são revelados (não confirma se a conta existe). */
 async function sendCode(email: string, type: "email-verification" | "forget-password") {
   const auth = getAuth();
-  const limit = await getLimiter()?.otpSend({ email, ip: await requestIp() });
-  if (limit && !limit.ok) return "tooMany";
+  const no = refused(await getLimiter()?.otpSend({ email, ip: await requestIp() }));
+  if (no) return no;
   try {
     const r = await auth?.emailOtp.sendVerificationOtp({ email, type });
     return status(r?.error) === 429 ? "tooMany" : null;
@@ -61,10 +65,9 @@ async function sendCode(email: string, type: "email-verification" | "forget-pass
   }
 }
 
-/** Criação de conta: limite por IP (contas em massa). */
-async function signupAllowed() {
-  const d = await getLimiter()?.signup({ ip: await requestIp() });
-  return !d || d.ok;
+/** Criação de conta: limite por IP (contas em massa). Devolve o erro a mostrar, ou null. */
+async function signupRefused() {
+  return refused(await getLimiter()?.signup({ ip: await requestIp() }));
 }
 
 // ---------------------------------------------------------------- cadastro (passo 1 + passo 2)
@@ -82,7 +85,8 @@ export async function signUp(lang: string, _prev: AuthFormState, fd: FormData): 
   if ("error" in details) return { error: details.error };
 
   const l = safeLang(lang);
-  if (!(await signupAllowed())) return { error: "tooMany" };
+  const refusedSignup = await signupRefused();
+  if (refusedSignup) return { error: refusedSignup };
   const { data, error } = await auth.signUp.email({ email, password, name: fullName });
   if (error || !data?.user?.id) {
     if (/exist/i.test(code(error)) || status(error) === 422) return { error: "exists" };
@@ -127,7 +131,7 @@ export async function signIn(lang: string, _prev: AuthFormState, fd: FormData): 
   const limiter = getLimiter();
   const who = { email, ip: await requestIp(), trusted: await trustedDevice(email) };
   const allowed = await limiter?.signinAllowed(who);
-  if (allowed && !allowed.ok) return { error: "tooMany" };
+  if (refused(allowed)) return { error: refused(allowed)! };
   const { data, error } = await auth.signIn.email({ email, password });
   if (error) {
     if (/not_verified/i.test(code(error))) {
@@ -172,7 +176,7 @@ export async function verifyEmail(lang: string, _prev: AuthFormState, fd: FormDa
   const limiter = getLimiter();
   const who = { email, ip: await requestIp() };
   const allowed = await limiter?.otpVerifyAllowed(who);
-  if (allowed && !allowed.ok) return { error: "tooMany" };
+  if (refused(allowed)) return { error: refused(allowed)! };
   const { error } = await auth.emailOtp.verifyEmail({ email, otp });
   if (error) {
     if (status(error) === 429) return { error: "tooMany" };
@@ -219,7 +223,7 @@ export async function resetPassword(lang: string, _prev: AuthFormState, fd: Form
   const limiter = getLimiter();
   const who = { email, ip: await requestIp() };
   const allowed = await limiter?.otpVerifyAllowed(who);
-  if (allowed && !allowed.ok) return { error: "tooMany" };
+  if (refused(allowed)) return { error: refused(allowed)! };
   const h = await headers();
   const origin = h.get("origin") ?? `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}`;
   let r: Response;
@@ -266,7 +270,7 @@ function proDetails(fd: FormData) {
 
 async function completeProAs(userId: string, lang: string, d: { whatsapp: string; country: string; org: Record<string, string | null> }) {
   const h = await headers();
-  const ip = (h.get("x-forwarded-for") ?? "").split(",")[0].trim() || null;
+  const ip = await consentIp();
   const ua = h.get("user-agent") ?? null;
   const locale = lang === "es" ? "es" : "pt-BR";
   await asUser(userId, (q) => q`select complete_professional_signup(${d.whatsapp}, ${d.country}, ${locale},
@@ -299,7 +303,8 @@ export async function proSignUp(lang: string, _prev: AuthFormState, fd: FormData
   if ("error" in details) return { error: details.error };
 
   const l = safeLang(lang);
-  if (!(await signupAllowed())) return { error: "tooMany" };
+  const refusedSignup = await signupRefused();
+  if (refusedSignup) return { error: refusedSignup };
   const { data, error } = await auth.signUp.email({ email, password, name: fullName });
   if (error || !data?.user?.id) {
     if (/exist/i.test(code(error)) || status(error) === 422) return { error: "exists" };
@@ -343,7 +348,7 @@ function joinDetails(fd: FormData) {
 
 async function joinAs(userId: string, lang: string, token: string, d: { whatsapp: string; country: string }) {
   const h = await headers();
-  const ip = (h.get("x-forwarded-for") ?? "").split(",")[0].trim() || null;
+  const ip = await consentIp();
   const ua = h.get("user-agent") ?? null;
   await asUser(userId, (q) => q`select complete_professional_join(${d.whatsapp}, ${d.country}, ${lang === "es" ? "es" : "pt-BR"},
     ${[...PRO_CONSENTS]}::text[], ${CONSENT_VERSION}, ${token}, ${ip}, ${ua})`);
@@ -367,7 +372,8 @@ export async function proJoinSignUp(lang: string, token: string, _prev: AuthForm
   const details = joinDetails(fd);
   if ("error" in details) return { error: details.error };
   const l = safeLang(lang);
-  if (!(await signupAllowed())) return { error: "tooMany" };
+  const refusedSignup = await signupRefused();
+  if (refusedSignup) return { error: refusedSignup };
   const { data, error } = await auth.signUp.email({ email, password, name: fullName });
   if (error || !data?.user?.id) {
     if (/exist/i.test(code(error)) || status(error) === 422) return { error: "exists" };

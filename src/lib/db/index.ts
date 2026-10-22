@@ -40,11 +40,12 @@ export async function asUser<T = Record<string, unknown>>(userId: string, query:
  * declara o papel `service_role` nas claims, que as funções ai_* exigem
  * (is_privileged()). Nunca usada para atender pedidos de usuários.
  */
-export async function asService<T = Record<string, unknown>>(query: (q: Sql) => Query): Promise<T[]> {
+export async function asService<T = Record<string, unknown>>(query: (q: Sql) => Query, opts: { timeoutMs?: number } = {}): Promise<T[]> {
   if (!sql) throw new Error("DATABASE_URL não configurada");
+  // timeoutMs: tempo máximo de espera (o erro chega como NeonDbError com sourceError TimeoutError)
   const results = await sql.transaction([
     sql`select set_config('request.jwt.claims', ${JSON.stringify({ role: "service_role" })}, true)`,
     query(sql),
-  ]);
+  ], opts.timeoutMs ? { fetchOptions: { signal: AbortSignal.timeout(opts.timeoutMs) } } : undefined);
   return results[1] as T[];
 }

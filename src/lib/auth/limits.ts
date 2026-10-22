@@ -16,6 +16,7 @@ import { isIP } from "node:net";
  *    o aparelho onde a pessoa já entrou com sucesso (cookie assinado pelo servidor);
  *  * acertar a senha zera o contador de e-mail + IP e o de e-mail.
  * As mensagens são sempre as mesmas ("muitas tentativas"), exista a conta ou não.
+ * Se o banco falhar, a decisão depende do tipo de falha (ver classifyFailure).
  */
 export type Rule = { max: number; window: number; block: number; escalate?: boolean };
 
@@ -31,7 +32,12 @@ export const RULES = {
 } satisfies Record<string, Rule>;
 export type Scope = keyof typeof RULES;
 
-export type Decision = { ok: true } | { ok: false; retryAfter: number };
+/**
+ * `limit`: a regra de tentativas barrou. `unavailable`: o limitador não pôde decidir com
+ * segurança (configuração errada, IP ausente em ambiente publicado ou falha que não se
+ * sabe classificar num fluxo sensível) e o pedido é recusado sem consultar o Neon Auth.
+ */
+export type Decision = { ok: true } | { ok: false; reason: "limit" | "unavailable"; retryAfter: number };
 
 /** Acesso aos contadores (no app: funções auth_limit_* do banco). */
 export interface LimitStore {
@@ -66,8 +72,17 @@ export function normalizeIp(raw: string | null | undefined) {
   return `${full.slice(0, 4).map((p) => p.padStart(4, "0")).join(":")}::/64`;
 }
 
+/** Valor que normalizeIp devolve quando não há IP utilizável. */
+export const NO_IP = "desconhecido";
+
 export function clientIp(get: (name: string) => string | null) {
   return normalizeIp(get("x-real-ip") || get("x-forwarded-for"));
+}
+
+/** IP exato (sem agrupar o IPv6), só se for um endereço válido. Usado nos registros de consentimento. */
+export function exactIp(get: (name: string) => string | null) {
+  const ip = (get("x-real-ip") || get("x-forwarded-for") || "").split(",")[0].trim().replace(/^\[|\]$/g, "");
+  return isIP(ip) ? ip : null;
 }
 
 // ---------------------------------------------------------------- aparelho confiável
@@ -92,79 +107,157 @@ export function addDeviceMark(secret: string, email: string, cookie: string | nu
 }
 
 // ---------------------------------------------------------------- decisões
-const deny = (r: { retry_after?: number | null }): Decision => ({ ok: false, retryAfter: Math.max(1, Number(r.retry_after) || 60) });
+const deny = (r: { retry_after?: number | null }): Decision => ({ ok: false, reason: "limit", retryAfter: Math.max(1, Number(r.retry_after) || 60) });
+const unavailable: Decision = { ok: false, reason: "unavailable", retryAfter: 60 };
 
+// ---------------------------------------------------------------- falhas do limitador
 /**
- * Falha no banco não pode derrubar o login de todo mundo: registra o erro e libera.
- * (Sem banco o app já não funciona; o Neon Auth tem a própria proteção.)
+ * Como tratar uma falha ao consultar o banco:
+ *  * `config`: o ambiente está errado (função ou tabela ausente, permissão negada, senha
+ *    do banco recusada, URL ausente, erro de programação). Não passa: liberar esconderia
+ *    o problema e deixaria o login sem proteção por tempo indeterminado.
+ *  * `transient`: rede, tempo esgotado, banco reiniciando ou sobrecarregado. Passa, com
+ *    registro: o Neon Auth usa o mesmo banco, então uma queda real já impede o login.
+ *  * `unknown`: o resto. Passa só no login; nos fluxos de código e cadastro, não.
+ * Os erros chegam do driver @neondatabase/serverless como NeonDbError: com `code`
+ * (SQLSTATE) quando o Postgres respondeu; sem `code` e com `sourceError` quando a
+ * requisição nem chegou; "Server error (HTTP status N)" quando o proxy respondeu com erro.
  */
-async function safe<T>(fn: () => Promise<T>, fallback: T, log: (e: unknown) => void): Promise<T> {
-  try {
-    return await fn();
-  } catch (e) {
-    log(e);
-    return fallback;
-  }
+export type FailureKind = "config" | "transient" | "unknown";
+export class LimiterConfigError extends Error {
+  override name = "LimiterConfigError";
 }
 
-export type Who = { email: string; ip: string; trusted?: boolean };
+const CONFIG_SQLSTATES = new Set([
+  "42883", // função inexistente (migration não aplicada)
+  "42P01", // tabela inexistente
+  "42703", // coluna inexistente
+  "42501", // permissão negada
+  "28P01", "28000", // credencial do banco recusada
+  "3D000", "3F000", // banco ou schema inexistente
+  "P0001", // raise da própria função ("not allowed", "invalid limit")
+  "23514", "22P02", // chave ou parâmetro inválido (erro do app)
+]);
+const TRANSIENT_SQLSTATE = /^(08|53|57P0[1-3]|40001|40P01)/;
 
-export function makeLimiter(store: LimitStore, secret: string, log: (e: unknown) => void = (e) => console.error("[limite de tentativas]", e)) {
+export function classifyFailure(e: unknown): FailureKind {
+  if (e instanceof LimiterConfigError) return "config";
+  if (!e || typeof e !== "object") return "unknown";
+  const err = e as { name?: unknown; code?: unknown; message?: unknown; sourceError?: unknown };
+  const name = typeof err.name === "string" ? err.name : "";
+  const message = typeof err.message === "string" ? err.message : "";
+  const code = typeof err.code === "string" && /^[0-9A-Z]{5}$/.test(err.code) ? err.code : "";
+  if (code) return CONFIG_SQLSTATES.has(code) ? "config" : TRANSIENT_SQLSTATE.test(code) ? "transient" : "unknown";
+  if (name === "TimeoutError" || name === "AbortError") return "transient";
+  if (err.sourceError) return "transient"; // a requisição ao banco não chegou (rede, TLS, tempo esgotado)
+  const http = /HTTP status (\d{3})/.exec(message);
+  if (http) {
+    const status = Number(http[1]);
+    if (status === 401 || status === 403) return "config";
+    if (status === 429 || status >= 500) return "transient";
+    return "unknown";
+  }
+  if (/DATABASE_URL não configurada/.test(message)) return "config";
+  if (name === "TypeError" || name === "ReferenceError" || name === "RangeError") return "config"; // erro de programação
+  return "unknown";
+}
+
+/** Fluxo protegido: define quem passa quando a falha é `unknown`. */
+export type Flow = "signin" | "signup" | "otp_send" | "otp_verify";
+const OPEN_ON_UNKNOWN: Record<Flow, boolean> = { signin: true, signup: false, otp_send: false, otp_verify: false };
+
+/** Registro sem dados pessoais: só o fluxo, a etapa, o tipo e o código do erro e a decisão. */
+export type LimiterEvent = { flow: Flow; step: "check" | "record" | "clear"; kind: FailureKind; decision: "liberado" | "recusado" | "sem efeito"; error: string; code?: string };
+const describe = (e: unknown) => {
+  const err = (e ?? {}) as { name?: unknown; code?: unknown };
+  return { error: typeof err.name === "string" ? err.name : typeof e, code: typeof err.code === "string" ? err.code : undefined };
+};
+const defaultLog = (ev: LimiterEvent) => console.error("[limite de tentativas]", JSON.stringify(ev));
+
+export type Who = { email: string; ip: string; trusted?: boolean };
+export type LimiterOptions = {
+  log?: (ev: LimiterEvent) => void;
+  /** Ambiente publicado: sem IP da plataforma, recusa (é erro de configuração, não "desconhecido"). */
+  requireIp?: boolean;
+};
+
+export function makeLimiter(store: LimitStore, secret: string, opts: LimiterOptions = {}) {
+  const log = opts.log ?? defaultLog;
   const k = (scope: Scope, value: string) => deriveKey(secret, scope, value);
   const keys = {
     pair: (w: Who) => k("signin_pair", `${w.email}\n${w.ip}`),
     ip: (scope: Scope, w: Pick<Who, "ip">) => k(scope, w.ip),
     email: (scope: Scope, w: Pick<Who, "email">) => k(scope, w.email),
   };
-  const check = (list: string[]) => safe(() => store.check(list), { blocked: false }, log);
-  const hit = (key: string, scope: Scope) => safe(() => store.hit(key, scope, RULES[scope]), { blocked: false }, log);
+
+  /** Consulta antes da ação. Falha: passa ou recusa conforme o tipo e o fluxo. */
+  async function allow(flow: Flow, ip: string, run: () => Promise<{ blocked: boolean; retry_after?: number | null }>): Promise<Decision> {
+    try {
+      if (opts.requireIp && ip === NO_IP) throw new LimiterConfigError("IP do cliente ausente em ambiente publicado");
+      const r = await run();
+      return r.blocked ? deny(r) : { ok: true };
+    } catch (e) {
+      const kind = classifyFailure(e);
+      const pass = kind === "transient" || (kind === "unknown" && OPEN_ON_UNKNOWN[flow]);
+      log({ flow, step: "check", kind, decision: pass ? "liberado" : "recusado", ...describe(e) });
+      return pass ? { ok: true } : unavailable;
+    }
+  }
+  /** Registro depois da ação: a resposta à pessoa já foi decidida; a falha só é registrada. */
+  async function record(flow: Flow, step: "record" | "clear", run: () => Promise<unknown>) {
+    try {
+      await run();
+    } catch (e) {
+      log({ flow, step, kind: classifyFailure(e), decision: "sem efeito", ...describe(e) });
+    }
+  }
+  const hit = (flow: Flow, key: string, scope: Scope) => record(flow, "record", () => store.hit(key, scope, RULES[scope]));
 
   return {
     /** Antes de conferir a senha. */
     async signinAllowed(w: Who): Promise<Decision> {
       const list = [keys.pair(w), keys.ip("signin_ip", w)];
       if (!w.trusted) list.push(keys.email("signin_email", w));
-      const r = await check(list);
-      return r.blocked ? deny(r) : { ok: true };
+      return allow("signin", w.ip, () => store.check(list));
     },
     /** Senha errada (ou conta inexistente: mesma contagem, mesma resposta). */
     async signinFailed(w: Who) {
-      await hit(keys.pair(w), "signin_pair");
-      await hit(keys.ip("signin_ip", w), "signin_ip");
-      if (!w.trusted) await hit(keys.email("signin_email", w), "signin_email");
+      // em paralelo: com o banco travado, a espera total fica limitada a um único tempo máximo
+      await Promise.all([
+        hit("signin", keys.pair(w), "signin_pair"),
+        hit("signin", keys.ip("signin_ip", w), "signin_ip"),
+        w.trusted ? null : hit("signin", keys.email("signin_email", w), "signin_email"),
+      ]);
     },
     /** Senha certa: zera e-mail + IP e o contador do e-mail (o do IP continua). */
     async signinSucceeded(w: Who) {
-      await safe(() => store.clear([keys.pair(w), keys.email("signin_email", w)]), undefined, log);
+      await record("signin", "clear", () => store.clear([keys.pair(w), keys.email("signin_email", w)]));
     },
     /** Envio de código por e-mail: conta o envio; acima do limite, não envia. */
     async otpSend(w: Pick<Who, "email" | "ip">): Promise<Decision> {
       const em = keys.email("otp_send_email", w), ip = keys.ip("otp_send_ip", w);
-      const r = await check([em, ip]);
-      if (r.blocked) return deny(r);
-      await hit(em, "otp_send_email");
-      await hit(ip, "otp_send_ip");
-      return { ok: true };
+      const d = await allow("otp_send", w.ip, () => store.check([em, ip]));
+      if (!d.ok) return d;
+      await Promise.all([hit("otp_send", em, "otp_send_email"), hit("otp_send", ip, "otp_send_ip")]);
+      return d;
     },
     /** Antes de conferir um código de 6 dígitos (verificação ou troca de senha). */
     async otpVerifyAllowed(w: Pick<Who, "email" | "ip">): Promise<Decision> {
-      const r = await check([keys.email("otp_verify_email", w), keys.ip("otp_verify_ip", w)]);
-      return r.blocked ? deny(r) : { ok: true };
+      return allow("otp_verify", w.ip, () => store.check([keys.email("otp_verify_email", w), keys.ip("otp_verify_ip", w)]));
     },
     async otpVerifyFailed(w: Pick<Who, "email" | "ip">) {
-      await hit(keys.email("otp_verify_email", w), "otp_verify_email");
-      await hit(keys.ip("otp_verify_ip", w), "otp_verify_ip");
+      await Promise.all([hit("otp_verify", keys.email("otp_verify_email", w), "otp_verify_email"), hit("otp_verify", keys.ip("otp_verify_ip", w), "otp_verify_ip")]);
     },
     async otpVerifySucceeded(w: Pick<Who, "email">) {
-      await safe(() => store.clear([keys.email("otp_verify_email", w)]), undefined, log);
+      await record("otp_verify", "clear", () => store.clear([keys.email("otp_verify_email", w)]));
     },
     /** Criação de conta: conta cada tentativa por IP. */
     async signup(w: Pick<Who, "ip">): Promise<Decision> {
       const key = keys.ip("signup_ip", w);
-      const r = await check([key]);
-      if (r.blocked) return deny(r);
-      await hit(key, "signup_ip");
-      return { ok: true };
+      const d = await allow("signup", w.ip, () => store.check([key]));
+      if (!d.ok) return d;
+      await hit("signup", key, "signup_ip");
+      return d;
     },
   };
 }

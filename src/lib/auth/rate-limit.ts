@@ -2,7 +2,7 @@ import "server-only";
 import { cookies, headers } from "next/headers";
 import { asService } from "@/lib/db";
 import { authEnv } from "./server";
-import { DEVICE_COOKIE, DEVICE_MAX_AGE, addDeviceMark, clientIp, isTrustedDevice, makeLimiter, type LimitStore, type Limiter } from "./limits";
+import { DEVICE_COOKIE, DEVICE_MAX_AGE, addDeviceMark, clientIp, exactIp, isTrustedDevice, makeLimiter, type LimitStore, type Limiter } from "./limits";
 
 /**
  * Limite de tentativas ligado ao banco (funções auth_limit_* de 0013, só pelo servidor).
@@ -10,19 +10,29 @@ import { DEVICE_COOKIE, DEVICE_MAX_AGE, addDeviceMark, clientIp, isTrustedDevice
  * NEON_AUTH_COOKIE_SECRET: trocá-la zera os contadores e os aparelhos confiáveis.
  */
 type Res = { blocked: boolean; retry_after?: number | null };
+/**
+ * Espera máxima por consulta: o banco grátis "acorda" em até ~2 s depois de 5 min parado;
+ * acima disso a consulta é tratada como falha passageira (ver classifyFailure em ./limits).
+ */
+const TIMEOUT_MS = 2500;
+const one = (rows: { r: Res }[]) => {
+  if (!rows[0]?.r) throw new Error("resposta vazia do limitador");
+  return rows[0].r;
+};
 const store: LimitStore = {
   async check(keys) {
-    const [r] = await asService<{ r: Res }>((q) => q`select auth_limit_check(${keys}::text[]) as r`);
-    return r.r;
+    return one(await asService<{ r: Res }>((q) => q`select auth_limit_check(${keys}::text[]) as r`, { timeoutMs: TIMEOUT_MS }));
   },
   async hit(key, scope, rule) {
-    const [r] = await asService<{ r: Res }>((q) => q`select auth_limit_hit(${key}, ${scope}, ${rule.max}, ${rule.window}, ${rule.block}, ${Boolean(rule.escalate)}) as r`);
-    return r.r;
+    return one(await asService<{ r: Res }>((q) => q`select auth_limit_hit(${key}, ${scope}, ${rule.max}, ${rule.window}, ${rule.block}, ${Boolean(rule.escalate)}) as r`, { timeoutMs: TIMEOUT_MS }));
   },
   async clear(keys) {
-    await asService((q) => q`select auth_limit_clear(${keys}::text[])`);
+    await asService((q) => q`select auth_limit_clear(${keys}::text[])`, { timeoutMs: TIMEOUT_MS });
   },
 };
+
+/** Homologação e produção rodam na Vercel, que sempre informa o IP do cliente. */
+const deployed = () => process.env.VP_ENV === "homolog" || process.env.VP_ENV === "production";
 
 let limiter: Limiter | null = null;
 function secret() {
@@ -32,13 +42,19 @@ function secret() {
 export function getLimiter() {
   const s = secret();
   if (!s) return null;
-  limiter ??= makeLimiter(store, s);
+  limiter ??= makeLimiter(store, s, { requireIp: deployed() });
   return limiter;
 }
 
 export async function requestIp() {
   const h = await headers();
   return clientIp((n) => h.get(n));
+}
+
+/** IP exato para os registros de consentimento (ou null). */
+export async function consentIp() {
+  const h = await headers();
+  return exactIp((n) => h.get(n));
 }
 
 export async function trustedDevice(email: string) {

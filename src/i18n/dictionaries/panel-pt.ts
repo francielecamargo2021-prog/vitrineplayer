@@ -67,6 +67,7 @@ const panel = {
       generic: "Não foi possível concluir agora. Tente novamente.",
       code: "Código inválido ou expirado. Confira ou peça um novo.",
       tooMany: "Muitas tentativas. Aguarde alguns minutos e tente de novo.",
+      unavailable: "Não foi possível concluir agora por uma falha temporária do sistema. Tente de novo em alguns minutos.",
       backend: "O ambiente de contas não está conectado nesta instalação.",
     },
   },
