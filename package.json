@@ -12,13 +12,15 @@
     "test:pilot": "node --test scripts/piloto/kit.test.ts",
     "test:auth": "node --test src/lib/auth/tests/*.test.ts",
     "piloto:simular": "node scripts/piloto/simular.ts",
-    "piloto:comparar": "node scripts/piloto/comparar.ts"
+    "piloto:comparar": "node scripts/piloto/comparar.ts",
+    "check:secrets": "node scripts/verificar-segredos.mjs"
   },
   "dependencies": {
     "@neondatabase/auth": "0.6.0-beta",
     "@neondatabase/serverless": "1.2.0",
     "@supabase/postgrest-js": "2.117.2",
     "@vercel/blob": "2.8.2",
+    "botid": "1.5.11",
     "next": "16.3.8",
     "qrcode-generator": "2.0.4",
     "react": "19.2.8",

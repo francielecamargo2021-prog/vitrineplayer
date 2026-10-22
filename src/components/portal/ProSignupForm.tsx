@@ -41,8 +41,8 @@ export function ProSignupForm({ action, t, a, lang, locale, select, optional, wi
           <TextField label={t.fullName} name="full_name" autoComplete="name" required minLength={3} />
           <TextField label={a.email} name="email" type="email" autoComplete="email" required />
           <div className="grid gap-6 sm:grid-cols-2">
-            <TextField label={a.password} name="password" type="password" autoComplete="new-password" required minLength={8} maxLength={128} hint={a.passwordHint} />
-            <TextField label={a.confirm} name="confirm" type="password" autoComplete="new-password" required minLength={8} maxLength={128} />
+            <TextField label={a.password} name="password" type="password" autoComplete="new-password" required minLength={10} maxLength={128} hint={a.passwordHint} />
+            <TextField label={a.confirm} name="confirm" type="password" autoComplete="new-password" required minLength={10} maxLength={128} />
           </div>
         </fieldset>
       )}

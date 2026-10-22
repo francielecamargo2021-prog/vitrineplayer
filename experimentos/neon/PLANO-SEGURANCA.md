@@ -50,7 +50,7 @@ reversão) apresentada antes. Nenhuma etapa pode ser pulada.
 |---|---|---|---|
 | E1 | Tratamento seguro de falhas do limitador | — | **Concluída** (22/10) |
 | E2 | Novas proteções de login em paralelo aos limites atuais: contagem atômica, proteção por conta com desafio "entrar com código", aparelho reconhecido no banco, espera entre envios | 0014 | **Aplicada na homologação** (22/10), depois do backup `backup-antes-0014` e de ensaio com rollback; testes no Neon aprovados |
-| E3 | BotID Basic nas ações de autenticação; política de senhas; cadastro sem revelar conta existente | — | Pendente |
+| E3 | BotID Basic nas ações de autenticação; política de senhas; cadastro sem revelar conta existente | — | **Código e testes locais concluídos** (22/10); falta validar na Vercel |
 | E3b | Validação na homologação publicada e, só então, retirada dos limites por IP | — | Pendente (exige aprovação própria) |
 | E4 | Código de ativação e troca segura do segundo fator | 0015 | Pendente |
 | E5 | Retirar permissões do papel anônimo e de PUBLIC | 0016 | Pendente |
@@ -147,3 +147,77 @@ reversão) apresentada antes. Nenhuma etapa pode ser pulada.
   `/sign-up/email`) ainda pode criar uma conta sem passar pelo app. Só o Neon bloqueia isso
   (ex.: desligar o cadastro automático no login por código). Essas contas caem em "concluir
   cadastro" e não acessam o painel sem consentimentos. Qualquer ajuste exige aprovação.
+
+## E3 — o que mudou (só código e testes locais; nada publicado, nada mudado fora)
+
+- **BotID Basic** (`botid` 1.5.11, compatível com Next 16; Basic é gratuito em todos os planos,
+  a análise profunda é só Pro/Enterprise e não foi usada).
+  - Navegador: `src/instrumentation-client.ts` liga o BotID só em build feito na Vercel
+    (`VERCEL=1` → `NEXT_PUBLIC_VP_BOTID`). Páginas protegidas em `src/lib/auth/bot-paths.ts`:
+    entrar, verificar, recuperar, cadastro, cadastro profissional, convite. Um teste garante que
+    toda página com ação de autenticação está na lista.
+  - Servidor: `bot-gate.ts` (regras) + `bot-check.ts` (`checkBotId`). Robô → recusado em entrar,
+    códigos, recuperação e cadastro. Falha do BotID → cadastro recusado ("indisponível"); os
+    demais seguem com registro (limites e proteção por conta continuam). Fora da Vercel o BotID
+    não é consultado. **Não existe chave, cabeçalho ou variável que desligue o BotID na Vercel.**
+  - Sem o `withBotId` no next.config: a Vercel já faz o roteamento do BotID (documentação atual).
+- **Política de senhas** (`password-policy.ts`): 10 a 128 caracteres; recusa ~9 mil senhas longas
+  mais usadas em vazamentos e ~8 mil palavras comuns com poucos números/símbolos
+  (flamengo2024, s3nh4123), termos do nosso público (clubes, futebol, família, fé), repetições,
+  sequências e o nome/e-mail da pessoa. Lista local gerada de SecLists (MIT) por
+  `scripts/gerar-senhas-comuns.mjs`. Vale no cadastro (responsável, profissional, convite) e na
+  troca de senha por código. Frases simples passam ("bola azul na janela").
+- **Cadastro sem revelar e-mail existente** (`signup-flow.ts`): conta nova e e-mail já cadastrado
+  vão para a mesma tela de código, no mesmo endereço e no mesmo tempo mínimo (1,8–2,2 s), com a
+  dica "Já tem conta com este e-mail? … entre com sua senha · ou recupere a senha". A conta
+  existente não é alterada.
+- Limites atuais (0013) mantidos. Retirada só na E3b.
+
+### Depende de validação na Vercel (homologação publicada, com aprovação)
+1. BotID de verdade: humanos passam e automação é recusada; a política de conteúdo (CSP) não
+   bloqueia o script do BotID; formulários antes de a página terminar de carregar.
+2. **Os testes automáticos de navegador serão recusados como robôs na Vercel** (é o esperado).
+   A validação publicada precisa ser manual, ou com uma exceção da Vercel restrita à
+   homologação — decisão sua; nunca em produção.
+3. **Origem confiável no Neon Auth**: hoje `trusted_origins` está vazio e `allow_localhost` ligado.
+   Publicado, o endereço da Vercel provavelmente precisa entrar na lista (mudança externa).
+4. Cadastro: com `require_email_verification` desligado no Neon, uma conta nova recebe sessão
+   na hora; quem automatiza o cadastro (sem passar pelo BotID) ainda nota a diferença pelo cookie.
+   Ligar a opção no Neon fecha isso (mudança externa, exige aprovação e teste).
+5. Tempo de resposta real do BotID e do cadastro na Vercel.
+
+## Acesso direto ao Neon Auth — avaliação (22/10)
+
+Configuração lida (sem alterar): cadastro aberto, confirmação de e-mail não exigida, origens
+confiáveis vazias com `localhost` permitido, Google (credenciais compartilhadas do Neon)
+configurado, e-mails pelo remetente compartilhado do Neon.
+
+**O que protege mesmo com acesso direto**
+- Banco: RLS em tudo; conta nova não tem perfil, consentimentos nem atletas; profissional só
+  vê atletas depois da aprovação do admin; admin exige segundo fator verificado no banco.
+- Conta criada por fora cai em "concluir cadastro" e não chega ao painel sem consentimentos.
+
+**O que continua exposto**
+1. Tentativa de senha direto no Neon Auth não passa pelos limites, pela proteção por conta nem
+   pelo BotID. Uma senha descoberta assim vale para entrar.
+2. Uma sessão obtida por fora gera o JWT que a Data API aceita: a pessoa lê e grava direto, só
+   com a RLS como barreira (a mesma do app, mas sem as regras extras do servidor).
+3. Contas criadas por fora (cadastro direto, login por código, Google) — sem dados, mas poluem a
+   base e usam o remetente de e-mail.
+4. Os limites do próprio Neon Auth não são conhecidos (perguntas 1–3 ao Neon).
+
+**Soluções viáveis antes de convidar usuários reais**
+- A. (código) **Código por e-mail em aparelho novo**: entrar num aparelho não reconhecido pede
+  o código uma vez (o aparelho fica lembrado por 90 dias, já existe na 0014). Uma senha
+  descoberta por fora deixa de bastar. Custo: um passo a mais no primeiro acesso de cada aparelho.
+- B. (código) **Sessão só vale se começou pelo app**: o app grava um selo próprio (cookie
+  HttpOnly assinado) no login; sessão sem selo é tratada como deslogada.
+- C. (código + Neon) **Tirar a Data API do caminho do usuário**: o servidor consulta o banco
+  com a conexão própria (aplicando a RLS como o usuário) e a Data API é desligada. Sem isso, B
+  não protege a Data API. Mudança maior, etapa própria.
+- D. (Neon, aprovação) desligar `allow_localhost`, cadastrar só os domínios do app em origens
+  confiáveis, desligar o Google se não for usado, exigir confirmação de e-mail.
+- E. (código) aviso ao admin de contas criadas fora do app (sem perfil depois de 24 h).
+
+Recomendação: A + D antes dos primeiros usuários reais; B + C como etapa seguinte; E opcional.
+O restante (limites internos do Neon) depende das respostas do Neon.

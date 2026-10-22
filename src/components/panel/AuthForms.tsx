@@ -65,8 +65,8 @@ export function SignupForm({ action, a, loginHref, locale, select }: { action: A
       <TextField label={a.fullName} name="full_name" autoComplete="name" required minLength={3} />
       <TextField label={a.email} name="email" type="email" autoComplete="email" required />
       <div className="grid gap-6 sm:grid-cols-2">
-        <TextField label={a.password} name="password" type="password" autoComplete="new-password" required minLength={8} maxLength={128} hint={a.passwordHint} />
-        <TextField label={a.confirm} name="confirm" type="password" autoComplete="new-password" required minLength={8} maxLength={128} />
+        <TextField label={a.password} name="password" type="password" autoComplete="new-password" required minLength={10} maxLength={128} hint={a.passwordHint} />
+        <TextField label={a.confirm} name="confirm" type="password" autoComplete="new-password" required minLength={10} maxLength={128} />
       </div>
       <SignupDetails a={a} locale={locale} select={select} />
       <Feedback state={state} a={a} />
@@ -135,14 +135,17 @@ export function VerifyForm({ verify, resend, a, email, askEmail }: { verify: Act
         {askEmail ? (
           <TextField label={a.email} name="email" type="email" autoComplete="email" required defaultValue={email} />
         ) : (
-          <p className="text-[0.95rem] text-fog">{a.verifyLeadTo} <span className="text-bone">{email}</span></p>
+          <>
+            <p className="text-[0.95rem] text-fog">{a.verifyLeadTo} <span className="text-bone">{email}</span></p>
+            <input type="hidden" name="email" value={email} />
+          </>
         )}
         <TextField label={a.code} name="code" inputMode="numeric" autoComplete="one-time-code" pattern="\d{6}" maxLength={6} required />
         <Feedback state={state} a={a} />
         <button disabled={pending} className={`${primaryButton} w-full`}>{a.verify}</button>
       </form>
       <form onSubmit={resendAction} className="space-y-4 border-t border-white/10 pt-6">
-        {askEmail && <input type="hidden" name="email" value={email} />}
+        <input type="hidden" name="email" value={email} />
         <Feedback state={sent} a={a} />
         <button disabled={sending} className={textButton}>{a.resend}</button>
       </form>
@@ -178,8 +181,8 @@ export function ResetForm({ action, a, email, loginHref, otherHref }: { action: 
       <p className="text-[0.95rem] text-fog">{a.verifyLeadTo} <span className="text-bone">{email}</span></p>
       <TextField label={a.code} name="code" inputMode="numeric" autoComplete="one-time-code" pattern="\d{6}" maxLength={6} required />
       <div className="grid gap-6 sm:grid-cols-2">
-        <TextField label={a.newPassword} name="password" type="password" autoComplete="new-password" required minLength={8} maxLength={128} hint={a.passwordHint} />
-        <TextField label={a.confirm} name="confirm" type="password" autoComplete="new-password" required minLength={8} maxLength={128} />
+        <TextField label={a.newPassword} name="password" type="password" autoComplete="new-password" required minLength={10} maxLength={128} hint={a.passwordHint} />
+        <TextField label={a.confirm} name="confirm" type="password" autoComplete="new-password" required minLength={10} maxLength={128} />
       </div>
       <Feedback state={state} a={a} />
       <button disabled={pending} className={`${primaryButton} w-full`}>{a.savePassword}</button>

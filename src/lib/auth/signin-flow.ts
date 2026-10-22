@@ -19,7 +19,7 @@ export type AuthPort = {
  */
 export type Timing = { floorMs: number; jitterMs: number; sleep: (ms: number) => Promise<void> };
 export const DEFAULT_TIMING: Timing = { floorMs: 900, jitterMs: 250, sleep: (ms) => new Promise((r) => setTimeout(r, ms)) };
-async function padTo(t: Timing, started: number) {
+export async function padTo(t: Timing, started: number) {
   const target = t.floorMs + Math.random() * t.jitterMs;
   const left = target - (Date.now() - started);
   if (left > 0) await t.sleep(left);

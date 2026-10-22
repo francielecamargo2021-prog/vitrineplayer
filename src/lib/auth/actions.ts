@@ -9,6 +9,10 @@ import { authEnv, currentUser, getAuth } from "./server";
 import { closeMfa } from "./mfa";
 import { consentIp, deviceToken, getLimiter, rememberDevice, requestIp } from "./rate-limit";
 import { codeSignIn, passwordSignIn, sendCodeFlow, type AuthPort } from "./signin-flow";
+import { signupFlow, type SignupPort } from "./signup-flow";
+import { checkPassword } from "./password-policy";
+import { botGate } from "./bot-check";
+import type { BotFlow } from "./bot-gate";
 import type { Decision } from "./limits";
 
 /** `challenge`: a conta está protegida e o login segue por código enviado ao e-mail. */
@@ -102,6 +106,30 @@ async function signupRefused() {
   return refused(await getLimiter()?.signup({ ip: await requestIp() }));
 }
 
+/** BotID (só na Vercel): "bot" ou "unavailable" quando recusa, null quando segue. */
+async function botRefused(flow: BotFlow) {
+  const r = await botGate(flow);
+  return r.ok ? null : r.reason;
+}
+
+/** Cadastro sem revelar se o e-mail já existe (regras em ./signup-flow). */
+async function createAccount(
+  auth: NonNullable<ReturnType<typeof ready>>, l: string,
+  a: { email: string; password: string; name: string }, complete: (userId: string) => Promise<void>,
+): Promise<AuthFormState> {
+  const port: SignupPort = {
+    async signUp(x) {
+      const { data, error } = await auth.signUp.email(x);
+      if (!error && data?.user?.id) return { ok: true, userId: data.user.id };
+      if (/exist/i.test(code(error)) || status(error) === 422) return { ok: false, kind: "exists" };
+      return { ok: false, kind: status(error) === 429 ? "rate_limited" : "other" };
+    },
+    sendVerification: (email) => sendCode(email, "email-verification"),
+  };
+  const r = await signupFlow(port, { ...a, lang: l }, complete);
+  if (r.kind === "error") return { error: r.error };
+  redirect(r.to);
+}
 // ---------------------------------------------------------------- cadastro (passo 1 + passo 2)
 export async function signUp(lang: string, _prev: AuthFormState, fd: FormData): Promise<AuthFormState> {
   const auth = ready();
@@ -111,28 +139,20 @@ export async function signUp(lang: string, _prev: AuthFormState, fd: FormData): 
   const password = String(fd.get("password") ?? "");
   if (fullName.length < 3 || !email || !password) return { error: "required" };
   if (!isEmail(email)) return { error: "email" };
-  if (password.length < 8 || password.length > 128) return { error: "password" };
+  const weak = checkPassword(password, { email, name: fullName });
+  if (weak) return { error: weak };
   if (password !== String(fd.get("confirm") ?? "")) return { error: "mismatch" };
   const details = signupDetails(fd);
   if ("error" in details) return { error: details.error };
 
   const l = safeLang(lang);
+  const bot = await botRefused("signup");
+  if (bot) return { error: bot };
   const refusedSignup = await signupRefused();
   if (refusedSignup) return { error: refusedSignup };
-  const { data, error } = await auth.signUp.email({ email, password, name: fullName });
-  if (error || !data?.user?.id) {
-    if (/exist/i.test(code(error)) || status(error) === 422) return { error: "exists" };
-    return { error: status(error) === 429 ? "tooMany" : "generic" };
-  }
   // A sessão nova só vale na próxima requisição: o servidor completa o cadastro com o ID
   // devolvido pelo Neon Auth. Se falhar, a pessoa conclui depois em /cadastro/concluir.
-  try {
-    await completeSignupAs(data.user.id, l, details);
-  } catch {
-    /* segue: o painel encaminha para "concluir cadastro" */
-  }
-  await sendCode(email, "email-verification");
-  redirect(`/${l}/entrar/verificar`);
+  return createAccount(auth, l, { email, password, name: fullName }, (id) => completeSignupAs(id, l, details));
 }
 
 /** Passo 2 para contas que ainda não registraram WhatsApp, país e consentimentos. */
@@ -165,6 +185,8 @@ export async function signIn(lang: string, _prev: AuthFormState, fd: FormData): 
   // ---- conta protegida: entrar com o código enviado ao e-mail
   if (intent === "code" || intent === "resend") {
     if (!isEmail(email)) return { error: "invalid" };
+    const bot = await botRefused("code");
+    if (bot) return { challenge: true, email, error: bot };
     if (intent === "resend") {
       const err = await sendCodeFlow(limiter, port, { email, ip }, "sign-in");
       return { challenge: true, email, ...(err ? { error: err } : { message: "codeSent" }) };
@@ -180,6 +202,8 @@ export async function signIn(lang: string, _prev: AuthFormState, fd: FormData): 
   // ---- senha (mesma resposta exista ou não a conta)
   const password = String(fd.get("password") ?? "");
   if (!isEmail(email) || !password) return { error: "invalid" };
+  const bot = await botRefused("signin");
+  if (bot) return { error: bot };
   const r = await passwordSignIn(limiter, port, { email, password, ip, deviceToken: await deviceToken() });
   if (r.kind === "error") return { error: r.error };
   if (r.kind === "challenge") return { challenge: true, email, ...(r.sent ? { error: r.sent } : { message: "challengeSent" }) };
@@ -217,6 +241,8 @@ export async function verifyEmail(lang: string, _prev: AuthFormState, fd: FormDa
   const email = await emailFor(fd);
   const otp = str(fd, "code");
   if (!isEmail(email) || !isCode(otp)) return { error: "code" };
+  const bot = await botRefused("code");
+  if (bot) return { error: bot };
   const limiter = getLimiter();
   const who = { email, ip: await requestIp() };
   const allowed = await limiter?.otpVerifyAllowed(who);
@@ -232,6 +258,8 @@ export async function resendVerification(lang: string, _prev: AuthFormState, fd:
   if (!ready()) return { error: "backend" };
   const email = await emailFor(fd);
   if (!isEmail(email)) return { error: "email" };
+  const bot = await botRefused("code");
+  if (bot) return { error: bot };
   const err = await sendCode(email, "email-verification");
   return err ? { error: err } : { ok: true, message: "codeSent" };
 }
@@ -241,6 +269,8 @@ export async function requestPasswordReset(lang: string, _prev: AuthFormState, f
   if (!ready()) return { error: "backend" };
   const email = lower(fd, "email");
   if (!isEmail(email)) return { error: "email" };
+  const bot = await botRefused("reset");
+  if (bot) return { error: bot };
   const err = await sendCode(email, "forget-password");
   if (err) return { error: err };
   // Mesma resposta exista ou não a conta.
@@ -258,8 +288,11 @@ export async function resetPassword(lang: string, _prev: AuthFormState, fd: Form
   const otp = str(fd, "code");
   const password = String(fd.get("password") ?? "");
   if (!isEmail(email) || !isCode(otp)) return { error: "code" };
-  if (password.length < 8 || password.length > 128) return { error: "password" };
+  const weak = checkPassword(password, { email });
+  if (weak) return { error: weak };
   if (password !== String(fd.get("confirm") ?? "")) return { error: "mismatch" };
+  const bot = await botRefused("reset");
+  if (bot) return { error: bot };
   const limiter = getLimiter();
   const who = { email, ip: await requestIp() };
   const allowed = await limiter?.otpVerifyAllowed(who);
@@ -336,26 +369,19 @@ export async function proSignUp(lang: string, _prev: AuthFormState, fd: FormData
   const password = String(fd.get("password") ?? "");
   if (fullName.length < 3 || !email || !password) return { error: "required" };
   if (!isEmail(email)) return { error: "email" };
-  if (password.length < 8 || password.length > 128) return { error: "password" };
+  const weak = checkPassword(password, { email, name: fullName });
+  if (weak) return { error: weak };
   if (password !== String(fd.get("confirm") ?? "")) return { error: "mismatch" };
   const details = proDetails(fd);
   if ("error" in details) return { error: details.error };
 
   const l = safeLang(lang);
+  const bot = await botRefused("signup");
+  if (bot) return { error: bot };
   const refusedSignup = await signupRefused();
   if (refusedSignup) return { error: refusedSignup };
-  const { data, error } = await auth.signUp.email({ email, password, name: fullName });
-  if (error || !data?.user?.id) {
-    if (/exist/i.test(code(error)) || status(error) === 422) return { error: "exists" };
-    return { error: status(error) === 429 ? "tooMany" : "generic" };
-  }
-  try {
-    await completeProAs(data.user.id, l, details);
-  } catch {
-    /* segue: depois de confirmar o e-mail, a pessoa conclui em /profissional/cadastro */
-  }
-  await sendCode(email, "email-verification");
-  redirect(`/${l}/entrar/verificar`);
+  // se gravar a organização falhar, depois de confirmar o e-mail a pessoa conclui em /profissional/cadastro
+  return createAccount(auth, l, { email, password, name: fullName }, (id) => completeProAs(id, l, details));
 }
 
 /** Conclusão do cadastro profissional para uma conta já criada (sem atletas). */
@@ -406,25 +432,18 @@ export async function proJoinSignUp(lang: string, token: string, _prev: AuthForm
   const password = String(fd.get("password") ?? "");
   if (fullName.length < 3 || !email || !password) return { error: "required" };
   if (!isEmail(email)) return { error: "email" };
-  if (password.length < 8 || password.length > 128) return { error: "password" };
+  const weak = checkPassword(password, { email, name: fullName });
+  if (weak) return { error: weak };
   if (password !== String(fd.get("confirm") ?? "")) return { error: "mismatch" };
   const details = joinDetails(fd);
   if ("error" in details) return { error: details.error };
   const l = safeLang(lang);
+  const bot = await botRefused("signup");
+  if (bot) return { error: bot };
   const refusedSignup = await signupRefused();
   if (refusedSignup) return { error: refusedSignup };
-  const { data, error } = await auth.signUp.email({ email, password, name: fullName });
-  if (error || !data?.user?.id) {
-    if (/exist/i.test(code(error)) || status(error) === 422) return { error: "exists" };
-    return { error: status(error) === 429 ? "tooMany" : "generic" };
-  }
-  try {
-    await joinAs(data.user.id, l, token, details);
-  } catch {
-    /* depois de confirmar o e-mail, a pessoa conclui pelo mesmo link */
-  }
-  await sendCode(email, "email-verification");
-  redirect(`/${l}/entrar/verificar`);
+  // se entrar na equipe falhar, depois de confirmar o e-mail a pessoa conclui pelo mesmo link
+  return createAccount(auth, l, { email, password, name: fullName }, (id) => joinAs(id, l, token, details));
 }
 
 /** Conta já criada (sem cadastro concluído) entra na equipe pelo convite. */

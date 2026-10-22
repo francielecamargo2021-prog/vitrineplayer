@@ -51,8 +51,16 @@ const security = [
   ...(indexable ? [] : [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }]),
 ];
 
+/**
+ * BotID Basic (E3): só existe publicado na Vercel, que define VERCEL=1 no build e na execução.
+ * Fora dela o navegador não carrega o BotID e o servidor não o consulta (ver src/lib/auth/bot-gate.ts).
+ */
+const botId = process.env.VERCEL === "1";
+if (env === "production" && !botId) console.warn("Aviso: build de produção fora da Vercel — o BotID fica desligado.");
+
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  env: { NEXT_PUBLIC_VP_BOTID: botId ? "1" : "" },
   async headers() {
     return [{ source: "/:path*", headers: security }];
   },

@@ -163,8 +163,27 @@ try {
   await go("/pt/painel");
   check(path() === "/pt/entrar", "depois de sair, o painel exige login de novo");
 
+  // E3: senha comum é recusada no servidor (a tela só confere o tamanho)
+  await go("/pt/cadastro");
+  await page.fill('input[name="full_name"]', "Senha Fraca");
+  await page.fill('input[name="email"]', mail("fraca"));
+  await page.fill('input[name="password"]', "flamengo2024");
+  await page.fill('input[name="confirm"]', "flamengo2024");
+  await page.fill('input[name="whatsapp"]', "+5511999990009");
+  await page.selectOption('select[name="country"]', "BR");
+  for (const c of ["terms", "privacy", "guardian_declaration", "no_guarantee"]) await page.check(`input[name="${c}"]`);
+  await submit();
+  check((await text()).includes("muito comum"), "senha comum (flamengo2024) é recusada com mensagem clara");
+
+  // E3: e-mail repetido recebe a MESMA resposta de um cadastro novo (não revela a conta)
+  const tDup = Date.now();
   await signup(A, "Duplicado");
-  check((await text()).includes("Já existe uma conta"), "e-mail repetido é recusado");
+  const dupMs = Date.now() - tDup;
+  check(path() === "/pt/entrar/verificar" && (await has("Já tem conta com este e-mail")), "e-mail repetido vai para a mesma tela de código, com a dica de entrar ou recuperar a senha", path());
+  check(!(await text()).includes("Já existe uma conta"), "a tela não diz que o e-mail já tem conta");
+  check(dupMs >= 1800, "a resposta respeita o mesmo tempo mínimo do cadastro novo", `${dupMs} ms`);
+  const [{ n: dupUsers, nome }] = (await q(`select count(*)::int n, max(name) nome from neon_auth."user" where lower(email) = lower($1)`, [A])).rows;
+  check(dupUsers === 1 && nome !== "Duplicado", "nenhuma conta nova e a conta existente não é alterada");
 
   // ------------------------------------------------------------------ entrar
   section("Entrar");
