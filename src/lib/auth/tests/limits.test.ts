@@ -226,6 +226,8 @@ test("pedido de código: espera progressiva por e-mail (não por rede) e o últi
   assert.equal(await sendCodeFlow(L, f.port, { email: FAM, ip: IP1 }, "sign-in"), null, "após 30 s, envia de novo");
   m.advance(10);
   assert.equal(await sendCodeFlow(L, f.port, { email: FAM, ip: IP1 }, "sign-in"), "wait", "agora a espera é de 1 min");
+  assert.equal(await sendCodeFlow(L, f.port, { email: FAM, ip: IP1 }, "forget-password"), null, "outro tipo de código (recuperação) tem espera própria");
+  assert.equal(await sendCodeFlow(L, f.port, { email: FAM, ip: IP1 }, "forget-password"), "wait", "e também espera entre envios do mesmo tipo");
 });
 
 test("ataque de incômodo: alguém força o desafio e pede códigos — a família continua entrando", async () => {

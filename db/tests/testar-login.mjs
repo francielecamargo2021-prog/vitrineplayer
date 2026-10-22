@@ -130,9 +130,14 @@ try {
   await submit();
   check((await text()).includes("Código inválido"), "código errado é recusado");
 
+  // espera progressiva por e-mail e tipo (0014): o código do cadastro acabou de sair
+  await page.locator("form").nth(1).locator("button").click();
+  const waitMsg = await page.waitForSelector("text=Aguarde um pouco", { timeout: 15000 }).then(() => true, () => false);
+  check(waitMsg, "reenviar logo em seguida pede para aguardar (o último código continua valendo)");
+  await sleep(31000);
   await page.locator("form").nth(1).locator("button").click();
   const resent = await page.waitForSelector("text=novo código foi enviado", { timeout: 15000 }).then(() => true, () => false);
-  check(resent, "reenviar código funciona");
+  check(resent, "depois de 30 s, reenviar código funciona");
 
   check(await knownCode(A, "email-verification"), "Neon Auth registrou o pedido de código");
   await page.fill('input[name="code"]', CODE);
@@ -239,9 +244,47 @@ try {
   const [{ n: devRows }] = (await q(`select count(*)::int n from auth_devices where token_hash ~ '^[0-9a-f]{64}$'`)).rows;
   const [{ n: plain }] = (await q(`select count(*)::int n from auth_devices where token_hash = $1`, [dev?.value ?? ""])).rows;
   check(devRows > 0 && plain === 0, "o banco guarda só o hash do token (nunca o token)");
-  const [{ n: guardLeft }] = (await q(`select count(*)::int n from auth_account_guard where attempts > 0`)).rows;
+  const [{ n: guardLeft }] = (await q(`select count(*)::int n from auth_account_guard where account_key = $1`,
+    [deriveKey(process.env.NEON_AUTH_COOKIE_SECRET ?? "", "account", A)])).rows;
   check(guardLeft === 0, "o login completo zera a proteção da conta");
   await victim.c.close();
+
+  section("E-mail sem conta: mesma resposta, e o que o Neon Auth faz com o código");
+  const NONE = mail("sem-conta");
+  const noneAnswers = [];
+  for (let i = 0; i < 5; i++) {
+    await sleep(4000);
+    const { c, p } = await fromNetwork(`198.51.100.${100 + i}`);
+    await p.goto(`${APP}/pt/entrar`);
+    await p.fill('input[name="email"]', NONE);
+    await p.fill('input[name="password"]', `qualquer-${i}-xxxx`);
+    await p.locator("form button").first().click();
+    noneAnswers.push(await p.waitForSelector("text=/incorretos|Confirme que é você|Muitas tentativas/", { timeout: 30000 }).then((e) => e.innerText(), () => ""));
+    await c.close();
+  }
+  check(noneAnswers.every((m) => m.includes("incorretos")), "e-mail sem conta: as 5 primeiras respostas são iguais às de uma conta real");
+  await sleep(4000);
+  const semConta = await fromNetwork("198.51.100.150");
+  await semConta.p.goto(`${APP}/pt/entrar`);
+  await semConta.p.fill('input[name="email"]', NONE);
+  await semConta.p.fill('input[name="password"]', "qualquer-6-xxxx");
+  await semConta.p.locator("form button").first().click();
+  const noneMsg = await semConta.p.waitForSelector("text=/incorretos|Confirme que é você|Muitas tentativas/", { timeout: 30000 }).then((e) => e.innerText(), () => "");
+  check(noneMsg.includes("Confirme que é você"), "e-mail sem conta: a 6ª também pede código (não revela que a conta não existe)");
+  const codeRow = await knownCode(NONE, "sign-in");
+  console.log(`ℹ Neon Auth, e-mail sem conta: ${codeRow ? "gera e envia um código de entrada" : "não gera código de entrada"}`);
+  if (codeRow) {
+    await semConta.p.fill('input[name="code"]', CODE);
+    await semConta.p.locator('button[value="code"]').click();
+    await semConta.p.waitForLoadState("networkidle").catch(() => {});
+    await sleep(2000);
+    const created = (await q(`select count(*)::int n from neon_auth."user" where email = $1`, [NONE])).rows[0].n;
+    const where = new URL(semConta.p.url()).pathname;
+    console.log(`ℹ Neon Auth, e-mail sem conta + código certo: ${created ? "CRIA a conta" : "não cria conta"} · tela: ${where}`);
+    check(!created || where === "/pt/cadastro/concluir" || where === "/pt/entrar",
+      "se o Neon criar a conta pelo código, ela cai em 'concluir cadastro' (sem acesso ao painel sem consentimentos)", where);
+  }
+  await semConta.c.close();
 
   // ------------------------------------------------------------------ recuperação de senha
   section("Recuperação de senha por código");

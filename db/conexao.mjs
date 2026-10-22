@@ -67,3 +67,23 @@ export async function conectar() {
     throw e;
   }
 }
+
+/**
+ * Pool de conexões com as MESMAS travas de conectar() (ambiente conhecido, projeto conferido).
+ * Usado pelos testes de pedidos simultâneos: cada pedido pega a própria conexão.
+ */
+export async function criarPool(max = 10) {
+  const { client, ambiente, branch } = await conectar(); // confere ambiente e projeto
+  await client.end();
+  const url = lerEndereco();
+  let pool;
+  if (AMBIENTES[ambiente].local) {
+    const pg = (await import("pg")).default;
+    pool = new pg.Pool({ connectionString: url, max });
+  } else {
+    const { Pool } = await import("@neondatabase/serverless"); // usa o WebSocket configurado em conectar()
+    pool = new Pool({ connectionString: url, max });
+  }
+  pool.on?.("error", () => {});
+  return { pool, ambiente, branch };
+}

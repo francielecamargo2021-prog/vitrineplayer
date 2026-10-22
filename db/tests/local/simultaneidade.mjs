@@ -3,13 +3,15 @@
 // fluxo de entrada (signin-flow.ts); só o Neon Auth é simulado. Cada pedido usa a sua própria
 // conexão, como instâncias serverless diferentes.
 //   VP_DB_URL=postgresql://neondb_owner@localhost:PORTA/vp?host=… node db/tests/local/simultaneidade.mjs
-import pg from "pg";
+import { criarPool } from "../../conexao.mjs";
 import { LIMIT_SQL } from "../../../src/lib/auth/limit-sql.ts";
 import { GUARD_LIMIT, RULES, deriveKey, makeLimiter, newDeviceToken } from "../../../src/lib/auth/limits.ts";
 import { codeSignIn, passwordSignIn, sendCodeFlow } from "../../../src/lib/auth/signin-flow.ts";
 
 const N = 50;
-const pool = new pg.Pool({ connectionString: process.env.VP_DB_URL, max: N + 5 });
+// local (run.sh) ou homologação: mesmas travas do migrar.mjs (ambiente e projeto conferidos)
+const { pool, ambiente, branch } = await criarPool(N + 5);
+console.log(`banco: ${ambiente} · ${branch}`);
 const SECRET = "s".repeat(48);
 
 /** Uma transação por chamada, com o papel de serviço (como asService no app). */
@@ -48,7 +50,13 @@ const check = (ok, msg, detail = "") => {
   console.log(`${ok ? "✓" : "✗"} ${msg}${detail ? ` — ${detail}` : ""}`);
   if (!ok) failed++;
 };
-const reset = () => call("delete from auth_attempts; delete from auth_account_guard; delete from auth_devices; delete from auth_send_cooldown");
+const TABLES = ["auth_attempts", "auth_account_guard", "auth_devices", "auth_send_cooldown"];
+// Só roda com as tabelas vazias: assim apagar entre cenários remove apenas dados criados por este teste.
+for (const t of TABLES) {
+  const [{ n }] = await call(`select count(*)::int n from ${t}`);
+  if (n > 0) { console.error(`RECUSADO: ${t} já tem ${n} linha(s) — nada foi feito para preservar esses dados`); process.exit(3); }
+}
+const reset = async () => { for (const t of TABLES) await call(`delete from ${t}`); };
 
 /** Neon Auth falso: conta quantas senhas chegaram a ser conferidas. */
 function fakeAuth() {

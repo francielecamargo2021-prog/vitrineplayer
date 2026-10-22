@@ -280,11 +280,15 @@ export function makeLimiter(store: LimitStore, secret: string, opts: LimiterOpti
         record("otp_verify", "clear", () => store.clear([keys.email("otp_verify_email", w).key])),
       ]);
     },
-    /** Envio de código: espera progressiva por e-mail e limites atuais. */
-    async otpSend(w: Who): Promise<Decision> {
+    /**
+     * Envio de código: espera progressiva por e-mail E tipo de código (entrada, verificação,
+     * recuperação têm esperas separadas: pedir "esqueci a senha" logo depois de um código de
+     * entrada não espera) e limites atuais.
+     */
+    async otpSend(w: Who, kind: string): Promise<Decision> {
       try {
         checkIp(w.ip);
-        const c = await store.sendCooldown(k("otp_send_email", `cooldown\n${w.email}`));
+        const c = await store.sendCooldown(k("otp_send_email", `cooldown\n${kind}\n${w.email}`));
         if (!c.allowed) return { ok: false, reason: "wait", retryAfter: Math.max(1, Number(c.retry_after) || 30) };
       } catch (e) {
         if (!onFailure("otp_send", "check", e)) return unavailable;

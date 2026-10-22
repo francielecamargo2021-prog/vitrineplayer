@@ -17,7 +17,7 @@ const refused = (d: Decision): FlowError | null => (d.ok ? null : d.reason === "
 /** Envia um código (qualquer tipo), respeitando a espera por e-mail e os limites. */
 export async function sendCodeFlow(limiter: Limiter | null, auth: AuthPort, w: { email: string; ip: string }, type: Parameters<AuthPort["sendCode"]>[1]): Promise<FlowError | null> {
   if (limiter) {
-    const no = refused(await limiter.otpSend(w));
+    const no = refused(await limiter.otpSend(w, type));
     if (no) return no;
   }
   return (await auth.sendCode(w.email, type)) === "rate_limited" ? "tooMany" : null;
