@@ -49,7 +49,7 @@ reversão) apresentada antes. Nenhuma etapa pode ser pulada.
 | Etapa | Conteúdo | Migração | Situação |
 |---|---|---|---|
 | E1 | Tratamento seguro de falhas do limitador | — | **Concluída** (22/10) |
-| E2 | Novas proteções de login em paralelo aos limites atuais: contagem atômica, proteção por conta com desafio "entrar com código", aparelho reconhecido no banco, espera entre envios | 0014 | **Implementada e testada localmente** (22/10). 0014 **não aplicada** no Neon: aguarda aprovação da ficha |
+| E2 | Novas proteções de login em paralelo aos limites atuais: contagem atômica, proteção por conta com desafio "entrar com código", aparelho reconhecido no banco, espera entre envios | 0014 | **Aplicada na homologação** (22/10), depois do backup `backup-antes-0014` e de ensaio com rollback; testes no Neon aprovados |
 | E3 | BotID Basic nas ações de autenticação; política de senhas; cadastro sem revelar conta existente | — | Pendente |
 | E3b | Validação na homologação publicada e, só então, retirada dos limites por IP | — | Pendente (exige aprovação própria) |
 | E4 | Código de ativação e troca segura do segundo fator | 0015 | Pendente |
@@ -114,3 +114,16 @@ reversão) apresentada antes. Nenhuma etapa pode ser pulada.
   (comportamento de 0013, mantido até a E3b).
 - Ordem de publicação: a 0014 precisa estar aplicada ANTES do código novo rodar; sem ela, o
   login fica indisponível de propósito (erro de configuração → recusa, ver E1).
+
+## E2 — aplicação na homologação (22/10)
+
+- Backup `backup-antes-0014` (br-little-frog-b6cwk0jn), pronto antes da aplicação.
+- Ensaio com rollback: nenhuma política, função, tabela, gatilho ou dado existente alterado;
+  tabelas e funções novas fechadas a `authenticated`, `anonymous` e Data API.
+- Testes no Neon: 499 verificações de banco; 50 pedidos simultâneos (11 checagens); navegador:
+  login 67, painel 34, portal 48, fotos 26, funcionalidades 62.
+- **Login por código funciona no Neon Auth** (kit 0.6.0-beta, rota `sign-in/email-otp`).
+- **E-mail sem conta:** a resposta é igual à de uma conta real; o Neon Auth gera o código e,
+  se alguém com acesso àquela caixa digitar o código, **cria a conta**, que cai em
+  "concluir cadastro" (sem painel sem consentimentos). Registrado como ponto de decisão.
+- Achado corrigido: a espera entre envios passou a ser por e-mail **e tipo** de código.
