@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { countries } from "@/domain/athlete";
 import { hasLocale } from "@/i18n/config";
-import { asUser, dbReady } from "@/lib/db";
+import { asService, asUser, dbReady } from "@/lib/db";
 import { authEnv, currentUser, getAuth } from "./server";
 import { closeMfa } from "./mfa";
 import { consentIp, deviceToken, getLimiter, rememberDevice, requestIp } from "./rate-limit";
@@ -78,6 +78,14 @@ function authPort(auth: NonNullable<ReturnType<typeof getAuth>>): AuthPort {
       const { error } = await auth.signIn.emailOtp({ email, otp });
       if (error) return { ok: false, kind: status(error) === 429 ? "rate_limited" : "code" };
       return { ok: true };
+    },
+    async accountExists(email) {
+      // consulta só no servidor (conexão de serviço); o resultado nunca vai para a tela
+      const [r] = await asService<{ r: boolean }>(
+        (q) => q`select exists (select 1 from neon_auth."user" where lower(email) = lower(${email})) as r`,
+        { timeoutMs: 2500 },
+      );
+      return Boolean(r?.r);
     },
   };
 }

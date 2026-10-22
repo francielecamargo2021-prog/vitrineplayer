@@ -11,7 +11,11 @@ import {
   GUARD_LIMIT, LimiterConfigError, NO_IP, RULES, classifyFailure, deriveKey, exactIp, hashDeviceToken, isDeviceToken,
   makeLimiter, newDeviceToken, normalizeIp, type ConsumeItem, type LimitStore, type LimiterEvent,
 } from "../limits.ts";
-import { codeSignIn, passwordSignIn, sendCodeFlow, type AuthPort } from "../signin-flow.ts";
+import { DEFAULT_TIMING, codeSignIn, passwordSignIn, sendCodeFlow, type AuthPort } from "../signin-flow.ts";
+
+// nos testes, sem o tempo mínimo das respostas (o teste dedicado abaixo usa um relógio próprio)
+DEFAULT_TIMING.floorMs = 0;
+DEFAULT_TIMING.jitterMs = 0;
 
 const SECRET = "x".repeat(40);
 const quiet = () => {};
@@ -75,7 +79,7 @@ function memoryStore() {
 
 /** Neon Auth falso: uma conta com senha e o último código enviado por tipo. */
 function fakeAuth(accounts: Record<string, string> = { "familia@x.com": "senha-certa-123" }) {
-  const calls = { password: 0, sends: [] as string[], codeTries: 0 };
+  const calls = { password: 0, sends: [] as string[], codeTries: 0, exists: 0 };
   const lastCode = new Map<string, string>();
   const port: AuthPort = {
     async signInPassword(email, password) {
@@ -90,6 +94,10 @@ function fakeAuth(accounts: Record<string, string> = { "familia@x.com": "senha-c
     async signInCode(email, otp) {
       calls.codeTries += 1;
       return lastCode.get(email) === otp ? { ok: true } : { ok: false, kind: "code" };
+    },
+    async accountExists(email) {
+      calls.exists += 1;
+      return email in accounts;
     },
   };
   return { port, calls };
@@ -257,6 +265,52 @@ test("conta inexistente: mesma resposta (não revela se o e-mail tem conta)", as
   for (let i = 0; i < 6; i++) a.push((await passwordSignIn(L, f.port, { email: FAM, password: `x${i}`, ip: `203.0.113.${70 + i}` })).kind);
   for (let i = 0; i < 6; i++) b.push((await passwordSignIn(L, f.port, { email: "naoexiste@x.com", password: `x${i}`, ip: `203.0.113.${80 + i}` })).kind);
   assert.deepEqual(a, b);
+});
+
+test("e-mail sem conta: nenhum código de ENTRADA é enviado nem conferido, e a resposta é a mesma", async () => {
+  const m = memoryStore(), f = fakeAuth();
+  const L = makeLimiter(m.store, SECRET, { log: quiet });
+  const NONE = "naoexiste@x.com";
+  for (let i = 0; i < 5; i++) await passwordSignIn(L, f.port, { email: NONE, password: `x${i}`, ip: `203.0.113.${150 + i}` });
+  const r = await passwordSignIn(L, f.port, { email: NONE, password: "y", ip: IP1 });
+  assert.deepEqual(r, { kind: "challenge", sent: null }, "mesma resposta de uma conta real");
+  assert.ok(!f.calls.sends.some((x) => x === `sign-in:${NONE}`), "nenhum código de entrada enviado ao e-mail sem conta");
+  m.advance(31);
+  assert.equal(await sendCodeFlow(L, f.port, { email: NONE, ip: IP1 }, "sign-in"), null, "reenviar: mesma resposta, nada enviado");
+  assert.ok(!f.calls.sends.some((x) => x === `sign-in:${NONE}`));
+  const before = f.calls.codeTries;
+  assert.deepEqual(await codeSignIn(L, f.port, { email: NONE, code: "123456", ip: IP1 }), { kind: "error", error: "code" }, "código para e-mail sem conta: 'código inválido'");
+  assert.equal(f.calls.codeTries, before, "o Neon Auth nem é chamado (não cria conta por este caminho)");
+  // códigos de outros tipos seguem para o Neon Auth, que não cria conta com eles
+  assert.equal(await sendCodeFlow(L, f.port, { email: NONE, ip: IP1 }, "forget-password"), null);
+  assert.ok(f.calls.sends.includes(`forget-password:${NONE}`));
+});
+
+test("conta existente continua recebendo e usando o código de entrada", async () => {
+  const m = memoryStore(), f = fakeAuth();
+  const L = makeLimiter(m.store, SECRET, { log: quiet });
+  assert.equal(await sendCodeFlow(L, f.port, { email: FAM, ip: IP1 }, "sign-in"), null);
+  assert.ok(f.calls.sends.includes(`sign-in:${FAM}`));
+  assert.deepEqual(await codeSignIn(L, f.port, { email: FAM, code: "123456", ip: IP1 }), { kind: "ok" });
+});
+
+test("sem confirmar a conta (banco indisponível), nenhum código de entrada é enviado nem conferido", async () => {
+  const m = memoryStore(), f = fakeAuth();
+  const port: AuthPort = { ...f.port, accountExists: async () => { throw new Error("sem banco"); } };
+  const L = makeLimiter(m.store, SECRET, { log: quiet });
+  assert.equal(await sendCodeFlow(L, port, { email: FAM, ip: IP1 }, "sign-in"), "unavailable");
+  assert.deepEqual(await codeSignIn(L, port, { email: FAM, code: "123456", ip: IP1 }), { kind: "error", error: "unavailable" });
+  assert.equal(f.calls.sends.length + f.calls.codeTries, 0);
+});
+
+test("tempo de resposta: com ou sem conta, o pedido de código espera o mesmo mínimo", async () => {
+  const waits: number[] = [];
+  const timing = { floorMs: 900, jitterMs: 0, sleep: async (ms: number) => { waits.push(ms); } };
+  const f = fakeAuth();
+  await sendCodeFlow(null, f.port, { email: FAM, ip: IP1 }, "sign-in", timing);
+  await sendCodeFlow(null, f.port, { email: "naoexiste@x.com", ip: IP1 }, "sign-in", timing);
+  assert.equal(waits.length, 2, "os dois caminhos completam o tempo mínimo");
+  assert.ok(waits.every((w) => w > 850 && w <= 900), JSON.stringify(waits));
 });
 
 test("limites atuais (0013) continuam valendo, agora sem corrida", async () => {

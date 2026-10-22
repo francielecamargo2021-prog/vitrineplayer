@@ -249,7 +249,7 @@ try {
   check(guardLeft === 0, "o login completo zera a proteção da conta");
   await victim.c.close();
 
-  section("E-mail sem conta: mesma resposta, e o que o Neon Auth faz com o código");
+  section("E-mail sem conta: mesma resposta, nenhum código e nenhuma conta criada (opção B)");
   const NONE = mail("sem-conta");
   const noneAnswers = [];
   for (let i = 0; i < 5; i++) {
@@ -268,22 +268,27 @@ try {
   await semConta.p.goto(`${APP}/pt/entrar`);
   await semConta.p.fill('input[name="email"]', NONE);
   await semConta.p.fill('input[name="password"]', "qualquer-6-xxxx");
+  const t0 = Date.now();
   await semConta.p.locator("form button").first().click();
   const noneMsg = await semConta.p.waitForSelector("text=/incorretos|Confirme que é você|Muitas tentativas/", { timeout: 30000 }).then((e) => e.innerText(), () => "");
+  const noneMs = Date.now() - t0;
   check(noneMsg.includes("Confirme que é você"), "e-mail sem conta: a 6ª também pede código (não revela que a conta não existe)");
-  const codeRow = await knownCode(NONE, "sign-in");
-  console.log(`ℹ Neon Auth, e-mail sem conta: ${codeRow ? "gera e envia um código de entrada" : "não gera código de entrada"}`);
-  if (codeRow) {
-    await semConta.p.fill('input[name="code"]', CODE);
-    await semConta.p.locator('button[value="code"]').click();
-    await semConta.p.waitForLoadState("networkidle").catch(() => {});
-    await sleep(2000);
-    const created = (await q(`select count(*)::int n from neon_auth."user" where email = $1`, [NONE])).rows[0].n;
-    const where = new URL(semConta.p.url()).pathname;
-    console.log(`ℹ Neon Auth, e-mail sem conta + código certo: ${created ? "CRIA a conta" : "não cria conta"} · tela: ${where}`);
-    check(!created || where === "/pt/cadastro/concluir" || where === "/pt/entrar",
-      "se o Neon criar a conta pelo código, ela cai em 'concluir cadastro' (sem acesso ao painel sem consentimentos)", where);
-  }
+  check(noneMs >= 900, "a resposta sem conta respeita o tempo mínimo (igual à de uma conta real)", `${noneMs} ms`);
+  const [{ n: noneCodes }] = (await q(`select count(*)::int n from neon_auth.verification where identifier = $1`, [`sign-in-otp-${NONE}`])).rows;
+  check(noneCodes === 0, "e-mail sem conta: nenhum código de entrada é pedido ao Neon Auth");
+  // Simula um código obtido por fora do app (chamada direta ao Neon Auth): mesmo válido, o app não o usa.
+  await q(`insert into neon_auth.verification (identifier, value, "expiresAt") values ($1, $2, now() + interval '5 minutes')`, [`sign-in-otp-${NONE}`, `${CODE_HASH}:0`]);
+  await semConta.p.fill('input[name="code"]', CODE);
+  await semConta.p.locator('button[value="code"]').click();
+  const codeMsg = await semConta.p.waitForSelector("text=/Código inválido|Muitas tentativas|indispon/", { timeout: 30000 }).then((e) => e.innerText(), () => "");
+  check(codeMsg.includes("Código inválido"), "código digitado para e-mail sem conta: resposta genérica de código inválido", codeMsg);
+  await sleep(1500);
+  const created = (await q(`select count(*)::int n from neon_auth."user" where lower(email) = lower($1)`, [NONE])).rows[0].n;
+  check(created === 0, "nenhuma conta é criada pelo login por código (nem com um código válido obtido por fora)");
+  const [{ n: unused }] = (await q(`select count(*)::int n from neon_auth.verification where identifier = $1`, [`sign-in-otp-${NONE}`])).rows;
+  check(unused === 1, "o app nem chega a apresentar o código ao Neon Auth (continua sem uso)");
+  check(new URL(semConta.p.url()).pathname === "/pt/entrar", "continua na tela de entrada");
+  await q(`delete from neon_auth.verification where identifier = $1`, [`sign-in-otp-${NONE}`]);
   await semConta.c.close();
 
   // ------------------------------------------------------------------ recuperação de senha

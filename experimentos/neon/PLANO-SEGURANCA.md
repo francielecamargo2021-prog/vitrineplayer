@@ -127,3 +127,23 @@ reversão) apresentada antes. Nenhuma etapa pode ser pulada.
   se alguém com acesso àquela caixa digitar o código, **cria a conta**, que cai em
   "concluir cadastro" (sem painel sem consentimentos). Registrado como ponto de decisão.
 - Achado corrigido: a espera entre envios passou a ser por e-mail **e tipo** de código.
+
+## Opção B — login por código só para contas existentes (22/10, só código)
+
+- Decisão: um e-mail sem conta não pode virar conta pelo login por código. Respostas genéricas.
+- `signin-flow.ts`: antes de pedir o código de ENTRADA ao Neon Auth e antes de conferir um
+  código digitado, o servidor confirma se a conta existe (`neon_auth."user"`, consulta só no
+  servidor, papel de serviço, até 2,5 s). Sem conta: nada é enviado, o código digitado recebe
+  "código inválido" e o Neon Auth nem é chamado. Tempo mínimo de resposta (0,9–1,15 s) igual
+  para os dois casos. Sem confirmar a conta (banco fora): não envia ("indisponível").
+- Caminhos de código no app conferidos: só o desafio do login, o "reenviar" e a entrada com
+  código usam o tipo "sign-in". Confirmação de e-mail e recuperação de senha não criam conta.
+  Não há rota `/api/auth` no app.
+- Testes: unitários 30; banco local (pgTAP, 50 simultâneas, reversões) ok; navegador contra a
+  homologação 72 ok — inclusive um código VÁLIDO para e-mail sem conta (simulando um obtido por
+  fora): o app responde "código inválido", não usa o código e nenhuma conta é criada.
+- **Limitação do Neon Auth (pendente, depende de configuração externa):** quem chamar o endereço
+  do Neon Auth diretamente (`/email-otp/send-verification-otp` + `/sign-in/email-otp`, ou
+  `/sign-up/email`) ainda pode criar uma conta sem passar pelo app. Só o Neon bloqueia isso
+  (ex.: desligar o cadastro automático no login por código). Essas contas caem em "concluir
+  cadastro" e não acessam o painel sem consentimentos. Qualquer ajuste exige aprovação.

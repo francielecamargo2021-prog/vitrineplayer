@@ -6,7 +6,9 @@
 import { criarPool } from "../../conexao.mjs";
 import { LIMIT_SQL } from "../../../src/lib/auth/limit-sql.ts";
 import { GUARD_LIMIT, RULES, deriveKey, makeLimiter, newDeviceToken } from "../../../src/lib/auth/limits.ts";
-import { codeSignIn, passwordSignIn, sendCodeFlow } from "../../../src/lib/auth/signin-flow.ts";
+import { DEFAULT_TIMING, codeSignIn, passwordSignIn, sendCodeFlow } from "../../../src/lib/auth/signin-flow.ts";
+DEFAULT_TIMING.floorMs = 0; // sem o tempo mínimo de resposta: aqui medimos contagens, não tempo
+DEFAULT_TIMING.jitterMs = 0;
 
 const N = 50;
 // local (run.sh) ou homologação: mesmas travas do migrar.mjs (ambiente e projeto conferidos)
@@ -67,6 +69,7 @@ function fakeAuth() {
       async signInPassword(email, password) { seen.password++; await new Promise((r) => setTimeout(r, 5)); return password === "certa-123456" ? { ok: true, emailVerified: true } : { ok: false, kind: "invalid" }; },
       async sendCode() { seen.sends++; return "ok"; },
       async signInCode(email, otp) { seen.codes++; return otp === "123456" ? { ok: true } : { ok: false, kind: "code" }; },
+      async accountExists() { return true; },
     },
   };
 }
