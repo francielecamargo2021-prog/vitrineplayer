@@ -118,6 +118,52 @@ const pt = {
     cta: "Sou profissional do futebol",
     note: "Toda solicitação passa por verificação antes da liberação da base.",
   },
+  /** Landing (evolução visual 10/2026). Textos de produto e avisos legais continuam nas chaves acima. */
+  home: {
+    menu: { open: "Abrir menu", close: "Fechar menu", signup: "Cadastrar atleta", pro: "Sou profissional" },
+    hero: {
+      lead: "O talento pode nascer em",
+      key: "qualquer lugar.",
+      line: "A visibilidade começa aqui.",
+      body: "A VitrinePlayer organiza e apresenta perfis de atletas do futebol de base em uma plataforma privada, acessível a profissionais verificados.",
+      cta: "Cadastrar atleta",
+      cta2: "Conheça a plataforma",
+      scroll: "Role para conhecer",
+    },
+    story: {
+      kicker: "Futebol de base",
+      lines: ["Todo talento tem uma história.", "Nem todo talento tem a mesma visibilidade."],
+      body: "Talento existe em clubes grandes, em escolinhas do interior e em campos de bairro. O que muda é quem consegue ver. A VitrinePlayer reúne cada atleta em um perfil padronizado, revisado pela equipe e consultado apenas por profissionais verificados.",
+      points: [
+        { t: "Perfil padronizado", d: "Dados esportivos, trajetória, fotos e vídeos no mesmo formato, para uma leitura rápida." },
+        { t: "Base privada", d: "Nenhum perfil fica aberto na internet. Só profissionais verificados consultam a base." },
+        { t: "Família no controle", d: "O responsável aprova o que aparece e o contato é sempre intermediado." },
+      ],
+      credit: "Imagens ilustrativas de banco licenciado.",
+    },
+    how: { kicker: "Como funciona", title: "Do cadastro à vitrine." },
+    profile: { kicker: "Perfil do atleta", photo: "Espaço da foto do atleta", photoNote: "Perfil demonstrativo: sem foto real", sheet: "Ficha técnica", videos: "Vídeos no YouTube", goal: "Objetivo" },
+    pros: {
+      kicker: "Para profissionais",
+      access: "Como o acesso é liberado",
+      steps: ["Solicitação de acesso pela organização", "Verificação de documentos e vínculo", "Acesso à base privada e contato intermediado"],
+    },
+    base: {
+      kicker: "Futebol de base",
+      title: "Do sub-11 ao sub-20.",
+      stats: [
+        { value: "0", label: "perfis públicos", note: "A base é privada: nenhum perfil fica aberto na internet." },
+        { value: "4", label: "países na rota inicial", note: "Brasil, Argentina, Paraguai e Uruguai." },
+        { value: "R$ 0", label: "custo para cadastrar", note: "Sem taxa de cadastro e sem mensalidade." },
+      ],
+    },
+    pricing: { kicker: "Cadastro", includesTitle: "O que está incluído" },
+    closing: {
+      title: ["A próxima geração", "já está em campo."],
+      body: "Cadastre o atleta, construa o perfil e acompanhe cada etapa da análise.",
+      cta: "Cadastrar atleta",
+    },
+  },
   footer: {
     tagline: "Plataforma privada de talentos do futebol.",
     legal: "A VitrinePlayer não é peneira, escolinha, rede social ou agência. Cadastro não garante oportunidades.",

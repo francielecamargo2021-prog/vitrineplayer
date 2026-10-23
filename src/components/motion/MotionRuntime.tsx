@@ -20,6 +20,8 @@ export function MotionRuntime() {
     const root = document.documentElement;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const finePointer = window.matchMedia("(pointer: fine)").matches;
+    // Blocos com data-reveal="up" só ficam ocultos (para animar a entrada) quando este runtime está ativo
+    if (!reduce) root.classList.add("js-motion");
 
     const animateCount = (el: HTMLElement) => {
       const target = Number(el.dataset.count ?? 0);

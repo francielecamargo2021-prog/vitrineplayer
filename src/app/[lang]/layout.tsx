@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
-import { Archivo, IBM_Plex_Mono } from "next/font/google";
+import { Archivo, Barlow_Condensed, IBM_Plex_Mono, Inter } from "next/font/google";
 import { hasLocale, htmlLang, locales } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { MotionRuntime } from "@/components/motion/MotionRuntime";
@@ -11,6 +11,18 @@ const archivo = Archivo({
   subsets: ["latin"],
   axes: ["wdth"],
   variable: "--font-archivo",
+  display: "swap",
+});
+/** Landing: títulos em Barlow Condensed, texto em Inter (escopo .landing em globals.css). */
+const barlow = Barlow_Condensed({
+  subsets: ["latin"],
+  weight: ["600", "700", "800"],
+  variable: "--font-barlow",
+  display: "swap",
+});
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
   display: "swap",
 });
 const plexMono = IBM_Plex_Mono({
@@ -45,7 +57,7 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
   return (
     <html
       lang={htmlLang[lang]}
-      className={`${archivo.variable} ${plexMono.variable}`}
+      className={`${archivo.variable} ${barlow.variable} ${inter.variable} ${plexMono.variable}`}
     >
       <body>
         {children}

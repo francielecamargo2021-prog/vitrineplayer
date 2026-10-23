@@ -22,18 +22,28 @@ export const media = {
     ] as HeroClip[],
     shot: "Vídeo do hero: montagem de jogos de base",
   },
-  /** Full bleed "Futebol de base" (foto ou vídeo horizontal). */
-  base: { src: null, shot: "Jogo de base, plano aberto com disputa de bola" } as MediaSlotData,
-  /** Uma foto por passo de "Como funciona" (vertical 4:5). */
+  /**
+   * Cenas de ambientação: quadros do próprio vídeo do hero (mesmos clipes licenciados do
+   * Pexels). Usadas só como atmosfera — nunca como foto de atleta cadastrado.
+   */
+  scenes: {
+    bootBall: { src: "/media/cenas/chuteira-bola.jpg", shot: "Chuteira e bola no gramado à noite" } as MediaSlotData,
+    duel: { src: "/media/cenas/disputa.jpg", shot: "Disputa de bola em jogo de base" } as MediaSlotData,
+    shot: { src: "/media/cenas/finalizacao.jpg", shot: "Camisa 10 finalizando diante do goleiro" } as MediaSlotData,
+    stride: { src: "/media/cenas/passada.jpg", shot: "Passada no gramado sob luz de refletor" } as MediaSlotData,
+  },
+  /** Full bleed "Futebol de base". */
+  base: { src: "/media/cenas/disputa.jpg", shot: "Jogo de base, disputa de bola" } as MediaSlotData,
+  /** Uma foto por passo de "Como funciona" (vertical 4:5) — sem uso na landing atual (cards sem foto). */
   steps: [
     { src: null, shot: "Responsável e atleta no celular, beira do campo" },
     { src: null, shot: "Atleta em ação: drible ou finalização" },
     { src: null, shot: "Atleta entrando em campo pelo túnel" },
   ] as MediaSlotData[],
-  /** Retrato do perfil demonstrativo (vertical, atleta fictício/autorizado). */
+  /** Retrato do perfil demonstrativo: sem foto real (perfil fictício). */
   athlete: { src: null, shot: "Retrato do atleta de uniforme, luz lateral" } as MediaSlotData,
   /** Fundo da área profissional. */
-  pros: { src: null, shot: "Scout na arquibancada observando o jogo" } as MediaSlotData,
-  /** Full bleed antes do preço. */
-  next: { src: null, shot: "Comemoração de gol do time de base" } as MediaSlotData,
+  pros: { src: "/media/cenas/passada.jpg", shot: "Passada no gramado sob luz de refletor" } as MediaSlotData,
+  /** Encerramento. */
+  next: { src: "/media/cenas/finalizacao.jpg", shot: "Camisa 10 finalizando diante do goleiro" } as MediaSlotData,
 };

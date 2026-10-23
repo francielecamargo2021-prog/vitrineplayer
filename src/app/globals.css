@@ -212,3 +212,87 @@ html[data-cta] .sticky-cta { transform: none; }
   mix-blend-mode: overlay;
   pointer-events: none;
 }
+
+/* ==========================================================================
+   LANDING — evolução visual (10/2026)
+   Escopo .landing: só a Home muda de fonte e paleta; painel, portal e admin
+   continuam com Archivo e os tokens acima.
+   Títulos: Barlow Condensed 700/800 · Texto: Inter.
+   ========================================================================== */
+.landing {
+  --font-display: var(--font-barlow), "Arial Narrow", system-ui, sans-serif;
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --color-ink: #080d0a;       /* preto premium */
+  --color-night: #0b130e;
+  --color-pitch: #09251b;     /* verde-floresta profundo */
+  --color-turf: #176b45;      /* verde esportivo */
+  --color-grass: #39c77a;     /* destaque — só detalhes */
+  --color-signal: #39c77a;
+  --color-signal-soft: #39c77a;
+  --color-bone: #f5f5f0;      /* branco suave */
+  font-family: var(--font-sans);
+  background: var(--color-ink);
+  color: var(--color-bone);
+}
+
+/* Títulos esportivos: proporcionais, quebra equilibrada, folga para acentos */
+.landing .t-display {
+  font-family: var(--font-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.002em;
+  line-height: 0.95;
+  text-wrap: balance;
+}
+.landing .t-kicker {
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-grass);
+}
+.landing .t-h2 { font-size: clamp(2.35rem, 6.2vw, 4.75rem); }
+.landing .t-h3 { font-size: clamp(1.5rem, 2.6vw, 2rem); line-height: 1; }
+.landing .t-body { font-size: clamp(1rem, 1.15vw, 1.125rem); line-height: 1.65; color: rgb(245 245 240 / 0.78); }
+
+/* O menu fixo nunca cobre o início de uma seção ancorada */
+.landing section[id] { scroll-margin-top: 5rem; }
+
+/* Grafismo discreto de campo: linhas de marcação, sem desenhar estádio */
+.landing .pitch-lines {
+  background-image:
+    linear-gradient(to right, rgb(245 245 240 / 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(245 245 240 / 0.05) 1px, transparent 1px);
+  background-size: 50% 100%, 100% 50%;
+  background-position: center;
+}
+.landing .pitch-circle { border: 1px solid rgb(245 245 240 / 0.07); border-radius: 9999px; }
+
+/* Entrada suave de blocos (cards, listas). Visível em repouso sem JS: só anima com .js-motion */
+html.js-motion .landing [data-reveal="up"] { opacity: 0; transform: translate3d(0, 28px, 0); transition: opacity 0.9s var(--ease-cine), transform 0.9s var(--ease-cine); transition-delay: calc(var(--d, 0) * 1ms); }
+html.js-motion .landing [data-reveal="up"].is-in { opacity: 1; transform: none; }
+
+/* Indicador de rolagem do hero */
+.scroll-cue::after {
+  content: "";
+  display: block;
+  width: 1px;
+  height: 2.75rem;
+  margin: 0.6rem auto 0;
+  background: linear-gradient(to bottom, var(--color-bone), transparent);
+  transform-origin: top;
+  animation: cue 2.4s var(--ease-soft) infinite;
+}
+@keyframes cue { 0% { transform: scaleY(0); opacity: 1; } 60% { transform: scaleY(1); opacity: 1; } 100% { transform: scaleY(1); opacity: 0; } }
+
+/* Cards da landing: hover elegante (só ponteiro fino) */
+@media (hover: hover) and (pointer: fine) {
+  .landing .lift { transition: transform 0.7s var(--ease-cine), border-color 0.7s var(--ease-cine), background-color 0.7s var(--ease-cine); }
+  .landing .lift:hover { transform: translateY(-4px); border-color: rgb(57 199 122 / 0.45); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.js-motion .landing [data-reveal="up"] { opacity: 1; transform: none; }
+  .scroll-cue::after { animation: none; }
+}

@@ -4,35 +4,40 @@ import { getDictionary } from "@/i18n/get-dictionary";
 import { Header } from "@/components/home/Header";
 import { Hero } from "@/components/home/Hero";
 import { Manifesto } from "@/components/home/Manifesto";
-import { FullBleed } from "@/components/home/FullBleed";
 import { HowItWorks } from "@/components/home/HowItWorks";
 import { ProfileShowcase } from "@/components/home/ProfileShowcase";
 import { Professionals } from "@/components/home/Professionals";
+import { BaseSection } from "@/components/home/BaseSection";
 import { Pricing } from "@/components/home/Pricing";
+import { Closing } from "@/components/home/Closing";
 import { Footer } from "@/components/home/Footer";
 import { StickyCta } from "@/components/home/StickyCta";
-import { media } from "@/content/media";
 
+/**
+ * Landing: vídeo (hero) → A história → B como funciona → C perfil → D profissionais →
+ * E futebol de base → F cadastro → G encerramento → rodapé. `.landing` aplica a
+ * tipografia e a paleta da landing sem mexer no restante do site.
+ */
 export default async function Home({ params }: PageProps<"/[lang]">) {
   const { lang } = await params;
   if (!hasLocale(lang)) notFound();
   const dict = await getDictionary(lang);
 
   return (
-    <>
+    <div className="landing">
       <Header lang={lang} dict={dict} />
       <main>
         <Hero lang={lang} dict={dict} />
         <Manifesto dict={dict} />
-        <FullBleed id="base" slot={media.base} title={dict.field.title} caption={dict.field.caption} stats={dict.field.stats} />
         <HowItWorks dict={dict} />
         <ProfileShowcase lang={lang} dict={dict} />
         <Professionals lang={lang} dict={dict} />
-        <FullBleed slot={media.next} title={dict.next.title} />
+        <BaseSection dict={dict} />
         <Pricing lang={lang} dict={dict} />
+        <Closing lang={lang} dict={dict} />
       </main>
       <Footer lang={lang} dict={dict} />
       <StickyCta lang={lang} dict={dict} />
-    </>
+    </div>
   );
 }

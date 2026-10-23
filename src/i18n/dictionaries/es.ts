@@ -118,6 +118,51 @@ const es: Dictionary = {
     cta: "Soy profesional del fútbol",
     note: "Toda solicitud pasa por verificación antes de habilitar la base.",
   },
+  home: {
+    menu: { open: "Abrir menú", close: "Cerrar menú", signup: "Registrar atleta", pro: "Soy profesional" },
+    hero: {
+      lead: "El talento puede nacer en",
+      key: "cualquier lugar.",
+      line: "La visibilidad empieza aquí.",
+      body: "VitrinePlayer organiza y presenta perfiles de atletas del fútbol formativo en una plataforma privada, accesible para profesionales verificados.",
+      cta: "Registrar atleta",
+      cta2: "Conocé la plataforma",
+      scroll: "Deslizá para conocer",
+    },
+    story: {
+      kicker: "Fútbol formativo",
+      lines: ["Todo talento tiene una historia.", "No todo talento tiene la misma visibilidad."],
+      body: "El talento existe en clubes grandes, en escuelitas del interior y en canchas de barrio. Lo que cambia es quién lo puede ver. VitrinePlayer reúne a cada atleta en un perfil estandarizado, revisado por el equipo y consultado solo por profesionales verificados.",
+      points: [
+        { t: "Perfil estandarizado", d: "Datos deportivos, trayectoria, fotos y videos en el mismo formato, para una lectura rápida." },
+        { t: "Base privada", d: "Ningún perfil queda abierto en internet. Solo profesionales verificados consultan la base." },
+        { t: "La familia decide", d: "El responsable aprueba lo que aparece y el contacto siempre es intermediado." },
+      ],
+      credit: "Imágenes ilustrativas de banco con licencia.",
+    },
+    how: { kicker: "Cómo funciona", title: "Del registro a la vitrina." },
+    profile: { kicker: "Perfil del atleta", photo: "Espacio de la foto del atleta", photoNote: "Perfil demostrativo: sin foto real", sheet: "Ficha técnica", videos: "Videos en YouTube", goal: "Objetivo" },
+    pros: {
+      kicker: "Para profesionales",
+      access: "Cómo se habilita el acceso",
+      steps: ["Solicitud de acceso por la organización", "Verificación de documentos y vínculo", "Acceso a la base privada y contacto intermediado"],
+    },
+    base: {
+      kicker: "Fútbol formativo",
+      title: "De sub-11 a sub-20.",
+      stats: [
+        { value: "0", label: "perfiles públicos", note: "La base es privada: ningún perfil queda abierto en internet." },
+        { value: "4", label: "países en la ruta inicial", note: "Brasil, Argentina, Paraguay y Uruguay." },
+        { value: "R$ 0", label: "costo de registro", note: "Sin costo de registro y sin mensualidad." },
+      ],
+    },
+    pricing: { kicker: "Registro", includesTitle: "Qué incluye" },
+    closing: {
+      title: ["La próxima generación", "ya está en la cancha."],
+      body: "Registrá al atleta, construí el perfil y seguí cada etapa del análisis.",
+      cta: "Registrar atleta",
+    },
+  },
   footer: {
     tagline: "Plataforma privada de talentos del fútbol.",
     legal: "VitrinePlayer no es prueba de jugadores, escuela, red social ni agencia. El registro no garantiza oportunidades.",
