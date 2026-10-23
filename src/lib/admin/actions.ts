@@ -26,6 +26,7 @@ const text = (fd: FormData, k: string, max = 1000) => String(fd.get(k) ?? "").tr
 /** Erros do banco → mensagens curtas (nunca o erro bruto). */
 function errorKey(message: string) {
   if (message.includes("note required")) return "Informe o motivo (mínimo de 5 caracteres). Ele fica registrado na auditoria.";
+  if (message.includes("invalid band")) return "Faixa inválida: respeite o piso do tipo de organização e o máximo de 22 anos.";
   if (message.includes("invalid transition")) return "Essa decisão não vale para a situação atual. Atualize a página.";
   if (message.includes("invalid settings") || message.includes("invalid quantity")) return "Valores inválidos.";
   if (message.includes("cannot remove owner")) return "O dono da organização não pode ser removido.";
@@ -183,6 +184,22 @@ export async function resolveReport(lang: string, requestId: string, _prev: Form
 export async function cancelInterest(lang: string, requestId: string, _prev: FormState, fd: FormData): Promise<FormState> {
   if (!isUuid(requestId)) return { error: "Interesse inválido." };
   return run(lang, (a) => sql(a)((q) => q`select admin_cancel_interest(${requestId}::uuid, ${text(fd, "note")})`), "Interesse cancelado.");
+}
+
+/**
+ * Faixa de idade autorizada para a organização (0015). "reset" volta ao padrão do tipo.
+ * O banco confere admin + segundo fator, piso do tipo, máximo de 22 e motivo, e grava auditoria.
+ */
+export async function setOrgAgeBand(lang: string, orgId: string, _prev: FormState, fd: FormData): Promise<FormState> {
+  if (!isUuid(orgId)) return { error: "Organização inválida." };
+  const reset = fd.get("decision") === "reset";
+  const min = reset ? null : Number(fd.get("age_min"));
+  const max = reset ? null : Number(fd.get("age_max"));
+  if (!reset && (!Number.isInteger(min) || !Number.isInteger(max))) return { error: "Informe a idade mínima e a máxima." };
+  const note = text(fd, "note");
+  if (note.length < 5) return { error: errorKey("note required") };
+  return run(lang, (a) => sql(a)((q) => q`select admin_set_org_age_band(${orgId}::uuid, ${min}::int, ${max}::int, ${note})`),
+    reset ? "Faixa voltou ao padrão do tipo." : "Faixa de idade autorizada.");
 }
 
 export async function removeMember(lang: string, orgId: string, profileId: string, _prev: FormState): Promise<FormState> {

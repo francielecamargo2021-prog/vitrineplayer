@@ -38,6 +38,7 @@ function errorKey(message: string) {
   if (message.includes("request already active")) return "active";
   if (message.includes("no analyses available")) return "noCredit";
   if (message.includes("too many requests")) return "tooMany";
+  if (message.includes("formative age")) return "formative";
   return "generic";
 }
 

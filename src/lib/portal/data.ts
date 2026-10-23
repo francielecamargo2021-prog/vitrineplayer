@@ -129,9 +129,15 @@ export async function myLists(userId: string) {
       from pro_lists l where is_approved_pro() order by l.created_at desc`);
 }
 
-export type SentInterest = { id: string; athlete_id: string; athlete_name: string | null; status: string; message: string; created_at: string; resolved_at: string | null };
+/** Faixa de idade que a organização do profissional enxerga (0015, calculada no banco). */
+export async function myAgeBands(userId: string) {
+  return asUser<{ organization_id: string; age_min: number | null; age_max: number | null }>(userId, (q) => q`select * from pro_age_bands()`);
+}
+
+export type SentInterest = { id: string; athlete_id: string; athlete_name: string | null; status: string; message: string; created_at: string; resolved_at: string | null; purpose: string };
 export async function myInterests(userId: string) {
-  return asUser<SentInterest>(userId, (q) => q`select * from pro_my_interests()`);
+  return asUser<SentInterest>(userId, (q) => q`select i.*, coalesce(p.purpose, 'general') as purpose
+    from pro_my_interests() i left join lateral interest_purposes(array[i.id]) p on true`);
 }
 
 // ---------------------------------------------------------------- área de trabalho (B1), relatório de IA (D1) e equipe (B2)

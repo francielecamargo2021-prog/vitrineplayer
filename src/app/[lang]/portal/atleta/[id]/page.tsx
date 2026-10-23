@@ -6,6 +6,7 @@ import { getPanelDictionary, getPortalDictionary } from "@/i18n/get-dictionary";
 import { aiReport, athleteProfile, athleteVideos, myLists, requirePro, timeline, workspace } from "@/lib/portal/data";
 import { sendInterest } from "@/lib/portal/actions";
 import { isFormativeAge, youtubeThumb, ADULT_AGE } from "@/domain/athlete";
+import { purposesFor } from "@/domain/organization-age";
 import { FramedPhoto } from "@/components/panel/FramedPhoto";
 import { FavoriteButton, InterestForm, ListToggles } from "@/components/portal/PortalWidgets";
 import { DeleteButton, EvaluationForm, NoteForm, StageSelect } from "@/components/portal/WorkspaceWidgets";
@@ -278,7 +279,7 @@ export default async function PortalAthlete({ params }: PageProps<"/[lang]/porta
             ) : (
               <>
                 <p className="mt-3 text-[0.9rem] leading-relaxed text-fog">{t.interest.lead}</p>
-                <div className="mt-5"><InterestForm action={sendInterest.bind(null, lang, a.id)} t={t.interest} /></div>
+                <div className="mt-5"><InterestForm action={sendInterest.bind(null, lang, a.id)} t={t.interest} purposes={purposesFor(s.pro.organization?.kind ?? "")} /></div>
               </>
             )}
           </section>

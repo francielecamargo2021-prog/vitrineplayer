@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { PendingNotice } from "@/components/portal/PortalShell";
 import { hasLocale, htmlLang } from "@/i18n/config";
 import { getPanelDictionary, getPortalDictionary } from "@/i18n/get-dictionary";
-import { readFilters, requirePro, searchAthletes, updatedIds } from "@/lib/portal/data";
+import { myAgeBands, readFilters, requirePro, searchAthletes, updatedIds } from "@/lib/portal/data";
 import { ATHLETE_AGE_MAX, ATHLETE_AGE_MIN, countryOptions, feet, modalities, positions, seekingKinds, sexes } from "@/domain/athlete";
 import { SelectField, TextField, ghostButton, primaryButton } from "@/components/panel/controls";
 import { AthleteTile } from "@/components/portal/AthleteTile";
@@ -18,7 +18,8 @@ export default async function PortalSearch({ params, searchParams }: PageProps<"
   const sp = await searchParams;
   const filters = readFilters(sp);
   const page = Math.max(1, Math.min(500, Number(sp.pagina) || 1));
-  const [p, t, result] = await Promise.all([getPanelDictionary(lang), getPortalDictionary(lang), searchAthletes(s.user.id, filters, page)]);
+  const [p, t, result, bands] = await Promise.all([getPanelDictionary(lang), getPortalDictionary(lang), searchAthletes(s.user.id, filters, page), myAgeBands(s.user.id)]);
+  const band = bands.find((b) => b.organization_id === s.pro.organization?.id) ?? bands[0];
   const f = t.search;
   const region = new Intl.DisplayNames([htmlLang[lang]], { type: "region" });
   const updated = await updatedIds(s.user.id, result.rows.map((x) => x.id));
@@ -46,6 +47,9 @@ export default async function PortalSearch({ params, searchParams }: PageProps<"
             <span className="block text-transparent [-webkit-text-stroke:0.02em_#efeee8]">{f.title[1]}</span>
           </h1>
           <p className="mt-4 max-w-[60ch] text-fog">{f.lead}</p>
+          <p className="mt-2 max-w-[60ch] text-[0.85rem] text-ash" data-testid="faixa-portal">
+            {band?.age_min != null && band.age_max != null ? f.band.replace("{min}", String(band.age_min)).replace("{max}", String(band.age_max)) : f.bandNone}
+          </p>
         </div>
         <dl className="flex gap-6 text-[0.85rem]">
           <div><dt className="text-ash">{f.usage}</dt><dd className="font-mono text-bone">{s.pro.usage.views_today}/{s.pro.limits.views_per_day}</dd></div>

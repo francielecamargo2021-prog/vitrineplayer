@@ -27,6 +27,7 @@ export default async function PortalInterests({ params }: PageProps<"/[lang]/por
                   <Link href={`/${lang}/portal/atleta/${r.athlete_id}`} className="text-bone hover:text-grass">{r.athlete_name}</Link>
                 ) : <span className="text-ash">{t.interest.unavailable}</span>}
                 <p className="text-[0.8rem] text-ash">{t.interests.sentOn} {date.format(new Date(r.created_at))}</p>
+                <p className="text-[0.8rem] text-grass" data-testid="finalidade">{(t.interest.purposes as Record<string, string>)[r.purpose] ?? t.interest.purposes.general}</p>
               </div>
               <p className="text-[0.9rem] text-fog md:col-span-5">{r.message}</p>
               <p className="text-[0.9rem] text-bone md:col-span-3 md:text-right" data-testid="status">

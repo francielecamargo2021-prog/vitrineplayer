@@ -178,12 +178,14 @@ export type OrgRow = {
   id: string; name: string; kind: string; country: string; state: string | null; city: string | null; document: string | null; license: string | null;
   website: string | null; about: string | null; contact_name: string | null; contact_role: string | null; contact_email: string | null; contact_phone: string | null;
   review_note: string | null; status: OrgStatus; created_at: string; reviewed_at: string | null; members: number; reports: number;
+  /** faixa autorizada pelo admin (0015); nulos = padrão do tipo */
+  athlete_age_min: number | null; athlete_age_max: number | null; age_band_at?: string | null;
 };
 export async function listOrganizations(s: AdminSession, f: { status: OrgStatus; kind?: string; q?: string }) {
   const t = like(f.q);
   const rows = await json<OrgRow[]>(s, (q) => q`select coalesce(jsonb_agg(x order by x.created_at), '[]') as j from (
     select o.id, o.name, o.kind, o.country, o.state, o.city, o.document, o.license, o.website, o.about, o.contact_name, o.contact_role,
-           o.contact_email, o.contact_phone, o.review_note, o.status, o.created_at, o.reviewed_at,
+           o.contact_email, o.contact_phone, o.review_note, o.status, o.created_at, o.reviewed_at, o.athlete_age_min, o.athlete_age_max,
            (select count(*) from organization_members m where m.organization_id = o.id) as members,
            (select count(*) from contact_requests r where r.organization_id = o.id and r.reported_at is not null) as reports
       from organizations o

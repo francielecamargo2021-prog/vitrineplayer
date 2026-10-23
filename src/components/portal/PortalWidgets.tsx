@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useKeepAction } from "@/components/forms/use-keep-action";
 import { createList, deleteList, setInList, toggleFavorite, type PortalState } from "@/lib/portal/actions";
-import { TextArea, TextField, ghostButton, primaryButton } from "@/components/panel/controls";
+import { SelectField, TextArea, TextField, ghostButton, primaryButton } from "@/components/panel/controls";
 import type { PortalDictionary } from "@/i18n/get-dictionary";
 
 function Heart({ on }: { on: boolean }) {
@@ -70,12 +70,18 @@ export function ListToggles({ lang, athleteId, lists, inLists, t }: {
   );
 }
 
-export function InterestForm({ action, t }: { action: (s: PortalState, fd: FormData) => Promise<PortalState>; t: PortalDictionary["interest"] }) {
+export function InterestForm({ action, t, purposes = ["general"] }: {
+  action: (s: PortalState, fd: FormData) => Promise<PortalState>; t: PortalDictionary["interest"]; purposes?: string[];
+}) {
   const [state, formAction, pending] = useKeepAction(action);
   if (state?.ok) return <p role="status" className="border-l-2 border-grass pl-4 text-bone">{t.sent}</p>;
   const err = state?.error ? (t.errors as Record<string, string>)[state.error] ?? t.errors.generic : null;
   return (
     <form onSubmit={formAction} className="space-y-4">
+      {purposes.length > 1 ? (
+        <SelectField label={t.purpose} name="purpose" defaultValue="general" hint={t.purposeHint}
+          options={purposes.map((p) => ({ value: p, label: (t.purposes as Record<string, string>)[p] ?? p }))} />
+      ) : <input type="hidden" name="purpose" value="general" />}
       <TextArea label={t.message} name="message" required minLength={10} maxLength={500} hint={t.messageHint} />
       {err && <p role="alert" className="border-l-2 border-[#e5a3a3] pl-4 text-[#f0c4c4]">{err}</p>}
       <button disabled={pending} className={`${primaryButton} w-full`}>{t.send}</button>

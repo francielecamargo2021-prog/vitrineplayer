@@ -57,7 +57,7 @@ export async function createAthlete(lang: string, _prev: FormState, fd: FormData
     p_country: country,
     p_relation: relation,
   });
-  if (error || !data) return { error: /minor needs guardian/.test(error?.message ?? "") ? "minorSelf" : "generic" };
+  if (error || !data) return { error: /minor needs guardian/.test(error?.message ?? "") ? "minorSelf" : /age out of range/.test(error?.message ?? "") ? "ageRange" : "generic" };
   refresh(lang);
   redirect(`/${safeLang(lang)}/painel/atleta/${data}/editar/dados`);
 }

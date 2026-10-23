@@ -3,11 +3,13 @@ import { notFound } from "next/navigation";
 import { hasLocale } from "@/i18n/config";
 import { getPanelDictionary } from "@/i18n/get-dictionary";
 import { getOrganizationDetail, requireAdmin } from "@/lib/admin/data";
-import { removeMember, reviewOrganization, revokeInvite } from "@/lib/admin/actions";
+import { removeMember, reviewOrganization, revokeInvite, setOrgAgeBand } from "@/lib/admin/actions";
+import { AgeBandForm } from "@/components/admin/AgeBandForm";
+import { ageFloor, effectiveBand } from "@/domain/organization-age";
 import { ReviewForm } from "@/components/admin/ReviewForm";
 import { ActionForm } from "@/components/admin/ActionForm";
 import { Facts, Section, auditLabel, fmtDate } from "@/components/admin/AdminUi";
-import { orgOptionsFor as optionsFor } from "@/components/admin/orgOptions";
+import { bandText, orgOptionsFor as optionsFor } from "@/components/admin/orgOptions";
 
 const interestLabel: Record<string, string> = { requested: "aguardando", accepted: "aceitos", declined: "recusados", expired: "expirados" };
 const reportLabel: Record<string, string> = { open: "aberta", reviewing: "em análise", resolved: "resolvida", dismissed: "arquivada" };
@@ -20,6 +22,8 @@ export default async function AdminOrganization({ params }: PageProps<"/[lang]/a
   const [p, d] = await Promise.all([getPanelDictionary("pt"), getOrganizationDetail(session, id)]);
   const o = d.org;
   const region = new Intl.DisplayNames(["pt-BR"], { type: "region" });
+  const floor = ageFloor(o.kind);
+  const band = effectiveBand(o.kind, o.athlete_age_min, o.athlete_age_max);
   return (
     <main className="gutter mx-auto max-w-6xl space-y-10 py-10 md:py-12">
       <Link href={`/${lang}/admin/organizacoes?situacao=${o.status}`} className="text-[0.875rem] text-fog hover:text-bone">← Organizações</Link>
@@ -53,6 +57,18 @@ export default async function AdminOrganization({ params }: PageProps<"/[lang]/a
                 <ActionForm action={revokeInvite.bind(null, lang, i.id)} buttons={[{ label: "Cancelar convite" }]} />
               </div>
             ))}
+          </Section>
+          <Section title="Faixa de idade dos atletas" testId="faixa-org">
+            <p className="text-[0.9rem] text-bone" data-testid="faixa-efetiva">{bandText(o.kind, o.athlete_age_min, o.athlete_age_max)}</p>
+            <p className="mt-2 text-[0.8rem] leading-relaxed text-ash">
+              A organização só vê, avalia e envia interesse para atletas nesta faixa, pela idade de hoje. Piso deste tipo: {floor} anos; máximo: 22.
+              {floor <= 6 ? " De 6 a 10 anos (fase formativa) só com autorização, sem notas e sem análise por IA." : ""}
+              {o.kind === "scouting_hub" ? " Núcleos não têm acesso até a faixa ser definida aqui." : ""}
+            </p>
+            <div className="mt-4">
+              <AgeBandForm action={setOrgAgeBand.bind(null, lang, o.id)} floor={floor}
+                min={band?.min ?? Math.max(floor, 11)} max={band?.max ?? 22} custom={o.athlete_age_min !== null} />
+            </div>
           </Section>
           <Section title="Uso do portal">
             <Facts rows={[

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { purposes } from "@/domain/organization-age";
 import { redirect } from "next/navigation";
 import { asUser } from "@/lib/db";
 import { currentUser } from "@/lib/auth/server";
@@ -80,14 +81,18 @@ export async function sendInterest(lang: string, athleteId: string, _prev: Porta
   if (!isUuid(athleteId)) return { error: "generic" };
   const message = String(fd.get("message") ?? "").trim();
   if (message.length < 10 || message.length > 500) return { error: "length" };
+  const purpose = String(fd.get("purpose") ?? "general");
+  if (!(purposes as readonly string[]).includes(purpose)) return { error: "purpose" };
   const me = await uid(lang);
   try {
-    await asUser(me, (q) => q`select pro_send_interest(${athleteId}::uuid, ${message})`);
+    // mesmo caminho de pro_send_interest; o banco confere a finalidade pelo tipo da organização (0015)
+    await asUser(me, (q) => q`select pro_send_proposal(${athleteId}::uuid, ${message}, ${purpose})`);
     await advanceStage(me, athleteId, "interest", ["watching", "evaluated"]);
   } catch (e) {
     const m = String((e as Error).message);
     const key = /message length/.test(m) ? "length" : /message contact/.test(m) ? "contact" : /already open/.test(m) ? "open"
-      : /recently answered/.test(m) ? "answered" : /monthly limit/.test(m) ? "monthly" : "generic";
+      : /recently answered/.test(m) ? "answered" : /monthly limit/.test(m) ? "monthly"
+      : /purpose not allowed|invalid purpose/.test(m) ? "purpose" : /age not allowed/.test(m) ? "age" : "generic";
     return { error: key };
   }
   refresh(lang);

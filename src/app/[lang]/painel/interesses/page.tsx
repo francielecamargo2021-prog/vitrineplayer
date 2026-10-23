@@ -46,6 +46,8 @@ export default async function ReceivedInterests({ params }: PageProps<"/[lang]/p
                   {r.blocked && <> · <span className="text-[#f0c4c4]">{t.blocked}</span></>}
                   {r.reported && <> · <span className="text-[#f0c4c4]">{t.reported}</span></>}
                 </p>
+                <p className="eyebrow text-grass" data-testid="finalidade">{(t.purposes as Record<string, string>)[r.purpose] ?? t.purposes.general}</p>
+                {r.purpose !== "general" && <p className="text-[0.8rem] leading-relaxed text-ash">{t.purposeNote}</p>}
                 <blockquote className="border-l-2 border-white/20 pl-4 leading-relaxed text-bone">{r.message}</blockquote>
                 {r.status === "accepted" && r.org_contact && (
                   <div className="border-l-2 border-grass pl-4" data-testid="contato-org">

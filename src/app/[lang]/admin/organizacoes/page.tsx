@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { bandText } from "@/components/admin/orgOptions";
 import { notFound } from "next/navigation";
 import { hasLocale } from "@/i18n/config";
 import { getPanelDictionary } from "@/i18n/get-dictionary";
@@ -45,6 +46,7 @@ export default async function AdminOrganizations({ params, searchParams }: PageP
                   <dt className="text-ash">Contato</dt><dd className="break-all text-fog">{[o.contact_email, o.contact_phone].filter(Boolean).join(" · ") || "—"}</dd>
                   <dt className="text-ash">Site</dt><dd className="break-all text-fog">{o.website ?? "—"}</dd>
                   <dt className="text-ash">Equipe</dt><dd className="text-fog">{o.members} pessoa(s)</dd>
+                  <dt className="text-ash">Faixa de idade</dt><dd className="text-fog" data-testid="org-faixa">{bandText(o.kind, o.athlete_age_min, o.athlete_age_max)}</dd>
                 </dl>
                 {o.about && <p className="mt-3 text-[0.85rem] leading-relaxed text-fog">{o.about}</p>}
                 {o.review_note && <p className="mt-3 border-l-2 border-white/20 pl-3 text-[0.85rem] text-ash">Último motivo: {o.review_note}</p>}

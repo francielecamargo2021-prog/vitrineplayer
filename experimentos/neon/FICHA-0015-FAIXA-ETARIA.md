@@ -1,7 +1,7 @@
-# Ficha da migração 0015 — faixa etária de 6 a 22 anos (PROPOSTA)
+# Ficha da migração 0015 — faixa etária de 6 a 22 anos
 
-Situação: escrita e testada **só no banco local**. Não aplicada na homologação. Aplicar
-somente com aprovação específica.
+Situação: **aplicada na homologação em 23/10/2026**, com autorização específica. Produção não
+foi alterada.
 
 Arquivos: `db/migrations/0015_faixa_etaria.sql` · reversão `db/reversoes/0015_faixa_etaria.sql` ·
 testes `db/tests/faixa_etaria.test.sql`.
@@ -95,3 +95,21 @@ depois de aceitar; a organização nunca recebe o contato da família.
 `db/reversoes/0015_faixa_etaria.sql`, numa transação: apaga gatilhos, funções e colunas novas e
 devolve `athlete_visible_to_pro` à versão anterior. Perde-se a finalidade dos interesses e as
 faixas definidas pelo admin; os interesses em si ficam. Depois, voltar o app ao commit anterior.
+
+## Registro da aplicação na homologação (23/10/2026)
+
+1. Conferências: projeto `vitrineplayer-homolog`, branch `main`, marca `homolog`; 15 migrações
+   (última 0014); nenhum objeto da 0015; 0 contas, atletas e organizações.
+2. Plano A + B + C: sem conflito. Ele altera só `vp_uid()` e cria `app_sessions`; a 0015 apenas
+   chama `vp_uid()`. O A + B + C passa a ser a **0016** (o backup dele será `backup-antes-0016`).
+3. Backup: branch `backup-antes-0015-2026-10-23` criada da `main` e conferida (15 migrações,
+   mesmas 139 funções, mesma `athlete_visible_to_pro`, sem dados).
+4. Ensaio: migração + 47 verificações reais (pgTAP 1.3.3 do Neon) num bloco único desfeito no
+   final: 47/47, nada gravado.
+5. Aplicação pelo conector do Neon (sem expor credenciais), num bloco único com travas de
+   ambiente e de histórico; registro em `vp_meta.migrations` com a impressão digital do
+   arquivo (`89dc22f4…7685772c`), o mesmo valor que o `migrar.mjs` calcula.
+6. Testes reais depois da aplicação: 47/47 (cadastro 6–22, matriz por tipo, núcleo sem faixa,
+   empresário a partir de 15, marca sem menores, saída aos 23, bolsas, avaliação e IA na fase
+   formativa). Consultas das telas novas (admin, portal e caixa da família): 19/19.
+7. Limpeza: 0 contas, atletas, organizações, interesses e registros de teste depois de tudo.

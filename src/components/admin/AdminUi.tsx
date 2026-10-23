@@ -60,7 +60,7 @@ export const fmtDate = (v: string | null | undefined, withTime = true) =>
 export const auditLabel: Record<string, string> = {
   "athlete.create": "Atleta cadastrado", "athlete.submit": "Enviado para revisão", "athlete.review.approve": "Atleta aprovado", "athlete.review.reject": "Ajustes pedidos", "athlete.review.suspend": "Atleta suspenso",
   "athlete.review.reinstate": "Atleta reativado", "athlete.correction": "Correção pedida", "media.remove": "Mídia removida",
-  "organization.review.approve": "Organização aprovada", "organization.review.reject": "Organização recusada",
+  "organization.age_band": "Faixa de idade definida", "organization.review.approve": "Organização aprovada", "organization.review.reject": "Organização recusada",
   "organization.review.suspend": "Organização suspensa", "organization.request": "Cadastro de organização",
   "organization.invite": "Convite criado", "organization.join": "Entrou na equipe", "organization.remove_member": "Membro removido",
   "interest.create": "Interesse enviado", "interest.accept": "Interesse aceito", "interest.decline": "Interesse recusado",
