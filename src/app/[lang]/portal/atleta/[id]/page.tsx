@@ -5,7 +5,7 @@ import { hasLocale, htmlLang } from "@/i18n/config";
 import { getPanelDictionary, getPortalDictionary } from "@/i18n/get-dictionary";
 import { aiReport, athleteProfile, athleteVideos, myLists, requirePro, timeline, workspace } from "@/lib/portal/data";
 import { sendInterest } from "@/lib/portal/actions";
-import { youtubeThumb, ADULT_AGE } from "@/domain/athlete";
+import { isFormativeAge, youtubeThumb, ADULT_AGE } from "@/domain/athlete";
 import { FramedPhoto } from "@/components/panel/FramedPhoto";
 import { FavoriteButton, InterestForm, ListToggles } from "@/components/portal/PortalWidgets";
 import { DeleteButton, EvaluationForm, NoteForm, StageSelect } from "@/components/portal/WorkspaceWidgets";
@@ -43,7 +43,7 @@ export default async function PortalAthlete({ params }: PageProps<"/[lang]/porta
   const group = groupFor((a.primary_position ?? "CM") as Position);
   const critLabel = (k: string) => criteria[k as CriterionKey]?.label[rl] ?? k;
   const dateFmt = new Intl.DateTimeFormat(htmlLang[lang], { dateStyle: "medium" });
-  const avg = (sc: Record<string, number>) => { const v = Object.values(sc); return v.length ? (v.reduce((x, y) => x + y, 0) / v.length).toFixed(1) : "—"; };
+  const avg = (sc: Record<string, number> | null) => { const v = Object.values(sc ?? {}); return v.length ? (v.reduce((x, y) => x + y, 0) / v.length).toFixed(1) : "—"; };
   const region = new Intl.DisplayNames([htmlLang[lang]], { type: "region" });
   const label = (map: Record<string, string>, k: string | null | undefined) => (k ? map[k] ?? k : null);
   const pos = (k: string | null) => label(p.positions as Record<string, string>, k);
@@ -86,6 +86,7 @@ export default async function PortalAthlete({ params }: PageProps<"/[lang]/porta
           <h1 className="mt-2 font-display text-[clamp(3rem,12vw,7rem)] font-black uppercase leading-[0.84] [font-stretch:62%]" data-testid="nome-atleta">{a.display_name}</h1>
           <p className="mt-3 text-lg text-fog">{a.age} {f.years} · {f.born} {a.birth_year}</p>
           {a.age < ADULT_AGE && <p className="mt-2 text-[0.85rem] text-ash">{f.minorNote}</p>}
+          {isFormativeAge(a.age) && <p className="mt-2 border-l-2 border-grass pl-3 text-[0.85rem] text-fog" data-testid="perfil-formativo">{f.formativeNote}</p>}
           <div className="mt-6 flex flex-wrap gap-3">
             <FavoriteButton lang={lang} athleteId={a.id} on={a.is_favorite} labels={{ on: f.unfavorite, off: f.favorite }} />
           </div>
@@ -206,9 +207,9 @@ export default async function PortalAthlete({ params }: PageProps<"/[lang]/porta
                 <ul className="mt-4 space-y-6">
                   {ws.evaluations.map((e) => (
                     <li key={e.id} className="border-l-2 border-white/15 pl-4">
-                      <p className="text-[0.8rem] text-ash">{dateFmt.format(new Date(e.created_at))} · {e.author}{e.context ? ` · ${(w.contexts as Record<string, string>)[e.context]}` : ""}{e.youtube ? ` · YouTube ${e.youtube}${e.video_minute !== null ? ` @ ${e.video_minute}'` : ""}` : ""} · {w.average} {avg(e.scores)}</p>
+                      <p className="text-[0.8rem] text-ash">{dateFmt.format(new Date(e.created_at))} · {e.author}{e.context ? ` · ${(w.contexts as Record<string, string>)[e.context]}` : ""}{e.youtube ? ` · YouTube ${e.youtube}${e.video_minute !== null ? ` @ ${e.video_minute}'` : ""}` : ""} {e.scores ? <> · {w.average} {avg(e.scores)}</> : null}</p>
                       <ul className="mt-2 grid gap-x-6 gap-y-1 text-[0.88rem] sm:grid-cols-2">
-                        {Object.entries(e.scores).map(([k, v]) => <li key={k} className="flex justify-between"><span className="text-fog">{critLabel(k)}</span><span className="text-bone">{v}</span></li>)}
+                        {Object.entries(e.scores ?? {}).map(([k, v]) => <li key={k} className="flex justify-between"><span className="text-fog">{critLabel(k)}</span><span className="text-bone">{v}</span></li>)}
                       </ul>
                       {e.observation && <p className="mt-2 text-[0.9rem] text-bone">{e.observation}</p>}
                       {e.mine && <div className="mt-2"><DeleteButton kind="evaluation" lang={lang} id={e.id} label={w.delete} /></div>}
@@ -259,8 +260,9 @@ export default async function PortalAthlete({ params }: PageProps<"/[lang]/porta
             <section className="border-t border-white/12 pt-6">
               <h2 className="eyebrow text-bone">{w.evaluation} · {groups[group].label[rl]}</h2>
               <div className="mt-4">
-                <EvaluationForm lang={lang} athleteId={a.id} group={group} rubric={RUBRIC_VERSION}
-                  criteria={groupKeys(group).map((k) => ({ key: k, label: critLabel(k) }))}
+                {/* 6 a 10 anos: só observação escrita, sem notas (formação) */}
+                <EvaluationForm lang={lang} athleteId={a.id} group={group} rubric={RUBRIC_VERSION} formative={isFormativeAge(a.age)}
+                  criteria={isFormativeAge(a.age) ? [] : groupKeys(group).map((k) => ({ key: k, label: critLabel(k) }))}
                   videos={vids.map((v) => ({ id: v.id, label: v.title || `YouTube ${v.youtube}` }))} t={w} />
               </div>
             </section>

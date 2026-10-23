@@ -8,7 +8,7 @@ import { removePhoto } from "@/lib/photos/server";
 import { asUser } from "@/lib/db";
 import {
   availabilityAnswers, ageOn, categories, countries, feet, modalities, positions, seekingKinds, sexes, traitKeys, videoTypes, youtubeId,
-  ADULT_AGE, VIDEO_LIMIT,
+  ADULT_AGE, VIDEO_LIMIT, inAgeRange,
   type Availability, type Position,
 } from "@/domain/athlete";
 import { hasLocale } from "@/i18n/config";
@@ -50,6 +50,7 @@ export async function createAthlete(lang: string, _prev: FormState, fd: FormData
   const relation = oneOf(str(fd, "relation"), ["mother", "father", "legal_guardian", "self", "other"] as const) ?? "legal_guardian";
   const country = oneOf(str(fd, "country"), countries);
   if (str(fd, "full_name").length < 3 || !isDate(birth) || !country) return { error: "required" };
+  if (!inAgeRange(birth)) return { error: "ageRange" };
   if (relation === "self" && ageOn(birth) < ADULT_AGE) return { error: "minorSelf" };
   const { data, error } = await db.rpc("create_athlete", {
     p_full_name: str(fd, "full_name"), p_sport_name: str(fd, "sport_name"), p_birth_date: birth,
@@ -70,6 +71,7 @@ export async function saveStep(lang: string, id: string, step: StepSlug, _prev: 
     const birth = str(fd, "birth_date");
     const country = oneOf(str(fd, "country"), countries);
     if (str(fd, "full_name").length < 3 || !isDate(birth) || !country) return { error: "required" };
+    if (!inAgeRange(birth)) return { error: "ageRange" };
     const nationality = oneOf(str(fd, "nationality"), countries);
     patch = {
       full_name: str(fd, "full_name"), sport_name: opt(fd, "sport_name"), birth_date: birth,

@@ -230,6 +230,7 @@ const panel: PanelDictionary = {
     yes: "Sí",
     no: "No",
     error: "No fue posible guardar. Revisá los campos e intentá de nuevo.",
+    ageRange: "VitrinePlayer atiende atletas de 6 a 22 años. Revisá la fecha de nacimiento.",
     minorSelf: "Los atletas menores de 18 años necesitan un responsable legal: elegí otro vínculo o revisá la fecha de nacimiento.",
   },
   newAthlete: {
@@ -366,7 +367,7 @@ const panel: PanelDictionary = {
     effects:
       "Las organizaciones ocultadas no reciben al atleta en resultados ni recomendaciones, no abren el perfil y no pueden solicitar contacto.",
     contact: "Tus datos de contacto nunca aparecen en el perfil. Todo contacto pasa por VitrinePlayer.",
-    kinds: { club: "Club", scout: "Ojeador", agent: "Agente", company: "Empresa", scouting_hub: "Centro de captación", brand: "Marca", school: "Escuela de fútbol", manager: "Representante" },
+    kinds: { club: "Club", scout: "Ojeador", agent: "Agente", company: "Empresa", scouting_hub: "Centro de captación", brand: "Marca", school: "Escuelita de fútbol", manager: "Representante" },
   },
   publish: {
     lead: "El registro en VitrinePlayer es gratuito. Revisá el perfil y envialo al análisis del equipo. Una vez aprobado, vos controlás cuándo aparece para profesionales verificados.",
@@ -414,6 +415,10 @@ const panel: PanelDictionary = {
     empty: "No informado",
   },
   ai: {
+    formative: {
+      title: "Etapa formativa (6 a 10 años)",
+      body: "Para atletas de 6 a 10 años, VitrinePlayer no genera notas, rankings ni comparaciones. El análisis con IA con notas no está disponible en esta franja; una versión formativa, enfocada en el desarrollo, está en preparación.",
+    },
     lead: "Una evaluación técnica preliminar, hecha por inteligencia artificial a partir de un único video, para ayudar a clubes y observadores a encontrar al atleta. No reemplaza la evaluación de un profesional.",
     noVideos: "Agrega al menos un video de YouTube en la etapa Videos para pedir la evaluación.",
     question: "¿Qué video te gustaría usar para la evaluación técnica? Selecciona el que mejor represente las habilidades y el desempeño del atleta.",
@@ -436,6 +441,7 @@ const panel: PanelDictionary = {
     paymentNote: "Cada análisis usa un crédito. Por ahora, los créditos los libera el equipo VitrinePlayer — la compra de análisis todavía no está disponible. Con crédito, el pedido entra directo en la cola.",
     submit: "Solicitar evaluación",
     errors: {
+        formative: "Para atletas de 6 a 10 años el análisis con notas no está disponible.",
       generic: "No se pudo registrar el pedido. Revisa los campos e inténtalo de nuevo.",
       active: "Ya hay una evaluación en curso para este atleta.",
       noCredit: "Este atleta no tiene crédito de análisis disponible. La compra de análisis todavía no está disponible.",

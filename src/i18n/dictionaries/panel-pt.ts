@@ -229,6 +229,7 @@ const panel = {
     yes: "Sim",
     no: "Não",
     error: "Não foi possível salvar. Confira os campos e tente novamente.",
+    ageRange: "A VitrinePlayer atende atletas de 6 a 22 anos. Confira a data de nascimento.",
     minorSelf: "Atletas menores de 18 anos precisam de um responsável legal: escolha outro vínculo ou confira a data de nascimento.",
   },
   newAthlete: {
@@ -413,6 +414,10 @@ const panel = {
     empty: "Não informado",
   },
   ai: {
+    formative: {
+      title: "Fase de formação (6 a 10 anos)",
+      body: "Para atletas de 6 a 10 anos, a VitrinePlayer não gera notas, rankings nem comparações. A análise por IA com notas fica indisponível nessa faixa; uma versão formativa, focada em desenvolvimento, está em preparação.",
+    },
     lead: "Uma avaliação técnica preliminar, feita por inteligência artificial a partir de um único vídeo, para ajudar clubes e observadores a encontrar o atleta. Ela não substitui a avaliação de um profissional.",
     noVideos: "Adicione pelo menos um vídeo do YouTube na etapa Vídeos para pedir a avaliação.",
     question: "Qual vídeo você gostaria de utilizar para a avaliação técnica? Selecione aquele que melhor representa as habilidades e o desempenho do atleta.",
@@ -435,6 +440,7 @@ const panel = {
     paymentNote: "Cada análise usa um crédito. Por enquanto, os créditos são liberados pela equipe VitrinePlayer — a compra de análises ainda não está disponível. Com crédito, o pedido entra direto na fila.",
     submit: "Solicitar avaliação",
     errors: {
+        formative: "Para atletas de 6 a 10 anos a análise com notas não está disponível.",
       generic: "Não foi possível registrar o pedido. Confira os campos e tente novamente.",
       active: "Já existe uma avaliação em andamento para este atleta.",
       noCredit: "Este atleta não tem crédito de análise disponível. A compra de análises ainda não está disponível.",

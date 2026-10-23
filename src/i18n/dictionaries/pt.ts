@@ -2,7 +2,7 @@ const pt = {
   meta: {
     title: "VITRINEPLAYER — O talento precisa ser encontrado",
     description:
-      "Base privada de atletas de futebol, estruturada para clubes, scouts e profissionais do mercado.",
+      "Base privada de atletas de futebol de 6 a 22 anos, que conecta famílias a clubes, escolinhas, núcleos de captação e profissionais verificados.",
   },
   nav: {
     how: "Como funciona",
@@ -26,7 +26,7 @@ const pt = {
   },
   field: {
     title: ["Futebol", "de base."],
-    caption: "Do sub-11 ao sub-20, no Brasil, na Argentina, no Paraguai e no Uruguai.",
+    caption: "Atletas de 6 a 22 anos, da escolinha às categorias de base, no Brasil, na Argentina, no Paraguai e no Uruguai. Até os 10 anos, o perfil é formativo: sem notas nem comparações.",
     stats: [
       { value: 0, label: "perfis públicos" },
       { value: 4, label: "países na rota inicial" },
@@ -107,13 +107,14 @@ const pt = {
   },
   pros: {
     title: ["Para quem", "procura talento."],
-    body: "Clubes, scouts, empresários, núcleos de captação e marcas autorizadas acessam a base privada depois de verificados. O contato com as famílias é sempre intermediado.",
+    body: "Clubes, escolinhas, scouts, empresários e núcleos de captação acessam a base privada depois de verificados, cada um dentro das faixas de idade autorizadas. Convites e propostas chegam ao responsável, que decide. O contato com as famílias é sempre intermediado.",
     audiences: [
       { name: "Clubes", detail: "Departamentos de base e captação" },
+      { name: "Escolinhas", detail: "Convites para avaliação e bolsas, sempre via responsável" },
       { name: "Scouts", detail: "Observação e relatórios técnicos" },
-      { name: "Empresários", detail: "Agentes e representação" },
-      { name: "Núcleos de captação", detail: "Redes de observação regionais" },
-      { name: "Marcas", detail: "Patrocínio e parcerias autorizadas" },
+      { name: "Empresários", detail: "Agentes e representação, a partir dos 15 anos" },
+      { name: "Núcleos de captação", detail: "Redes de observação, com autorização por faixa etária" },
+      { name: "Marcas", detail: "Oportunidades intermediadas pela plataforma" },
     ],
     cta: "Sou profissional do futebol",
     note: "Toda solicitação passa por verificação antes da liberação da base.",
@@ -125,7 +126,7 @@ const pt = {
       lead: "O talento pode nascer em",
       key: "qualquer lugar.",
       line: "A visibilidade começa aqui.",
-      body: "A VitrinePlayer organiza e apresenta perfis de atletas do futebol de base em uma plataforma privada, acessível a profissionais verificados.",
+      body: "A VitrinePlayer organiza perfis de atletas de 6 a 22 anos em uma plataforma privada e conecta as famílias a clubes, escolinhas, núcleos de captação e empresários verificados.",
       cta: "Cadastrar atleta",
       cta2: "Conheça a plataforma",
       scroll: "Role para conhecer",
@@ -133,7 +134,7 @@ const pt = {
     story: {
       kicker: "Futebol de base",
       lines: ["Todo talento tem uma história.", "Nem todo talento tem a mesma visibilidade."],
-      body: "Talento existe em clubes grandes, em escolinhas do interior e em campos de bairro. O que muda é quem consegue ver. A VitrinePlayer reúne cada atleta em um perfil padronizado, revisado pela equipe e consultado apenas por profissionais verificados.",
+      body: "Talento existe em clubes grandes, em escolinhas do interior e em campos de bairro, desde os 6 anos. O que muda é quem consegue ver. A VitrinePlayer reúne cada atleta em um perfil padronizado, revisado pela equipe e consultado apenas por profissionais verificados, sempre com o responsável no controle.",
       points: [
         { t: "Perfil padronizado", d: "Dados esportivos, trajetória, fotos e vídeos no mesmo formato, para uma leitura rápida." },
         { t: "Base privada", d: "Nenhum perfil fica aberto na internet. Só profissionais verificados consultam a base." },
@@ -150,7 +151,7 @@ const pt = {
     },
     base: {
       kicker: "Futebol de base",
-      title: "Do sub-11 ao sub-20.",
+      title: "Dos 6 aos 22 anos.",
       stats: [
         { value: "0", label: "perfis públicos", note: "A base é privada: nenhum perfil fica aberto na internet." },
         { value: "4", label: "países na rota inicial", note: "Brasil, Argentina, Paraguai e Uruguai." },

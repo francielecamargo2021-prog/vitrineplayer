@@ -4,7 +4,7 @@ import { PendingNotice } from "@/components/portal/PortalShell";
 import { hasLocale, htmlLang } from "@/i18n/config";
 import { getPanelDictionary, getPortalDictionary } from "@/i18n/get-dictionary";
 import { readFilters, requirePro, searchAthletes, updatedIds } from "@/lib/portal/data";
-import { countryOptions, feet, modalities, positions, seekingKinds, sexes } from "@/domain/athlete";
+import { ATHLETE_AGE_MAX, ATHLETE_AGE_MIN, countryOptions, feet, modalities, positions, seekingKinds, sexes } from "@/domain/athlete";
 import { SelectField, TextField, ghostButton, primaryButton } from "@/components/panel/controls";
 import { AthleteTile } from "@/components/portal/AthleteTile";
 
@@ -69,8 +69,8 @@ export default async function PortalSearch({ params, searchParams }: PageProps<"
             </div>
           </fieldset>
           <div className="grid grid-cols-2 gap-3">
-            <TextField label={f.ageMin} name="idade_min" type="number" min={5} max={60} defaultValue={filters.age_min} />
-            <TextField label={f.ageMax} name="idade_max" type="number" min={5} max={60} defaultValue={filters.age_max} />
+            <TextField label={f.ageMin} name="idade_min" type="number" min={ATHLETE_AGE_MIN} max={ATHLETE_AGE_MAX} defaultValue={filters.age_min} />
+            <TextField label={f.ageMax} name="idade_max" type="number" min={ATHLETE_AGE_MIN} max={ATHLETE_AGE_MAX} defaultValue={filters.age_max} />
           </div>
           <SelectField label={f.sex} name="sexo" placeholder={f.any} defaultValue={filters.sex} options={opts(sexes, p.fields.sexes)} />
           <SelectField label={f.foot} name="pe" placeholder={f.any} defaultValue={filters.foot} options={opts(feet, p.fields.feet)} />

@@ -133,7 +133,10 @@ export async function addEvaluation(lang: string, athleteId: string, group: stri
     const v = Number(fd.get(`s_${k}`));
     if ([1, 2, 3, 4, 5].includes(v)) scores[k] = v;
   }
-  if (!Object.keys(scores).length) return { error: "scores" };
+  // sem fundamentos (6 a 10 anos): só observação escrita, sem notas
+  const formative = keys.length === 0;
+  if (!formative && !Object.keys(scores).length) return { error: "scores" };
+  if (formative && String(fd.get("observation") ?? "").trim().length < 10) return { error: "required" };
   const context = ["video", "live", "training", "other"].includes(String(fd.get("context"))) ? String(fd.get("context")) : null;
   const media = String(fd.get("media") ?? "");
   const minuteRaw = String(fd.get("minute") ?? "").trim();
@@ -143,7 +146,7 @@ export async function addEvaluation(lang: string, athleteId: string, group: stri
   const me = await uid(lang);
   try {
     await asUser(me, (q) => q`insert into scout_evaluations (organization_id, athlete_id, author_id, rubric_version, position_group, scores, media_id, video_minute, context, observation)
-      values (my_pro_org(), ${athleteId}, ${me}, ${rubric}, ${group}, ${JSON.stringify(scores)}::jsonb, ${isUuid(media) ? media : null}, ${minute}, ${context}, ${observation})`);
+      values (my_pro_org(), ${athleteId}, ${me}, ${rubric}, ${group}, ${formative ? null : JSON.stringify(scores)}::jsonb, ${isUuid(media) ? media : null}, ${minute}, ${context}, ${observation})`);
     await advanceStage(me, athleteId, "evaluated", ["watching"]);
   } catch {
     return { error: "save" };

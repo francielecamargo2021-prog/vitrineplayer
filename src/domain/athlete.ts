@@ -76,12 +76,36 @@ export function ageOn(birthDate: string, ref = new Date()) {
   return age;
 }
 
-/** Categoria de base pelo ano de nascimento (ano da temporada − ano de nascimento). */
+/**
+ * Faixa de idade atendida pela plataforma (10/2026): de 6 a 22 anos completos.
+ * Aqui são limites de TELA e de validação no servidor do app; a regra definitiva fica no
+ * banco (migração da faixa etária, pendente de aprovação).
+ */
+export const ATHLETE_AGE_MIN = 6;
+export const ATHLETE_AGE_MAX = 22;
+/** Até esta idade a apresentação é formativa: sem notas, rankings ou comparações. */
+export const FORMATIVE_AGE_MAX = 10;
+
+export const isFormativeAge = (age: number) => age <= FORMATIVE_AGE_MAX;
+export const inAgeRange = (birthDate: string, ref = new Date()) => {
+  const a = ageOn(birthDate, ref);
+  return a >= ATHLETE_AGE_MIN && a <= ATHLETE_AGE_MAX;
+};
+
+/** Datas de nascimento aceitas hoje (AAAA-MM-DD): quem já fez 6 anos e ainda não fez 23. */
+export function birthDateBounds(ref = new Date()) {
+  const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const latest = new Date(ref.getFullYear() - ATHLETE_AGE_MIN, ref.getMonth(), ref.getDate());
+  const earliest = new Date(ref.getFullYear() - (ATHLETE_AGE_MAX + 1), ref.getMonth(), ref.getDate() + 1);
+  return { min: iso(earliest), max: iso(latest) };
+}
+
+/** Categoria de base pelo ano de nascimento (ano da temporada − ano de nascimento), de Sub-6 a Sub-23. */
 export function categoryFor(birthDate: string, season = new Date().getFullYear()) {
   const n = season - Number(birthDate.slice(0, 4));
-  return n >= 21 ? "Adulto" : `Sub-${Math.max(n, 7)}`;
+  return n >= 21 ? "Sub-23" : `Sub-${Math.max(n, 6)}`;
 }
-export const categories = ["Sub-7", "Sub-9", "Sub-11", "Sub-12", "Sub-13", "Sub-14", "Sub-15", "Sub-16", "Sub-17", "Sub-18", "Sub-19", "Sub-20", "Sub-23", "Adulto"];
+export const categories = ["Sub-6", "Sub-7", "Sub-8", "Sub-9", "Sub-10", "Sub-11", "Sub-12", "Sub-13", "Sub-14", "Sub-15", "Sub-16", "Sub-17", "Sub-18", "Sub-19", "Sub-20", "Sub-23"];
 
 /** Extrai o ID de 11 caracteres de links do YouTube (watch, youtu.be, shorts, embed). */
 export function youtubeId(url: string): string | null {

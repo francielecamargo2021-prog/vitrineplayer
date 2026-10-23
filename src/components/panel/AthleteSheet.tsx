@@ -1,5 +1,5 @@
 import type { PanelDictionary } from "@/i18n/get-dictionary";
-import { ageOn, categoryFor, youtubeThumb, type AthleteBundle } from "@/domain/athlete";
+import { ageOn, categoryFor, isFormativeAge, youtubeThumb, type AthleteBundle } from "@/domain/athlete";
 import { FramedPhoto } from "./FramedPhoto";
 
 /**
@@ -74,6 +74,7 @@ export function AthleteSheet({ bundle, urls, p, locale, actions }: { bundle: Ath
             {a.height_cm && <span>{(a.height_cm / 100).toFixed(2).replace(".", ",")} m</span>}
             {nations && <span>{nations}</span>}
           </p>
+          {isFormativeAge(ageOn(a.birth_date)) && <p className="mt-3 max-w-[60ch] border-l-2 border-grass pl-3 text-[0.85rem] text-fog" data-testid="ficha-formativa">{p.ai.formative.title}: {p.ai.formative.body}</p>}
         </div>
       </header>
 

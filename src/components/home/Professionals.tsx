@@ -34,7 +34,7 @@ export function Professionals({ lang, dict }: { lang: Locale; dict: Dictionary }
           <p className="t-body max-w-[46ch] md:col-span-5">{pros.body}</p>
         </div>
 
-        <ul className="mt-12 grid gap-3 sm:grid-cols-2 md:mt-16 lg:grid-cols-5">
+        <ul className="mt-12 grid gap-3 sm:grid-cols-2 md:mt-16 lg:grid-cols-3">
           {pros.audiences.map((a, i) => (
             <li
               key={a.name}

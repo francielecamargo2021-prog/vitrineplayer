@@ -7,7 +7,7 @@ import { cancelAiAnalysis, requestAiAnalysis } from "@/lib/panel/ai-actions";
 import { addVideo, removeVideo, saveStep, setVisibility, submitForReview, withdrawFromReview } from "@/lib/panel/actions";
 import { isStep, stepSlugs } from "@/lib/panel/steps";
 import {
-  ageOn, availabilityAnswers, categories, categoryFor, countryOptions, feet, modalities, positions, seekingKinds, sexes, traitKeys, youtubeThumb, VIDEO_LIMIT,
+  ageOn, availabilityAnswers, birthDateBounds, categories, categoryFor, countryOptions, isFormativeAge, feet, modalities, positions, seekingKinds, sexes, traitKeys, youtubeThumb, VIDEO_LIMIT,
 } from "@/domain/athlete";
 import { Choices, SectionTitle, SelectField, TextArea, TextField, ghostButton, primaryButton } from "@/components/panel/controls";
 import { StepForm } from "@/components/panel/StepForm";
@@ -30,7 +30,7 @@ export default async function EditStep({ params, searchParams }: PageProps<"/[la
   const f = p.fields;
   const idx = stepSlugs.indexOf(etapa);
   const base = `/${lang}/painel/atleta/${id}`;
-  const labels = { save: p.form.save, saveNext: p.form.saveNext, saved: p.form.saved, error: p.form.error, exit: p.form.exit, errors: { minorSelf: p.form.minorSelf } };
+  const labels = { save: p.form.save, saveNext: p.form.saveNext, saved: p.form.saved, error: p.form.error, exit: p.form.exit, errors: { minorSelf: p.form.minorSelf, ageRange: p.form.ageRange } };
   const action = saveStep.bind(null, lang, id, etapa);
   const opts = <T extends string>(list: readonly T[], map: Record<T, string>) => list.map((v) => ({ value: v, label: map[v] }));
   const yn = [{ value: "yes", label: p.form.yes }, { value: "no", label: p.form.no }];
@@ -45,7 +45,7 @@ export default async function EditStep({ params, searchParams }: PageProps<"/[la
         <div className="grid gap-6 sm:grid-cols-2">
           <TextField label={f.fullName} name="full_name" defaultValue={a.full_name} required minLength={3} className="sm:col-span-2" />
           <TextField label={f.sportName} name="sport_name" defaultValue={a.sport_name ?? ""} />
-          <TextField label={f.birthDate} name="birth_date" type="date" defaultValue={a.birth_date} required hint={`${f.age}: ${ageOn(a.birth_date)} · ${categoryFor(a.birth_date)}`} />
+          <TextField label={f.birthDate} name="birth_date" type="date" defaultValue={a.birth_date} required min={birthDateBounds().min} max={birthDateBounds().max} hint={`${f.age}: ${ageOn(a.birth_date)} · ${categoryFor(a.birth_date)} · ${p.form.ageRange}`} />
           <Choices legend={f.sex} name="sex" options={opts(sexes, f.sexes)} value={a.sex} className="sm:col-span-2" />
           <SelectField label={f.country} name="country" defaultValue={a.country} options={countryList} required hint={f.countryHint} />
           <TextField label={f.state} name="state" defaultValue={a.state ?? ""} />
@@ -184,7 +184,9 @@ export default async function EditStep({ params, searchParams }: PageProps<"/[la
     const ai = p.ai;
     const { request } = await getAiState(db, id);
     // pedido em andamento ou concluído: mostra o estado; senão, o formulário
-    const showForm = !request || ["unidentified", "failed", "cancelled"].includes(request.status);
+    // 6 a 10 anos: a análise atual dá notas — fica bloqueada até existir a versão formativa
+    const formative = isFormativeAge(ageOn(a.birth_date));
+    const showForm = !formative && (!request || ["unidentified", "failed", "cancelled"].includes(request.status));
     const st = request ? ai.status[request.status] : null;
     body = (
       <div className="space-y-10">
@@ -201,6 +203,12 @@ export default async function EditStep({ params, searchParams }: PageProps<"/[la
                 </form>
               )}
             </div>
+          </section>
+        )}
+        {formative && (
+          <section className="space-y-2 border-l-2 border-grass pl-4" data-testid="ia-formativa">
+            <p className="font-display text-[1.6rem] font-extrabold uppercase leading-none [font-stretch:62%]">{ai.formative.title}</p>
+            <p className="max-w-[60ch] text-[0.95rem] leading-relaxed text-fog">{ai.formative.body}</p>
           </section>
         )}
         {showForm && (bundle.videos.length === 0 ? (

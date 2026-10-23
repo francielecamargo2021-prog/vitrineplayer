@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { userDataClient } from "@/lib/db/data-api";
 import { currentUser } from "@/lib/auth/server";
 import { hasLocale } from "@/i18n/config";
-import { positions, type Position } from "@/domain/athlete";
+import { ageOn, isFormativeAge, positions, type Position } from "@/domain/athlete";
 import { RUBRIC_VERSION } from "@/lib/ai/rubric";
 import { PROMPT_VERSION } from "@/lib/ai/prompt";
 import type { FormState } from "./actions";
@@ -56,6 +56,9 @@ export async function requestAiAnalysis(lang: string, athleteId: string, _prev: 
     return { error: "generic" };
   }
   if ((from !== null && from >= minutes) || (to !== null && (to > minutes || (from !== null && to <= from)))) return { error: "generic" };
+  // 6 a 10 anos: sem análise com notas (a regra definitiva vai para o banco na migração da faixa etária)
+  const { data: who } = await db.from("athletes").select("birth_date").eq("id", athleteId).maybeSingle();
+  if (!who?.birth_date || isFormativeAge(ageOn(who.birth_date))) return { error: "formative" };
 
   const { error } = await db.rpc("request_ai_analysis", {
     p_media: media, p_video_type: videoType, p_video_minutes: minutes, p_shirt_number: shirt, p_shirt_color: color,

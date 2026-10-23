@@ -2,7 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { asUser } from "@/lib/db";
 import { requireProAccount } from "@/lib/auth/session";
-import { positions, feet, sexes, modalities, seekingKinds } from "@/domain/athlete";
+import { ATHLETE_AGE_MAX, ATHLETE_AGE_MIN, positions, feet, sexes, modalities, seekingKinds } from "@/domain/athlete";
 
 /**
  * Leituras do portal dos profissionais. Tudo passa pelas funções pro_* do banco,
@@ -81,8 +81,8 @@ export function readFilters(sp: Record<string, string | string[] | undefined>): 
   const many = (k: string) => (Array.isArray(sp[k]) ? (sp[k] as string[]) : sp[k] ? [sp[k] as string] : []);
   const f: Filters = {
     modality: pick(one("modalidade"), modalities),
-    age_min: int(one("idade_min"), 5, 60),
-    age_max: int(one("idade_max"), 5, 60),
+    age_min: int(one("idade_min"), ATHLETE_AGE_MIN, ATHLETE_AGE_MAX),
+    age_max: int(one("idade_max"), ATHLETE_AGE_MIN, ATHLETE_AGE_MAX),
     sex: pick(one("sexo"), sexes),
     foot: pick(one("pe"), feet),
     country: /^[A-Z]{2}$/.test(String(one("pais") ?? "")) ? String(one("pais")) : undefined,

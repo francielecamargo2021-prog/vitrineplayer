@@ -13,7 +13,8 @@
     "test:auth": "node --test src/lib/auth/tests/*.test.ts",
     "piloto:simular": "node scripts/piloto/simular.ts",
     "piloto:comparar": "node scripts/piloto/comparar.ts",
-    "check:secrets": "node scripts/verificar-segredos.mjs"
+    "check:secrets": "node scripts/verificar-segredos.mjs",
+    "test:domain": "node --test src/domain/tests/*.test.ts"
   },
   "dependencies": {
     "@neondatabase/auth": "0.6.0-beta",

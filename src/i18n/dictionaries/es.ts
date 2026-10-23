@@ -4,7 +4,7 @@ const es: Dictionary = {
   meta: {
     title: "VITRINEPLAYER — El talento necesita ser encontrado",
     description:
-      "Base privada de atletas de fútbol, estructurada para clubes, scouts y profesionales del mercado.",
+      "Base privada de atletas de fútbol de 6 a 22 años, que conecta a las familias con clubes, escuelitas, centros de captación y profesionales verificados.",
   },
   nav: {
     how: "Cómo funciona",
@@ -26,7 +26,7 @@ const es: Dictionary = {
   },
   field: {
     title: ["Fútbol", "formativo."],
-    caption: "De sub-11 a sub-20, en Brasil, Argentina, Paraguay y Uruguay.",
+    caption: "Atletas de 6 a 22 años, de la escuelita a las divisiones formativas, en Brasil, Argentina, Paraguay y Uruguay. Hasta los 10 años, el perfil es formativo: sin notas ni comparaciones.",
     stats: [
       { value: 0, label: "perfiles públicos" },
       { value: 4, label: "países en la ruta inicial" },
@@ -107,13 +107,14 @@ const es: Dictionary = {
   },
   pros: {
     title: ["Para quienes", "buscan talento."],
-    body: "Clubes, scouts, representantes, redes de captación y marcas autorizadas acceden a la base privada tras ser verificados. El contacto con las familias siempre es intermediado.",
+    body: "Clubes, escuelitas, scouts, representantes y centros de captación acceden a la base privada tras ser verificados, cada uno dentro de las franjas de edad autorizadas. Las invitaciones y propuestas llegan al responsable, que decide. El contacto con las familias siempre es intermediado.",
     audiences: [
       { name: "Clubes", detail: "Divisiones formativas y captación" },
+      { name: "Escuelitas", detail: "Invitaciones a evaluación y becas, siempre vía el responsable" },
       { name: "Scouts", detail: "Observación e informes técnicos" },
-      { name: "Representantes", detail: "Agentes y representación" },
-      { name: "Redes de captación", detail: "Redes de observación regionales" },
-      { name: "Marcas", detail: "Patrocinio y alianzas autorizadas" },
+      { name: "Representantes", detail: "Agentes y representación, desde los 15 años" },
+      { name: "Redes de captación", detail: "Redes de observación, con autorización por franja de edad" },
+      { name: "Marcas", detail: "Oportunidades intermediadas por la plataforma" },
     ],
     cta: "Soy profesional del fútbol",
     note: "Toda solicitud pasa por verificación antes de habilitar la base.",
@@ -124,7 +125,7 @@ const es: Dictionary = {
       lead: "El talento puede nacer en",
       key: "cualquier lugar.",
       line: "La visibilidad empieza aquí.",
-      body: "VitrinePlayer organiza y presenta perfiles de atletas del fútbol formativo en una plataforma privada, accesible para profesionales verificados.",
+      body: "VitrinePlayer organiza perfiles de atletas de 6 a 22 años en una plataforma privada y conecta a las familias con clubes, escuelitas, centros de captación y representantes verificados.",
       cta: "Registrar atleta",
       cta2: "Conocé la plataforma",
       scroll: "Deslizá para conocer",
@@ -132,7 +133,7 @@ const es: Dictionary = {
     story: {
       kicker: "Fútbol formativo",
       lines: ["Todo talento tiene una historia.", "No todo talento tiene la misma visibilidad."],
-      body: "El talento existe en clubes grandes, en escuelitas del interior y en canchas de barrio. Lo que cambia es quién lo puede ver. VitrinePlayer reúne a cada atleta en un perfil estandarizado, revisado por el equipo y consultado solo por profesionales verificados.",
+      body: "El talento existe en clubes grandes, en escuelitas del interior y en canchas de barrio, desde los 6 años. Lo que cambia es quién lo puede ver. VitrinePlayer reúne a cada atleta en un perfil estandarizado, revisado por el equipo y consultado solo por profesionales verificados, siempre con el responsable en control.",
       points: [
         { t: "Perfil estandarizado", d: "Datos deportivos, trayectoria, fotos y videos en el mismo formato, para una lectura rápida." },
         { t: "Base privada", d: "Ningún perfil queda abierto en internet. Solo profesionales verificados consultan la base." },
@@ -149,7 +150,7 @@ const es: Dictionary = {
     },
     base: {
       kicker: "Fútbol formativo",
-      title: "De sub-11 a sub-20.",
+      title: "De 6 a 22 años.",
       stats: [
         { value: "0", label: "perfiles públicos", note: "La base es privada: ningún perfil queda abierto en internet." },
         { value: "4", label: "países en la ruta inicial", note: "Brasil, Argentina, Paraguay y Uruguay." },
