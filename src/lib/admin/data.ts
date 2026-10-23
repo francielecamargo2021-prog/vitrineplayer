@@ -89,7 +89,11 @@ export async function listAthletes(s: AdminSession, f: AthleteFilters) {
 export type Guardian = { profile_id: string; full_name: string; email: string; whatsapp: string | null; relation: string; is_primary: boolean; suspended_at: string | null };
 export type AuditRow = { action: string; created_at: string; meta: Record<string, unknown> | null; actor: string | null };
 export type Correction = { id: string; note: string; created_at: string; resolved_at: string | null };
-export type AiRequestRow = { id: string; status: string; video_type: string; created_at: string; cost_usd: number; error: string | null; athlete_id?: string; athlete?: string };
+export type AiRequestRow = {
+  id: string; status: string; video_type: string; created_at: string; cost_usd: number; error: string | null; athlete_id?: string; athlete?: string;
+  /** só no console da IA: decide se "Processar agora" aparece */
+  video_seconds?: number; model?: string; athlete_status?: string;
+};
 
 /** Ficha completa para revisão, com responsáveis (contato só para o admin), histórico, correções e IA. */
 export async function getAthleteForReview(s: AdminSession, id: string) {
@@ -271,7 +275,8 @@ export async function aiConsole(s: AdminSession) {
     'costMonth', (select coalesce(sum(cost_usd), 0) from ai_analysis_requests where created_at >= date_trunc('month', now())),
     'costTotal', (select coalesce(sum(cost_usd), 0) from ai_analysis_requests),
     'requests', (select coalesce(jsonb_agg(x order by x.created_at desc), '[]') from (
-       select r.id, r.status, r.video_type, r.created_at, r.cost_usd, r.error, r.athlete_id, coalesce(nullif(a.sport_name, ''), a.full_name) as athlete
+       select r.id, r.status, r.video_type, r.created_at, r.cost_usd, r.error, r.athlete_id, coalesce(nullif(a.sport_name, ''), a.full_name) as athlete,
+              greatest(1, coalesce(r.range_end_s, r.video_minutes * 60) - coalesce(r.range_start_s, 0)) as video_seconds, r.model, a.status::text as athlete_status
          from ai_analysis_requests r join athletes a on a.id = r.athlete_id order by r.created_at desc limit 100) x),
     'grants', (select coalesce(jsonb_agg(x order by x.created_at desc), '[]') from (
        select coalesce(nullif(a.sport_name, ''), a.full_name) as athlete, g.athlete_id, g.quantity, g.reason, g.created_at, p.full_name as by

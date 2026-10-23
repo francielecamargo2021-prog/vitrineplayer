@@ -38,7 +38,10 @@ export default async function ProPortalPage({ params }: PageProps<"/[lang]/profi
             )}
           </div>
         </div>
-        <p className="mx-auto mt-6 max-w-6xl text-[0.8rem] text-ash">{t.cta.demo}</p>
+        <p className="mx-auto mt-6 max-w-6xl text-[0.8rem] text-ash">
+          {t.cta.demo}{" "}
+          <Link href={`/${lang}/profissional/scout-premium`} className="text-bone underline underline-offset-4 hover:text-grass">{lang === "es" ? "Scout Premium (vista previa)" : "Scout Premium (prévia)"}</Link>
+        </p>
       </section>
       <ProPortalMock dict={dict} />
     </MockShell>

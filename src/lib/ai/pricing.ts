@@ -56,10 +56,24 @@ export function estimateJob(model: string, job: { kind: JobKind; start_s: number
 }
 
 /** Custo real a partir do uso informado pelo provedor (thinking conta como saída). */
-export function costFromUsage(model: string, usage: { promptTokenCount?: number; candidatesTokenCount?: number; thoughtsTokenCount?: number }, at?: Date) {
+export function costFromUsage(model: string, usage: { promptTokenCount?: number; candidatesTokenCount?: number; thoughtsTokenCount?: number }, at?: Date, batch = true) {
   const input = usage.promptTokenCount ?? 0;
   const output = (usage.candidatesTokenCount ?? 0) + (usage.thoughtsTokenCount ?? 0);
-  return { inputTokens: input, outputTokens: output, costUsd: costUsd(model, input, output, { at }) };
+  return { inputTokens: input, outputTokens: output, costUsd: costUsd(model, input, output, { at, batch }) };
+}
+
+// ---------------------------------------------------------------- chamada direta ("Processar agora")
+/** Só melhores momentos de até 10 minutos podem ser processados na hora. */
+export const DIRECT_MAX_SECONDS = 600;
+/** Teto de saída (resposta + raciocínio) da chamada direta: limita o custo máximo. */
+export const DIRECT_MAX_OUTPUT_TOKENS = 32_000;
+/** Nenhuma chamada direta é enviada se o custo MÁXIMO possível passar disto. */
+export const DIRECT_MAX_USD = 0.5;
+
+/** Custo máximo possível da chamada direta (preço cheio, sem desconto de lote): vídeo inteiro + teto de saída. */
+export function directMaxCost(model: string, seconds: number, fps: number, at?: Date) {
+  const input = PROMPT_TOKENS + seconds * tokensPerSecond(fps);
+  return { inputTokens: input, outputTokens: DIRECT_MAX_OUTPUT_TOKENS, costUsd: costUsd(model, input, DIRECT_MAX_OUTPUT_TOKENS, { at, batch: false }) };
 }
 
 export const round4 = (n: number) => Math.round(n * 10_000) / 10_000;

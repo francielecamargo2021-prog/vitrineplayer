@@ -2,7 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { asUser } from "@/lib/db";
+import { asService, asUser } from "@/lib/db";
+import { GeminiDirectClient } from "@/lib/ai/gemini";
+import { processNow, type ProcessNowRefusal } from "@/lib/ai/pipeline";
+import { aiRepo } from "@/lib/ai/repo-db";
 import { currentUser } from "@/lib/auth/server";
 import { mfaToken } from "@/lib/auth/mfa";
 import { getLimiter } from "@/lib/auth/rate-limit";
@@ -88,6 +91,55 @@ export async function grantAi(lang: string, athleteId: string, _prev: FormState,
   if (!isUuid(athleteId)) return { error: "Atleta inválido." };
   const n = Number(fd.get("quantity"));
   return run(lang, (a) => sql(a)((q) => q`select admin_ai_grant(${athleteId}::uuid, ${n}, ${text(fd, "note", 300)})`), "Cortesia registrada.");
+}
+
+const processNowMessage: Record<ProcessNowRefusal, string> = {
+  disabled_in_settings: "A IA está desligada nas configurações do banco.",
+  disabled_in_environment: "A IA está desligada no servidor (AI_ANALYSIS_ENABLED).",
+  no_api_key: "A chave da API do Google não está configurada no servidor.",
+  model_unavailable: "O modelo configurado não está disponível na API do Google. Nada foi enviado e nenhum modelo substituto foi usado.",
+  model_mismatch: "O pedido foi criado com outro modelo. Nada foi enviado.",
+  not_queued: "Este pedido não está na fila (já foi processado, cancelado ou está em um lote).",
+  only_highlights: "Processar agora vale só para vídeos de melhores momentos. Partidas e treinos seguem no processamento em lote.",
+  too_long: "Processar agora vale só para até 10 minutos de vídeo. Este segue no processamento em lote.",
+  over_cost_cap: "O custo máximo previsto passa do teto de US$ 0,50 por análise. Nada foi enviado.",
+  budget_exhausted: "O orçamento diário ou mensal da IA não comporta o custo máximo previsto. Nada foi enviado.",
+  already_claimed: "Este pedido já está sendo processado.",
+  provider_error: "O Google não respondeu a tempo ou recusou o pedido. Nada foi publicado; o pedido pode ser tentado de novo.",
+};
+
+/**
+ * Processa na hora uma análise já pedida pela família (consentimento e crédito conferidos
+ * pelo banco no pedido). Exige admin com segundo fator, perfil do atleta APROVADO e as
+ * travas de custo; só melhores momentos de até 10 minutos (regras em processNow).
+ */
+export async function processAiNow(lang: string, requestId: string): Promise<FormState> {
+  if (!isUuid(requestId)) return { error: "Pedido inválido." };
+  let a: { id: string; mfa: string };
+  try {
+    a = await admin();
+    const [row] = await sql(a)<{ admin: boolean; athlete_status: string | null }>((q) => q`
+      select is_admin() as admin,
+             (select at.status::text from ai_analysis_requests r join athletes at on at.id = r.athlete_id where r.id = ${requestId}::uuid) as athlete_status`);
+    if (!row?.admin) throw new Error("not allowed");
+    if (row.athlete_status !== "approved") return { error: "O perfil do atleta precisa estar aprovado antes da análise." };
+  } catch (e) {
+    return { error: errorKey(String((e as Error).message)) };
+  }
+  const repo = aiRepo();
+  if (!repo) return { error: "O banco não está configurado neste ambiente." };
+  const paidAllowed = process.env.AI_ANALYSIS_ENABLED === "true";
+  const apiKey = process.env.GEMINI_API_KEY ?? "";
+  const client = paidAllowed && apiKey ? new GeminiDirectClient({ apiKey, allowPaid: true }) : null;
+  const out = await processNow({ repo, client, paidAllowed, requestId });
+  await asService((q) => q`insert into audit_log (actor_id, action, entity, entity_id, meta)
+    values (${a.id}::uuid, 'ai_analysis.process_now', 'ai_analysis_requests', ${requestId}::uuid,
+            ${JSON.stringify(out.ok ? { ok: true, status: out.status, cost_usd: out.costUsd, max_cost_usd: out.maxCostUsd, model: out.model } : { ok: false, reason: out.reason, max_cost_usd: out.maxCostUsd ?? null })}::jsonb)`).catch(() => {});
+  revalidatePath(`/${safeLang(lang)}/admin`, "layout");
+  if (!out.ok) return { error: processNowMessage[out.reason] };
+  const usd = (n: number) => `US$ ${n.toFixed(4)}`;
+  const result = out.status === "completed" ? "Relatório gerado." : out.status === "unidentified" ? "A IA não identificou o atleta com segurança: nenhuma nota foi dada." : "Análise registrada, mas sem relatório (resposta inválida).";
+  return { ok: true, message: `${result} Modelo ${out.model}. Custo real ${usd(out.costUsd)} (máximo previsto ${usd(out.maxCostUsd)}).` };
 }
 
 export async function updateAiSettings(lang: string, _prev: FormState, fd: FormData): Promise<FormState> {

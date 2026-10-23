@@ -15,10 +15,10 @@
  */
 import { planJobs, videoRange } from "./planner.ts";
 import { buildConsolidateRequest, buildVideoRequest } from "./prompt.ts";
-import { costFromUsage, estimateJob, round4 } from "./pricing.ts";
+import { DIRECT_MAX_OUTPUT_TOKENS, DIRECT_MAX_SECONDS, DIRECT_MAX_USD, costFromUsage, directMaxCost, estimateJob, round4 } from "./pricing.ts";
 import { InvalidOutput, buildReport, parseModelOutput, responseText } from "./report.ts";
 import { groupFor, groupKeys } from "./rubric.ts";
-import type { BatchClient, BatchResult } from "./gemini.ts";
+import type { BatchClient, BatchResult, DirectClient } from "./gemini.ts";
 import type { Batch, FinalReport, Job, ModelOutput, RequestContext, RequestStatus, Settings, Usage } from "./types.ts";
 
 export type JobWithRequest = Job & { request: RequestContext };
@@ -149,7 +149,7 @@ async function reconcileCreating(repo: AiRepo, client: BatchClient, s: Settings,
   await repo.updateBatch(b.id, { status: "failed", error: "não encontrado no provedor", completed_at: now.toISOString() });
 }
 
-async function applyResult(repo: AiRepo, s: Settings, job: JobWithRequest, batchId: string, result: BatchResult, now: Date, summary: CycleSummary) {
+async function applyResult(repo: AiRepo, s: Settings, job: JobWithRequest, batchId: string, result: BatchResult, now: Date, summary: CycleSummary, batch = true) {
   const status = await repo.getRequestStatus(job.request_id);
   if (status === null || status === "cancelled") {
     await repo.cancelJobs(job.request_id);
@@ -159,7 +159,7 @@ async function applyResult(repo: AiRepo, s: Settings, job: JobWithRequest, batch
     await failJobs(repo, s, [job], `erro do provedor: ${result.error?.message ?? "sem resposta"}`, summary);
     return;
   }
-  const usage = costFromUsage(job.request.model, ((result.response as { usageMetadata?: Usage }).usageMetadata ?? {}), now);
+  const usage = costFromUsage(job.request.model, ((result.response as { usageMetadata?: Usage }).usageMetadata ?? {}), now, batch);
   const r = job.request;
   const range = job.kind === "consolidate" ? videoRange(r) : { start: job.start_s ?? 0, end: job.end_s ?? r.video_minutes * 60 };
 
@@ -293,4 +293,91 @@ async function submitDue(repo: AiRepo, client: BatchClient, s: Settings, now: Da
     await failJobs(repo, s, jobs, `falha ao criar lote: ${String(e).slice(0, 300)}`, summary);
     await repo.updateBatch(batchId, { status: "failed", error: String(e).slice(0, 500), completed_at: now.toISOString() });
   }
+}
+
+// ---------------------------------------------------------------- processar agora (admin)
+export type ProcessNowResult =
+  | { ok: true; status: RequestStatus | null; costUsd: number; maxCostUsd: number; model: string }
+  | { ok: false; reason: ProcessNowRefusal; detail?: string; maxCostUsd?: number };
+export type ProcessNowRefusal =
+  | "disabled_in_settings" | "disabled_in_environment" | "no_api_key" | "model_unavailable" | "model_mismatch"
+  | "not_queued" | "only_highlights" | "too_long" | "over_cost_cap" | "budget_exhausted" | "already_claimed" | "provider_error";
+
+/** Tempo máximo de espera pela resposta do Gemini (o vídeo curto costuma levar de 1 a 4 minutos). */
+export const DIRECT_TIMEOUT_MS = 240_000;
+
+/**
+ * Processa NA HORA um único pedido já liberado ('queued'): só melhores momentos de até
+ * 10 minutos, numa chamada direta (preço cheio, sem desconto de lote). Passa pelas mesmas
+ * travas do ciclo (banco, ambiente, chave), pelo orçamento diário/mensal e por um teto de
+ * custo por chamada. Consentimento e créditos já foram conferidos pelo banco ao criar o
+ * pedido. O modelo usado é exatamente o configurado: se não estiver disponível, recusa.
+ * O item fica registrado como um "lote" de 1 (provider_name = direct:<id>), com custo real.
+ */
+export async function processNow(deps: {
+  repo: AiRepo; client: DirectClient | null; paidAllowed: boolean; requestId: string;
+  now?: Date; newId?: () => string; timeoutMs?: number;
+}): Promise<ProcessNowResult> {
+  const { repo, client, paidAllowed, requestId } = deps;
+  const now = deps.now ?? new Date();
+  const newId = deps.newId ?? (() => crypto.randomUUID());
+  const s = await repo.getSettings();
+  if (!s.enabled) return { ok: false, reason: "disabled_in_settings" };
+  if (!paidAllowed) return { ok: false, reason: "disabled_in_environment" };
+  if (!client) return { ok: false, reason: "no_api_key" };
+
+  await planQueued(repo, s, now); // pedidos liberados ganham seus itens (inclusive este)
+  const jobs = await repo.requestJobs(requestId);
+  const job = (await repo.pendingJobs(1000, s.max_attempts)).find((j) => j.request_id === requestId);
+  if (!job || jobs.length !== 1 || job.kind !== "analyze") return { ok: false, reason: "not_queued" };
+  const r = job.request;
+  if (r.video_type !== "highlights") return { ok: false, reason: "only_highlights" };
+  const { start, end } = videoRange(r);
+  if (end - start > DIRECT_MAX_SECONDS) return { ok: false, reason: "too_long" };
+  if (r.model !== s.model) return { ok: false, reason: "model_mismatch", detail: `${r.model} ≠ ${s.model}` };
+
+  const fps = planJobs(r, s.segment_minutes)[0]?.fps ?? 1;
+  const max = directMaxCost(r.model, end - start, fps, now).costUsd;
+  if (max > DIRECT_MAX_USD) return { ok: false, reason: "over_cost_cap", maxCostUsd: max };
+  const remaining = Math.min(
+    s.daily_budget_usd - (await repo.spentSince(startOfDay(now))),
+    s.monthly_budget_usd - (await repo.spentSince(startOfMonth(now))),
+  );
+  if (max > remaining) return { ok: false, reason: "budget_exhausted", maxCostUsd: max };
+
+  // o modelo configurado precisa existir e aceitar generateContent; nunca há substituto
+  let info;
+  try {
+    info = await client.getModel(r.model);
+  } catch (e) {
+    return { ok: false, reason: "provider_error", detail: String(e).slice(0, 200), maxCostUsd: max };
+  }
+  if (!info || !info.methods.includes("generateContent")) return { ok: false, reason: "model_unavailable", detail: r.model, maxCostUsd: max };
+
+  const batchId = newId();
+  await repo.createBatch({ id: batchId, model: r.model, item_count: 1, estimated_cost_usd: round4(max) });
+  const claimed = await repo.claimJobs([job.id], batchId);
+  if (!claimed.includes(job.id)) {
+    await repo.updateBatch(batchId, { status: "cancelled", error: "item já reservado" });
+    return { ok: false, reason: "already_claimed" };
+  }
+  await repo.updateBatch(batchId, { provider_name: `direct:${batchId}`, submitted_at: now.toISOString() });
+  await repo.setRequestStatus(r.id, "processing");
+
+  const request = buildVideoRequest(r, { kind: "analyze", seq: 0, start_s: start, end_s: end, fps }, 1) as { generationConfig: Record<string, unknown> };
+  request.generationConfig = { ...request.generationConfig, maxOutputTokens: DIRECT_MAX_OUTPUT_TOKENS };
+  const summary: CycleSummary = { planned: 0, applied: 0, failed: 0, submitted: 1, batches: 1 };
+  let response: unknown;
+  try {
+    response = await client.generate(r.model, request, { timeoutMs: deps.timeoutMs ?? DIRECT_TIMEOUT_MS });
+  } catch (e) {
+    const error = `chamada direta: ${String(e).slice(0, 300)}`;
+    await failJobs(repo, s, [{ ...job, batch_id: batchId }], error, summary);
+    await repo.updateBatch(batchId, { status: "failed", error, completed_at: new Date().toISOString() });
+    return { ok: false, reason: "provider_error", detail: error, maxCostUsd: max };
+  }
+  await applyResult(repo, s, { ...job, batch_id: batchId }, batchId, { key: job.id, response }, now, summary, false);
+  await repo.updateBatch(batchId, { status: summary.applied ? "succeeded" : "failed", completed_at: new Date().toISOString() });
+  const cost = costFromUsage(r.model, ((response as { usageMetadata?: Usage }).usageMetadata ?? {}), now, false).costUsd;
+  return { ok: true, status: await repo.getRequestStatus(r.id), costUsd: cost, maxCostUsd: max, model: r.model };
 }

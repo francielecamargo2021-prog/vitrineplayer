@@ -88,3 +88,16 @@ export const scoring = {
   /** Cobertura mínima (soma dos pesos observados / total) para existir nota geral. */
   minCoverageForOverall: 0.6,
 };
+
+/**
+ * Agrupamento SÓ para exibição do relatório (não muda notas nem pesos, por isso não muda a
+ * versão da rubrica): técnica = execução do fundamento; tática = leitura e ocupação do jogo.
+ */
+export type Dimension = "technical" | "tactical";
+export const dimensionOf: Record<CriterionKey, Dimension> = {
+  first_touch: "technical", passing: "technical", dribbling: "technical", finishing: "technical", heading: "technical",
+  crossing: "technical", tackling: "technical", aerial_duels: "technical", defensive_1v1: "technical",
+  shot_stopping: "technical", handling: "technical", high_balls: "technical", distribution: "technical",
+  off_ball_movement: "tactical", link_play: "tactical", vision: "tactical", decision_making: "tactical",
+  positioning: "tactical", marking: "tactical", ball_recovery: "tactical", attacking_support: "tactical", build_up: "tactical",
+};

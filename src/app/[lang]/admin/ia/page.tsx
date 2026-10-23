@@ -2,7 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { hasLocale } from "@/i18n/config";
 import { aiConsole, requireAdmin } from "@/lib/admin/data";
-import { updateAiSettings } from "@/lib/admin/actions";
+import { processAiNow, updateAiSettings } from "@/lib/admin/actions";
+import { DIRECT_MAX_SECONDS, DIRECT_MAX_USD, directMaxCost } from "@/lib/ai/pricing";
+import { fpsFor } from "@/lib/ai/planner";
+import { ProcessNowButton } from "@/components/admin/ProcessNowButton";
 import { AiSettingsForm } from "@/components/admin/AiSettingsForm";
 import { AdminTitle, Facts, Section, fmtDate } from "@/components/admin/AdminUi";
 
@@ -10,6 +13,9 @@ const statusLabel: Record<string, string> = {
   awaiting_payment: "Aguardando crédito", queued: "Na fila", processing: "Processando", completed: "Concluídas",
   unidentified: "Atleta não identificado", failed: "Falharam", cancelled: "Canceladas",
 };
+
+/** A chamada direta ("Processar agora") espera o Gemini responder: até 5 minutos. */
+export const maxDuration = 300;
 
 /** Console da análise por IA: travas, limites, fila, custos e cortesias. A IA real fica desligada. */
 export default async function AdminAi({ params }: PageProps<"/[lang]/admin/ia">) {
@@ -21,6 +27,7 @@ export default async function AdminAi({ params }: PageProps<"/[lang]/admin/ia">)
   const envOn = process.env.AI_ANALYSIS_ENABLED === "true";
   const keyOn = Boolean(process.env.GEMINI_API_KEY);
   const usd = (n: number) => `US$ ${Number(n).toFixed(2)}`;
+  const aiOn = d.settings.enabled && envOn && keyOn;
   return (
     <main className="gutter mx-auto max-w-6xl space-y-10 py-12 md:py-16">
       <AdminTitle lead="Análise técnica por IA (triagem preliminar). Nada é enviado ao provedor enquanto qualquer trava estiver desligada. Ligar a IA real exige nova autorização.">IA</AdminTitle>
@@ -45,10 +52,17 @@ export default async function AdminAi({ params }: PageProps<"/[lang]/admin/ia">)
         </Section>
       </div>
       <Section title="Pedidos recentes">
+        <p className="mb-3 text-[0.85rem] text-ash">O botão “Processar agora” aparece só com a IA ligada, para melhores momentos de até 10 minutos, com o perfil do atleta aprovado. Cada clique confirmado gera custo; partidas completas seguem no processamento em lote (experimental).</p>
         {d.requests.length === 0 ? <p className="text-[0.9rem] text-fog">Nenhum pedido.</p> : (
           <ul className="space-y-1.5 text-[0.85rem] text-fog">
             {d.requests.map((r) => (
-              <li key={r.id}>{fmtDate(r.created_at)} · <Link href={`/${lang}/admin/atletas/${r.athlete_id}`} className="text-bone hover:text-grass">{r.athlete}</Link> · {statusLabel[r.status] ?? r.status} · {r.video_type} · {usd(r.cost_usd)}{r.error ? " · erro registrado" : ""}</li>
+              <li key={r.id}>{fmtDate(r.created_at)} · <Link href={`/${lang}/admin/atletas/${r.athlete_id}`} className="text-bone hover:text-grass">{r.athlete}</Link> · {statusLabel[r.status] ?? r.status} · {r.video_type} · {usd(r.cost_usd)}{r.error ? " · erro registrado" : ""}
+                {/* só o que pode ir na hora: na fila, melhores momentos até 10 min, perfil aprovado e IA ligada */}
+                {aiOn && r.status === "queued" && r.video_type === "highlights" && (r.video_seconds ?? Infinity) <= DIRECT_MAX_SECONDS && r.athlete_status === "approved" && r.model === d.settings.model && (() => {
+                  const max = directMaxCost(r.model, r.video_seconds ?? DIRECT_MAX_SECONDS, fpsFor("highlights", r.video_seconds ?? DIRECT_MAX_SECONDS)).costUsd;
+                  return max <= DIRECT_MAX_USD ? <ProcessNowButton action={processAiNow.bind(null, lang, r.id)} maxCost={`US$ ${max.toFixed(2)}`} model={r.model} /> : null;
+                })()}
+              </li>
             ))}
           </ul>
         )}

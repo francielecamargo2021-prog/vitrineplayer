@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { PanelDictionary } from "@/i18n/get-dictionary";
 import type { Database } from "@/lib/db/database.types";
-import { criteria as catalog, type CriterionKey } from "@/lib/ai/rubric";
+import { criteria as catalog, dimensionOf, type CriterionKey, type Dimension } from "@/lib/ai/rubric";
 import type { ReportDocument } from "@/lib/ai/types";
 
 export type AiReportRow = Pick<
@@ -66,43 +66,80 @@ export function AiReport({
         </div>
       </section>
 
-      {/* Fundamentos */}
-      <section>
-        <h3 className="font-display text-[1.8rem] font-extrabold uppercase leading-none [font-stretch:62%]">{t.criteria}</h3>
-        <ul className="mt-5 border-t border-white/12">
-          {doc.criteria.map((c) => (
-            <li key={c.key} className="border-b border-white/12 py-4">
-              <div className="flex items-center justify-between gap-4">
-                <span className={c.counted ? "text-bone" : "text-ash"}>{catalog[c.key as CriterionKey]?.label[lang] ?? c.key}</span>
-                {c.counted && c.score ? (
-                  <span className="flex items-center gap-3" aria-label={`${c.score} ${t.outOf}`}>
-                    <span aria-hidden className="flex gap-1">
-                      {[1, 2, 3, 4, 5].map((n) => (
-                        <span key={n} className={`h-2 w-5 ${n <= c.score! ? "bg-bone" : "bg-white/12"}`} />
-                      ))}
-                    </span>
-                    <span className="w-6 pr-0.5 text-right font-display text-[1.3rem] font-black leading-none [font-stretch:62%]">{c.score}</span>
-                  </span>
-                ) : (
-                  <span className="text-[0.85rem] text-ash">{t.notObserved}</span>
-                )}
-              </div>
-              {c.counted && (c.comment || c.evidence.length > 0) && (
-                <div className="mt-2 space-y-1.5 text-[0.85rem] leading-snug text-fog">
-                  {c.comment && <p>{c.comment}</p>}
-                  <p className="flex flex-wrap gap-x-4 gap-y-1">
-                    {c.evidence.slice(0, 4).map((e) => (
-                      <a key={`${c.key}-${e.s}`} href={`https://www.youtube.com/watch?v=${yt}&t=${e.s}s`} target="_blank" rel="noopener noreferrer" className="text-ash underline-offset-4 hover:text-bone hover:underline">
-                        <span className="font-mono text-[0.78rem] text-grass">{mmss(e.s)}</span> {e.note}
-                      </a>
-                    ))}
-                  </p>
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
+      {/* Identificação do atleta e dados do vídeo */}
+      <section className="space-y-4" data-testid="relatorio-identificacao">
+        <h3 className="font-display text-[1.8rem] font-extrabold uppercase leading-none [font-stretch:62%]">{t.identificationTitle}</h3>
+        <dl className="grid gap-x-8 gap-y-3 text-[0.92rem] sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <dt className="eyebrow text-ash">{t.identification[doc.identification.status]}</dt>
+            <dd className="mt-1 text-fog">
+              {doc.identification.notes}
+              {doc.identification.timestamps.length > 0 && <> · {t.identifiedAt} {doc.identification.timestamps.slice(0, 4).map((x) => <span key={x} className="mr-2 font-mono text-[0.8rem] text-grass">{x}</span>)}</>}
+            </dd>
+          </div>
+          <div><dt className="eyebrow text-ash">{t.analyzed}</dt><dd className="mt-1 font-mono text-[0.85rem] text-bone">{mmss(doc.video.start_s)}–{mmss(doc.video.end_s)}</dd></div>
+          <div><dt className="eyebrow text-ash">{t.quality}</dt><dd className="mt-1 text-bone">{t.qualityLevels[doc.video_quality]}</dd></div>
+        </dl>
       </section>
+
+      {/* Avaliação técnica e tática: nota, justificativa e lances confirmados de cada fundamento */}
+      {(["technical", "tactical"] as Dimension[]).map((dim) => {
+        const items = doc.criteria.filter((c) => (dimensionOf[c.key as CriterionKey] ?? "technical") === dim);
+        if (!items.length && !(dim === "tactical" && (report.decision_notes || report.positioning_notes))) return null;
+        return (
+          <section key={dim} data-testid={`relatorio-${dim}`}>
+            <h3 className="font-display text-[1.8rem] font-extrabold uppercase leading-none [font-stretch:62%]">{dim === "technical" ? t.technical : t.tactical}</h3>
+            <p className="mt-2 text-[0.85rem] text-ash">{dim === "technical" ? t.technicalLead : t.tacticalLead}</p>
+            <ul className="mt-5 border-t border-white/12">
+              {items.map((c) => (
+                <li key={c.key} className="border-b border-white/12 py-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <span className={c.counted ? "text-bone" : "text-ash"}>{catalog[c.key as CriterionKey]?.label[lang] ?? c.key}</span>
+                    {c.counted && c.score ? (
+                      <span className="flex items-center gap-3" aria-label={`${c.score} ${t.outOf}`}>
+                        <span aria-hidden className="flex gap-1">
+                          {[1, 2, 3, 4, 5].map((n) => (
+                            <span key={n} className={`h-2 w-5 ${n <= c.score! ? "bg-bone" : "bg-white/12"}`} />
+                          ))}
+                        </span>
+                        <span className="w-6 pr-0.5 text-right font-display text-[1.3rem] font-black leading-none [font-stretch:62%]">{c.score}</span>
+                      </span>
+                    ) : (
+                      <span className="text-[0.85rem] text-ash">{t.notObserved}</span>
+                    )}
+                  </div>
+                  {c.counted ? (
+                    <div className="mt-2 space-y-2 text-[0.85rem] leading-snug text-fog">
+                      <p className="text-[0.78rem] text-ash">{t.criterionConfidence} {t.confidenceLevels[c.confidence].toLowerCase()}</p>
+                      {c.comment && <p><span className="text-ash">{t.justification}: </span>{c.comment}</p>}
+                      {c.evidence.length > 0 && (
+                        <div>
+                          <p className="text-[0.78rem] text-ash">{t.confirmedPlays}</p>
+                          <p className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
+                            {c.evidence.slice(0, 4).map((e) => (
+                              <a key={`${c.key}-${e.s}`} href={`https://www.youtube.com/watch?v=${yt}&t=${e.s}s`} target="_blank" rel="noopener noreferrer" className="text-ash underline-offset-4 hover:text-bone hover:underline">
+                                <span className="font-mono text-[0.78rem] text-grass">{mmss(e.s)}</span> {e.note}
+                              </a>
+                            ))}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-[0.8rem] leading-snug text-ash">{c.observed ? t.seenNotScored : t.notConfirmed}</p>
+                  )}
+                </li>
+              ))}
+            </ul>
+            {dim === "tactical" && (report.decision_notes || report.positioning_notes) && (
+              <div className="mt-8 grid gap-10 md:grid-cols-2">
+                {report.decision_notes && <Note title={t.decision} text={report.decision_notes} />}
+                {report.positioning_notes && <Note title={t.positioning} text={report.positioning_notes} />}
+              </div>
+            )}
+          </section>
+        );
+      })}
 
       <section className="grid gap-10 md:grid-cols-2">
         {[[t.strengths, report.strengths], [t.development, report.development]].map(([title, items]) => (
@@ -116,13 +153,6 @@ export function AiReport({
           </div>
         ))}
       </section>
-
-      {(report.decision_notes || report.positioning_notes) && (
-        <section className="grid gap-10 md:grid-cols-2">
-          {report.decision_notes && <Note title={t.decision} text={report.decision_notes} />}
-          {report.positioning_notes && <Note title={t.positioning} text={report.positioning_notes} />}
-        </section>
-      )}
 
       <section className="bg-pitch p-6 md:p-8">
         <h3 className="font-display text-[1.5rem] font-extrabold uppercase leading-none [font-stretch:62%]">{t.summary}</h3>

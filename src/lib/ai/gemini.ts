@@ -114,3 +114,56 @@ export class GeminiBatchClient implements BatchClient {
     return null;
   }
 }
+
+// ---------------------------------------------------------------- chamada direta ("Processar agora")
+/**
+ * Uma única requisição generateContent, para o admin processar na hora um vídeo curto.
+ * Mesmo formato de requisição dos lotes; a resposta é a mesma que viria dentro do lote.
+ */
+export type ModelInfo = { name: string; displayName?: string; inputTokenLimit?: number; outputTokenLimit?: number; methods: string[] };
+
+export interface DirectClient {
+  /** Confere se o modelo existe e aceita generateContent (consulta gratuita). Nunca troca de modelo. */
+  getModel(model: string): Promise<ModelInfo | null>;
+  generate(model: string, request: unknown, opts: { timeoutMs: number }): Promise<unknown>;
+}
+
+export class GeminiDirectClient implements DirectClient {
+  private readonly apiKey: string;
+  private readonly fetchImpl: typeof fetch;
+
+  /** Como o cliente de lotes: só existe com autorização explícita de custo. */
+  constructor(opts: { apiKey: string; allowPaid: boolean; fetchImpl?: typeof fetch }) {
+    if (!opts.allowPaid) throw new Error("chamadas pagas ao Gemini não autorizadas");
+    if (!opts.apiKey) throw new Error("GEMINI_API_KEY ausente");
+    this.apiKey = opts.apiKey;
+    this.fetchImpl = opts.fetchImpl ?? fetch;
+  }
+
+  async getModel(model: string): Promise<ModelInfo | null> {
+    if (!/^[a-z0-9.-]+$/.test(model)) return null;
+    const res = await this.fetchImpl(`${BASE}/models/${model}`, { headers: { "x-goog-api-key": this.apiKey } });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`Gemini ${res.status}`);
+    const j = (await res.json()) as Json;
+    return {
+      name: String(j.name ?? ""),
+      displayName: j.displayName as string | undefined,
+      inputTokenLimit: j.inputTokenLimit as number | undefined,
+      outputTokenLimit: j.outputTokenLimit as number | undefined,
+      methods: (j.supportedGenerationMethods as string[] | undefined) ?? [],
+    };
+  }
+
+  async generate(model: string, request: unknown, { timeoutMs }: { timeoutMs: number }) {
+    const res = await this.fetchImpl(`${BASE}/models/${model}:generateContent`, {
+      method: "POST",
+      headers: { "x-goog-api-key": this.apiKey, "Content-Type": "application/json" },
+      body: JSON.stringify(request),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    const body = await res.text();
+    if (!res.ok) throw new Error(`Gemini ${res.status}: ${body.slice(0, 300)}`);
+    return JSON.parse(body) as unknown;
+  }
+}
