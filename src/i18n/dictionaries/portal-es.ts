@@ -201,7 +201,7 @@ const portal: PortalDictionary = {
     noNotes: "Aún no hay notas.",
     delete: "Borrar",
     evaluation: "Evaluación técnica",
-    evaluationFormativeLead: "Atleta de 6 a 10 años (formación): registrá solo observaciones escritas. No hay notas ni comparaciones en esta franja.",
+    evaluationFormativeLead: "Atleta de 6 a 10 años (etapa formativa): no hay evaluación con notas ni comparaciones. Registrá tus observaciones en las anotaciones.",
     evaluationLead: "Fundamentos de la posición, de 1 a 5, siempre relativos a la categoría del atleta. Deja en blanco lo que no se observó.",
     notObserved: "—",
     context: "Dónde observaste",

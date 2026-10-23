@@ -260,10 +260,10 @@ export default async function PortalAthlete({ params }: PageProps<"/[lang]/porta
             <section className="border-t border-white/12 pt-6">
               <h2 className="eyebrow text-bone">{w.evaluation} · {groups[group].label[rl]}</h2>
               <div className="mt-4">
-                {/* 6 a 10 anos: só observação escrita, sem notas (formação) */}
-                <EvaluationForm lang={lang} athleteId={a.id} group={group} rubric={RUBRIC_VERSION} formative={isFormativeAge(a.age)}
-                  criteria={isFormativeAge(a.age) ? [] : groupKeys(group).map((k) => ({ key: k, label: critLabel(k) }))}
-                  videos={vids.map((v) => ({ id: v.id, label: v.title || `YouTube ${v.youtube}` }))} t={w} />
+                {/* 6 a 10 anos: sem avaliação com notas (formação) — observações vão nas anotações */}
+                {isFormativeAge(a.age) ? <p className="text-[0.9rem] text-fog" data-testid="avaliacao-formativa">{w.evaluationFormativeLead}</p> : <EvaluationForm lang={lang} athleteId={a.id} group={group} rubric={RUBRIC_VERSION}
+                  criteria={groupKeys(group).map((k) => ({ key: k, label: critLabel(k) }))}
+                  videos={vids.map((v) => ({ id: v.id, label: v.title || `YouTube ${v.youtube}` }))} t={w} />}
               </div>
             </section>
           )}

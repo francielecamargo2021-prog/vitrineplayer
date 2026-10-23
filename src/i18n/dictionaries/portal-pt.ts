@@ -199,7 +199,7 @@ const portal = {
     noNotes: "Nenhuma nota ainda.",
     delete: "Apagar",
     evaluation: "Avaliação técnica",
-    evaluationFormativeLead: "Atleta de 6 a 10 anos (formação): registre só observações escritas. Não há notas nem comparações nessa faixa.",
+    evaluationFormativeLead: "Atleta de 6 a 10 anos (fase de formação): não há avaliação com notas nem comparações. Registre suas observações nas anotações.",
     evaluationLead: "Fundamentos da posição, de 1 a 5, sempre relativos à categoria do atleta. Deixe em branco o que não foi observado.",
     notObserved: "—",
     context: "Onde observou",

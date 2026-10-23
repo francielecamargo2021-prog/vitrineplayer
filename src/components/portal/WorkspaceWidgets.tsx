@@ -62,15 +62,15 @@ export function DeleteButton({ kind, lang, id, label }: { kind: "note" | "evalua
 }
 
 /** Avaliação pela rubrica da posição: 1–5 por fundamento (vazio = não observado). */
-export function EvaluationForm({ lang, athleteId, group, rubric, criteria, videos, t, formative = false }: {
-  lang: string; athleteId: string; group: string; rubric: string; formative?: boolean;
+export function EvaluationForm({ lang, athleteId, group, rubric, criteria, videos, t }: {
+  lang: string; athleteId: string; group: string; rubric: string;
   criteria: { key: string; label: string }[]; videos: { id: string; label: string }[]; t: W;
 }) {
   const [state, formAction, pending] = useKeepAction(addEvaluation.bind(null, lang, athleteId, group, rubric, criteria.map((c) => c.key)));
   return (
     <form key={state?.message ?? "form"} onSubmit={formAction} className="space-y-4" data-testid="nova-avaliacao">
-      <p className="text-[0.85rem] text-ash">{formative ? t.evaluationFormativeLead : t.evaluationLead}</p>
-      {!formative && <fieldset className="space-y-2">
+      <p className="text-[0.85rem] text-ash">{t.evaluationLead}</p>
+      <fieldset className="space-y-2">
         {criteria.map((c) => (
           <div key={c.key} className="flex items-center justify-between gap-3 border-b border-white/[0.06] pb-2">
             <span className="text-[0.9rem] text-fog">{c.label}</span>
@@ -86,7 +86,7 @@ export function EvaluationForm({ lang, athleteId, group, rubric, criteria, video
             </span>
           </div>
         ))}
-      </fieldset>}
+      </fieldset>
       <div className="grid gap-3 sm:grid-cols-3">
         <label className="block">
           <span className="eyebrow text-fog">{t.context}</span>
@@ -103,7 +103,7 @@ export function EvaluationForm({ lang, athleteId, group, rubric, criteria, video
         </label>
         <TextField label={t.minute} name="minute" type="number" min={0} max={200} />
       </div>
-      <TextArea label={t.observation} name="observation" maxLength={2000} required={formative} minLength={formative ? 10 : undefined} />
+      <TextArea label={t.observation} name="observation" maxLength={2000} />
       <Feedback state={state} t={t} />
       <button disabled={pending} className={`${primaryButton} w-full`}>{t.saveEvaluation}</button>
     </form>

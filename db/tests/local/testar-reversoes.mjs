@@ -36,20 +36,32 @@ const check = (ok, msg, detail = "") => {
 };
 const migrar = (...args) => execFileSync("node", [join(db, "migrar.mjs"), ...args], { encoding: "utf8", env: process.env });
 
-for (const file of readdirSync(join(db, "reversoes")).filter((f) => f.endsWith(".sql")).sort().reverse()) {
+// Reverte da mais nova para a mais antiga (cada reversão só vale com as posteriores já revertidas),
+// conferindo cada passo; no fim reaplica tudo e exige o catálogo idêntico ao inicial.
+// Reversão pode DEVOLVER uma função à versão anterior (mesma assinatura, corpo diferente):
+// isso é permitido; o que não pode é criar objeto novo.
+const ident = (o) => (o.startsWith("f:") ? o.replace(/\)[0-9a-f]{32}.*$/, ")") : o);
+const files = readdirSync(join(db, "reversoes")).filter((f) => f.endsWith(".sql")).sort().reverse();
+const initial = await snapshot();
+let pending = 0;
+for (const file of files) {
   const name = file.replace(/\.sql$/, "");
   const before = await snapshot();
   await client.query(readFileSync(join(db, "reversoes", file), "utf8"));
   const after = await snapshot();
+  const beforeIds = new Set([...before].map(ident));
+  const created = [...after].filter((x) => !beforeIds.has(ident(x)));
+  const restored = [...after].filter((x) => !before.has(x) && beforeIds.has(ident(x))).map(ident);
   const removed = diff(before, after);
-  const added = diff(after, before);
-  check(added.length === 0, `${name}: a reversão não cria nem altera nada`, added.slice(0, 3).join(" | "));
-  check(removed.length > 0 && removed.some((x) => x.startsWith(`m:${file}`)), `${name}: a reversão remove os objetos da migration e o registro dela`, `${removed.length} objetos`);
-  check(/pendentes: 1 \(/.test(migrar("verificar")), `${name}: o migrar.mjs volta a ver a migration como pendente`);
-  migrar("aplicar", "--branch=local");
-  const again = await snapshot();
-  check(diff(before, again).length === 0 && diff(again, before).length === 0, `${name}: reaplicar deixa o banco idêntico ao de antes da reversão`);
+  check(created.length === 0, `${name}: a reversão não cria nada novo${restored.length ? ` (devolve à versão anterior: ${restored.join(", ")})` : ""}`, created.slice(0, 3).join(" | "));
+  check(removed.some((x) => x.startsWith(`m:${file}`)), `${name}: a reversão remove os objetos da migration e o registro dela`, `${removed.length} objetos`);
+  pending++;
+  check(new RegExp(`pendentes: ${pending} \\(`).test(migrar("verificar")), `${name}: o migrar.mjs vê ${pending} migration(s) pendente(s)`);
 }
+migrar("aplicar", "--branch=local");
+const again = await snapshot();
+check(diff(initial, again).length === 0 && diff(again, initial).length === 0, `reaplicar as ${files.length} migration(s) revertida(s) deixa o banco idêntico ao inicial`,
+  [...diff(initial, again), ...diff(again, initial)].slice(0, 3).join(" | "));
 await client.end();
 console.log(failed ? `\n${failed} falha(s) nas reversões` : "\nReversões: tudo ok");
 process.exit(failed ? 1 : 0);
