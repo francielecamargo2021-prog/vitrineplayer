@@ -8,6 +8,7 @@ import { hasLocale } from "@/i18n/config";
 import { ageOn, isFormativeAge, positions, type Position } from "@/domain/athlete";
 import { RUBRIC_VERSION } from "@/lib/ai/rubric";
 import { PROMPT_VERSION } from "@/lib/ai/prompt";
+import { pvClient } from "@/lib/pitchvision/client";
 import type { FormState } from "./actions";
 
 /** Versão do texto de autorização exibido na etapa "Avaliação técnica". */
@@ -85,7 +86,13 @@ export async function setAiReportPublished(lang: string, athleteId: string, repo
 
 export async function deleteAiReport(lang: string, athleteId: string, reportId: string) {
   const db = await authed();
-  await db.rpc("delete_ai_report", { p_report: reportId });
+  // relatório da PitchVision: apaga também o relatório e as imagens guardados lá (a partida compartilhada fica)
+  const { data: rep } = await db.from("ai_video_reports").select("provider, request_id").eq("id", reportId).maybeSingle();
+  const pvReq = rep?.provider === "pitchvision"
+    ? (await db.from("ai_analysis_requests").select("pv_request_id").eq("id", rep.request_id).maybeSingle()).data?.pv_request_id ?? null
+    : null;
+  const { error } = await db.rpc("delete_ai_report", { p_report: reportId });
+  if (!error && pvReq) await pvClient()?.deleteRequest(pvReq).catch(() => undefined);
   refresh(lang, athleteId);
   redirect(`/${safeLang(lang)}/painel/atleta/${athleteId}/editar/avaliacao`);
 }

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { hasLocale, htmlLang } from "@/i18n/config";
 import { getPanelDictionary } from "@/i18n/get-dictionary";
-import { getAiState, getAthleteBundle, requireGuardian, signedPhotoUrls } from "@/lib/panel/data";
+import { getAiState, getAthleteBundle, getPvState, requireGuardian, signedPhotoUrls } from "@/lib/panel/data";
 import { cancelAiAnalysis, requestAiAnalysis } from "@/lib/panel/ai-actions";
 import { addVideo, removeVideo, saveStep, setVisibility, submitForReview, withdrawFromReview } from "@/lib/panel/actions";
 import { isStep, stepSlugs } from "@/lib/panel/steps";
@@ -16,6 +16,12 @@ import { VideoAddForm } from "@/components/panel/VideoAddForm";
 import { BlockManager } from "@/components/panel/BlockManager";
 import { PhotoManager } from "@/components/panel/PhotoManager";
 import { AiRequestForm } from "@/components/ai/AiRequestForm";
+import { VideoUploader } from "@/components/ai/VideoUploader";
+import { PvRequestForm } from "@/components/ai/PvRequestForm";
+import { AthletePick, PvActions, PvStatus, PvVideoList, stageOf } from "@/components/ai/PvSection";
+import { requestPvAnalysis } from "@/lib/panel/pv-actions";
+import { pvClient, pvConfig, type PvCandidate } from "@/lib/pitchvision/client";
+import { videosReady } from "@/lib/videos/server";
 
 export default async function EditStep({ params, searchParams }: PageProps<"/[lang]/painel/atleta/[id]/editar/[etapa]">) {
   const { lang, id, etapa } = await params;
@@ -182,44 +188,91 @@ export default async function EditStep({ params, searchParams }: PageProps<"/[la
 
   if (etapa === "avaliacao") {
     const ai = p.ai;
-    const { request } = await getAiState(db, id);
-    // pedido em andamento ou concluído: mostra o estado; senão, o formulário
-    // 6 a 10 anos: a análise atual dá notas — fica bloqueada até existir a versão formativa
-    const formative = isFormativeAge(ageOn(a.birth_date));
-    const showForm = !formative && (!request || ["unidentified", "failed", "cancelled"].includes(request.status));
+    const pv = p.pv;
+    const age = ageOn(a.birth_date);
+    // 6 a 10 anos: regra 0015 preservada (nenhuma análise por IA) até a revisão de privacidade
+    const formative = isFormativeAge(age);
+    const pvOn = Boolean(pvConfig()) && videosReady();
+    const pvState = pvOn && !formative ? await getPvState(db, id) : null;
+    const pvReq = pvState?.request ?? null;
+    const pvActive = pvReq && ["awaiting_payment", "queued", "processing", "completed"].includes(pvReq.status);
+    let candidates: PvCandidate[] | null = null;
+    if (pvReq && pvReq.status === "processing" && pvReq.pv_stage === "athlete_pick" && pvReq.pv_request_id) {
+      candidates = await pvClient()!.getCandidates(pvReq.pv_request_id).then((c) => c.candidates).catch(() => null);
+    }
+    // Gemini (fluxo 0004): só para atletas adultos (0016 bloqueia menores no banco)
+    const { request } = age >= 18 ? await getAiState(db, id) : { request: null };
+    const showGemini = age >= 18 && (!request || ["unidentified", "failed", "cancelled"].includes(request.status));
     const st = request ? ai.status[request.status] : null;
     body = (
-      <div className="space-y-10">
-        <p className="max-w-[62ch] leading-relaxed text-fog">{ai.lead}</p>
-        {request && st && (
-          <section className={`space-y-3 border-l-2 pl-4 ${request.status === "completed" ? "border-grass" : request.status === "unidentified" || request.status === "failed" ? "border-[#e5a3a3]" : "border-white/30"}`}>
-            <p className="font-display text-[1.6rem] font-extrabold uppercase leading-none [font-stretch:62%]">{st.title}</p>
-            <p className="max-w-[60ch] text-[0.95rem] leading-relaxed text-fog">{st.body}</p>
-            <div className="flex flex-wrap gap-3 pt-2">
-              {request.status === "completed" && <Link href={`${base}/avaliacao`} className={primaryButton}>{ai.view}</Link>}
-              {["awaiting_payment", "queued"].includes(request.status) && (
-                <form action={cancelAiAnalysis.bind(null, lang, id, request.id)}>
-                  <button className={ghostButton}>{ai.cancel}</button>
-                </form>
-              )}
-            </div>
-          </section>
-        )}
+      <div className="space-y-12">
         {formative && (
           <section className="space-y-2 border-l-2 border-grass pl-4" data-testid="ia-formativa">
             <p className="font-display text-[1.6rem] font-extrabold uppercase leading-none [font-stretch:62%]">{ai.formative.title}</p>
             <p className="max-w-[60ch] text-[0.95rem] leading-relaxed text-fog">{ai.formative.body}</p>
           </section>
         )}
-        {showForm && (bundle.videos.length === 0 ? (
-          <p className="text-ash">{ai.noVideos}</p>
-        ) : (
-          <AiRequestForm
-            action={requestAiAnalysis.bind(null, lang, id)} t={ai} defaultPosition={a.primary_position}
-            positions={opts(positions, p.positions)}
-            videos={bundle.videos.filter((v) => v.external_id).map((v) => ({ id: v.id, title: v.title, thumb: youtubeThumb(v.external_id!), type: v.video_type }))}
-          />
-        ))}
+        {!formative && (
+          <section className="space-y-8" data-testid="pv-area">
+            <div className="space-y-3">
+              <h2 className="font-display text-[clamp(2rem,8vw,3rem)] font-black uppercase leading-[0.86] [font-stretch:62%]">{pv.title}</h2>
+              <p className="max-w-[62ch] leading-relaxed text-fog">{pv.lead}</p>
+            </div>
+            {!pvOn && <p className="text-ash">{pv.disabled}</p>}
+            {pvOn && pvState && (
+              <>
+                {pvReq && pvActive && <PvStatus request={pvReq} t={pv} />}
+                {pvReq && stageOf(pvReq) === "athlete_pick" && (
+                  <AthletePick lang={lang} athleteId={id} request={pvReq} candidates={candidates} t={pv.pick} />
+                )}
+                {pvReq && <PvActions base={base} request={pvReq} t={pv} />}
+                <div className="space-y-4">
+                  <h3 className="eyebrow text-fog">{pv.videos.title}</h3>
+                  <PvVideoList lang={lang} athleteId={id} videos={pvState.videos} t={pv.videos} />
+                  <VideoUploader lang={lang} athleteId={id} t={pv.videos} />
+                </div>
+                {!pvActive && pvState.videos.length > 0 && (
+                  <div className="space-y-4">
+                    <h3 className="font-display text-[1.6rem] font-extrabold uppercase leading-none [font-stretch:62%]">{pv.request.title}</h3>
+                    <PvRequestForm
+                      action={requestPvAnalysis.bind(null, lang, id)} t={pv.request} positions={opts(positions, p.positions)}
+                      defaultPosition={a.primary_position}
+                      videos={pvState.videos.map((v) => ({ id: v.id, label: `${pv.videos.types[v.video_type as keyof typeof pv.videos.types] ?? v.video_type} · ${Math.round(v.duration_s / 60)} ${pv.videos.minutes}` }))}
+                    />
+                  </div>
+                )}
+              </>
+            )}
+          </section>
+        )}
+        {age >= 18 && (
+          <section className="space-y-6 border-t border-white/12 pt-8">
+            <p className="max-w-[62ch] leading-relaxed text-fog">{ai.lead}</p>
+            {request && st && (
+              <section className={`space-y-3 border-l-2 pl-4 ${request.status === "completed" ? "border-grass" : request.status === "unidentified" || request.status === "failed" ? "border-[#e5a3a3]" : "border-white/30"}`}>
+                <p className="font-display text-[1.6rem] font-extrabold uppercase leading-none [font-stretch:62%]">{st.title}</p>
+                <p className="max-w-[60ch] text-[0.95rem] leading-relaxed text-fog">{st.body}</p>
+                <div className="flex flex-wrap gap-3 pt-2">
+                  {request.status === "completed" && <Link href={`${base}/avaliacao`} className={primaryButton}>{ai.view}</Link>}
+                  {["awaiting_payment", "queued"].includes(request.status) && (
+                    <form action={cancelAiAnalysis.bind(null, lang, id, request.id)}>
+                      <button className={ghostButton}>{ai.cancel}</button>
+                    </form>
+                  )}
+                </div>
+              </section>
+            )}
+            {showGemini && (bundle.videos.length === 0 ? (
+              <p className="text-ash">{ai.noVideos}</p>
+            ) : (
+              <AiRequestForm
+                action={requestAiAnalysis.bind(null, lang, id)} t={ai} defaultPosition={a.primary_position}
+                positions={opts(positions, p.positions)}
+                videos={bundle.videos.filter((v) => v.external_id).map((v) => ({ id: v.id, title: v.title, thumb: youtubeThumb(v.external_id!), type: v.video_type }))}
+              />
+            ))}
+          </section>
+        )}
         <NextLink href={`${base}/editar/${stepSlugs[idx + 1]}`} label={p.form.saveNext} exit={`/${lang}/painel`} exitLabel={p.form.exit} />
       </div>
     );

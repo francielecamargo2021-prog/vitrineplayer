@@ -81,6 +81,19 @@ export async function activitySignals(db: DataClient, id: string) {
 }
 
 /** Pedido de avaliação por IA mais recente do atleta + relatório (se houver). Leitura do responsável (RLS). */
+/** Análise PitchVision do atleta: vídeos enviados, último pedido e último relatório (tudo pela RLS do usuário). */
+export async function getPvState(db: DataClient, athleteId: string) {
+  const [{ data: videos }, { data: request }, { data: report }] = await Promise.all([
+    db.from("analysis_videos").select("id, video_type, duration_s, size_bytes, created_at")
+      .eq("athlete_id", athleteId).eq("status", "uploaded").order("created_at", { ascending: false }),
+    db.from("ai_analysis_requests").select("id, status, pv_stage, pv_request_id, created_at")
+      .eq("athlete_id", athleteId).eq("provider", "pitchvision").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    db.from("ai_video_reports").select("id").eq("athlete_id", athleteId).eq("provider", "pitchvision")
+      .order("created_at", { ascending: false }).limit(1).maybeSingle(),
+  ]);
+  return { videos: videos ?? [], request, hasReport: Boolean(report) };
+}
+
 export async function getAiState(db: DataClient, athleteId: string) {
   const { data: request } = await db
     .from("ai_analysis_requests")

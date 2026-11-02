@@ -1,0 +1,636 @@
+{
+ "_note": "Saída REAL da PitchVision (v2) com VÍDEO SINTÉTICO de testes (retângulos coloridos). Serve só para testar o contrato; não diz nada sobre a precisão em partidas reais.",
+ "request_awaiting": {
+  "id": "28c602b5b5414743878b1b204f370691",
+  "match_id": "c102dffcf51340e8befc26c191c48c22",
+  "external_ref": "req-1",
+  "external_athlete_ref": null,
+  "status": "awaiting_input",
+  "stage": "athlete_pick",
+  "error": null,
+  "clues": {
+   "jersey_number": 7,
+   "position": null,
+   "shirt_color": null,
+   "team": null
+  },
+  "identity": {
+   "track_ids": null,
+   "origin": null,
+   "confirmed_at": null
+  },
+  "has_result": false,
+  "created_at": "2026-11-02T20:59:53.506968+00:00",
+  "updated_at": "2026-11-02T20:59:59.163649+00:00"
+ },
+ "candidates": {
+  "athlete_request_id": "28c602b5b5414743878b1b204f370691",
+  "jersey_scan": false,
+  "automatic_identity": false,
+  "candidates": [
+   {
+    "track_id": 0,
+    "team": 1,
+    "role": "player",
+    "first_t": 0.0,
+    "last_t": 4.96,
+    "seconds": 5.0,
+    "jersey_votes": 0,
+    "jersey_reads": 0,
+    "jersey_read": null,
+    "thumbnail_url": "/v2/athlete-requests/28c602b5b5414743878b1b204f370691/candidates/0/thumbnail"
+   },
+   {
+    "track_id": 1,
+    "team": 1,
+    "role": "player",
+    "first_t": 0.0,
+    "last_t": 4.96,
+    "seconds": 5.0,
+    "jersey_votes": 0,
+    "jersey_reads": 0,
+    "jersey_read": null,
+    "thumbnail_url": "/v2/athlete-requests/28c602b5b5414743878b1b204f370691/candidates/1/thumbnail"
+   },
+   {
+    "track_id": 2,
+    "team": 0,
+    "role": "player",
+    "first_t": 0.0,
+    "last_t": 4.96,
+    "seconds": 5.0,
+    "jersey_votes": 0,
+    "jersey_reads": 0,
+    "jersey_read": null,
+    "thumbnail_url": "/v2/athlete-requests/28c602b5b5414743878b1b204f370691/candidates/2/thumbnail"
+   },
+   {
+    "track_id": 3,
+    "team": 0,
+    "role": "player",
+    "first_t": 0.0,
+    "last_t": 4.96,
+    "seconds": 5.0,
+    "jersey_votes": 0,
+    "jersey_reads": 0,
+    "jersey_read": null,
+    "thumbnail_url": "/v2/athlete-requests/28c602b5b5414743878b1b204f370691/candidates/3/thumbnail"
+   }
+  ]
+ },
+ "request_completed": {
+  "id": "28c602b5b5414743878b1b204f370691",
+  "match_id": "c102dffcf51340e8befc26c191c48c22",
+  "external_ref": "req-1",
+  "external_athlete_ref": null,
+  "status": "completed",
+  "stage": "completed",
+  "error": null,
+  "clues": {
+   "jersey_number": 7,
+   "position": null,
+   "shirt_color": null,
+   "team": null
+  },
+  "identity": {
+   "track_ids": [
+    0
+   ],
+   "origin": "user",
+   "confirmed_at": "2026-11-02T20:59:59.207936+00:00"
+  },
+  "has_result": true,
+  "created_at": "2026-11-02T20:59:53.506968+00:00",
+  "updated_at": "2026-11-02T21:00:01.070272+00:00"
+ },
+ "result": {
+  "schema_version": "1.1",
+  "analysis_id": "28c602b5b5414743878b1b204f370691",
+  "video": {
+   "width": 640,
+   "height": 360,
+   "fps": 25.0,
+   "frame_count": 125,
+   "duration_s": 5.0,
+   "codec": "mpeg4",
+   "container": "mov,mp4,m4a,3gp,3g2,mj2"
+  },
+  "processed": {
+   "start_frame": 0,
+   "end_frame": 125,
+   "frames": 125,
+   "frame_stride": 1,
+   "tiled": 0
+  },
+  "options": {
+   "detector": null,
+   "frame_stride": 1,
+   "start_s": 0.0,
+   "max_seconds": null,
+   "tiles": "auto",
+   "person_threshold": 0.35,
+   "ball_threshold": 0.3,
+   "pipeline_version": "v2",
+   "shot_detection": "auto",
+   "camera_motion_compensation": false,
+   "team_method": "kit",
+   "calibration": null,
+   "category": null,
+   "game_format": null,
+   "pitch_length_m": null,
+   "pitch_width_m": null,
+   "periods": null
+  },
+  "models": [
+   {
+    "component": "detector",
+    "name": "test colour-blob detector",
+    "version": "test",
+    "license": "n/a"
+   },
+   {
+    "component": "tracker",
+    "name": "McByte (roboflow trackers) + team split + stitching",
+    "version": "2.6.1",
+    "license": "Apache-2.0"
+   },
+   {
+    "component": "team_clustering",
+    "name": "HSV torso histogram + KMeans(2)",
+    "version": "1.9.1",
+    "license": "BSD-3-Clause"
+   }
+  ],
+  "capabilities": {
+   "player_detection": "experimental",
+   "ball_detection": "experimental",
+   "tracking": "experimental",
+   "team_classification": "experimental",
+   "role_classification": "experimental",
+   "jersey_number_ocr": "not_implemented",
+   "reidentification_after_cuts": "not_implemented",
+   "pitch_calibration": "not_implemented",
+   "events": "not_implemented",
+   "statistics": "not_implemented",
+   "llm_report": "experimental"
+  },
+  "tracks": [
+   {
+    "track_id": 0,
+    "team": 1,
+    "team_purity": 1.0,
+    "role": "player",
+    "first_frame": 0,
+    "last_frame": 124,
+    "first_t": 0.0,
+    "last_t": 4.96,
+    "observations": 125,
+    "coverage": 1.0,
+    "mean_confidence": 0.9,
+    "thumbnail_url": "/v1/analyses/1a5be434f0514058b80fd9e2ab474be8/tracks/0/thumbnail",
+    "team_confidence": 1.0,
+    "role_confidence": 1.0,
+    "role_reason": "uniforme de uma das equipes",
+    "needs_review": false,
+    "label_source": "auto",
+    "shot": null,
+    "shot_kind": null
+   },
+   {
+    "track_id": 1,
+    "team": 1,
+    "team_purity": 1.0,
+    "role": "player",
+    "first_frame": 0,
+    "last_frame": 124,
+    "first_t": 0.0,
+    "last_t": 4.96,
+    "observations": 125,
+    "coverage": 1.0,
+    "mean_confidence": 0.9,
+    "thumbnail_url": "/v1/analyses/1a5be434f0514058b80fd9e2ab474be8/tracks/1/thumbnail",
+    "team_confidence": 1.0,
+    "role_confidence": 1.0,
+    "role_reason": "uniforme de uma das equipes",
+    "needs_review": false,
+    "label_source": "auto",
+    "shot": null,
+    "shot_kind": null
+   },
+   {
+    "track_id": 2,
+    "team": 0,
+    "team_purity": 1.0,
+    "role": "player",
+    "first_frame": 0,
+    "last_frame": 124,
+    "first_t": 0.0,
+    "last_t": 4.96,
+    "observations": 125,
+    "coverage": 1.0,
+    "mean_confidence": 0.9,
+    "thumbnail_url": "/v1/analyses/1a5be434f0514058b80fd9e2ab474be8/tracks/2/thumbnail",
+    "team_confidence": 1.0,
+    "role_confidence": 1.0,
+    "role_reason": "uniforme de uma das equipes",
+    "needs_review": false,
+    "label_source": "auto",
+    "shot": null,
+    "shot_kind": null
+   }
+  ],
+  "ball": [
+   {
+    "frame": 0,
+    "t": 0.0,
+    "bbox": [
+     86.0,
+     166.0,
+     94.0,
+     176.0
+    ],
+    "confidence": 0.8
+   },
+   {
+    "frame": 1,
+    "t": 0.04,
+    "bbox": [
+     88.0,
+     166.0,
+     98.0,
+     175.0
+    ],
+    "confidence": 0.8
+   },
+   {
+    "frame": 2,
+    "t": 0.08,
+    "bbox": [
+     92.0,
+     166.0,
+     100.0,
+     174.0
+    ],
+    "confidence": 0.8
+   },
+   {
+    "frame": 3,
+    "t": 0.12,
+    "bbox": [
+     94.0,
+     166.0,
+     104.0,
+     174.0
+    ],
+    "confidence": 0.8
+   },
+   {
+    "frame": 4,
+    "t": 0.16,
+    "bbox": [
+     98.0,
+     166.0,
+     106.0,
+     174.0
+    ],
+    "confidence": 0.8
+   }
+  ],
+  "athlete": {
+   "identity": {
+    "status": "confirmed_by_user",
+    "method": "manual_track_selection",
+    "track_id": 0,
+    "additional_track_ids": [],
+    "selected_at_frame": null,
+    "declared_jersey_number": "7",
+    "jersey_number_verified": false,
+    "confirmed_at": "2026-11-02T20:59:59.207936Z",
+    "scope_note": "Attribution covers only the track(s) confirmed by a person: 0 (0.0s-4.96s). Frames where these tracks are absent are not attributed to the athlete."
+   },
+   "team": 1,
+   "presence": [
+    {
+     "start_frame": 0,
+     "end_frame": 124,
+     "start_t": 0.0,
+     "end_t": 4.96
+    }
+   ],
+   "observed_seconds": 5.0,
+   "trajectory": [
+    {
+     "frame": 0,
+     "t": 0.0,
+     "bbox": [
+      400.0,
+      220.0,
+      418.0,
+      266.0
+     ],
+     "confidence": 0.9,
+     "pitch_xy": null
+    },
+    {
+     "frame": 5,
+     "t": 0.2,
+     "bbox": [
+      390.0,
+      222.0,
+      408.0,
+      268.0
+     ],
+     "confidence": 0.9,
+     "pitch_xy": null
+    },
+    {
+     "frame": 10,
+     "t": 0.4,
+     "bbox": [
+      380.0,
+      226.0,
+      398.0,
+      272.0
+     ],
+     "confidence": 0.9,
+     "pitch_xy": null
+    },
+    {
+     "frame": 15,
+     "t": 0.6,
+     "bbox": [
+      370.0,
+      228.0,
+      388.0,
+      274.0
+     ],
+     "confidence": 0.9,
+     "pitch_xy": null
+    },
+    {
+     "frame": 20,
+     "t": 0.8,
+     "bbox": [
+      360.0,
+      230.0,
+      378.0,
+      276.0
+     ],
+     "confidence": 0.9,
+     "pitch_xy": null
+    },
+    {
+     "frame": 25,
+     "t": 1.0,
+     "bbox": [
+      350.0,
+      232.0,
+      368.0,
+      278.0
+     ],
+     "confidence": 0.9,
+     "pitch_xy": null
+    },
+    {
+     "frame": 30,
+     "t": 1.2,
+     "bbox": [
+      340.0,
+      236.0,
+      358.0,
+      282.0
+     ],
+     "confidence": 0.9,
+     "pitch_xy": null
+    },
+    {
+     "frame": 35,
+     "t": 1.4,
+     "bbox": [
+      330.0,
+      238.0,
+      348.0,
+      284.0
+     ],
+     "confidence": 0.9,
+     "pitch_xy": null
+    },
+    {
+     "frame": 40,
+     "t": 1.6,
+     "bbox": [
+      320.0,
+      240.0,
+      338.0,
+      286.0
+     ],
+     "confidence": 0.9,
+     "pitch_xy": null
+    },
+    {
+     "frame": 45,
+     "t": 1.8,
+     "bbox": [
+      310.0,
+      242.0,
+      328.0,
+      290.0
+     ],
+     "confidence": 0.9,
+     "pitch_xy": null
+    },
+    {
+     "frame": 50,
+     "t": 2.0,
+     "bbox": [
+      300.0,
+      246.0,
+      319.0,
+      292.0
+     ],
+     "confidence": 0.9,
+     "pitch_xy": null
+    },
+    {
+     "frame": 55,
+     "t": 2.2,
+     "bbox": [
+      290.0,
+      248.0,
+      308.0,
+      294.0
+     ],
+     "confidence": 0.9,
+     "pitch_xy": null
+    },
+    {
+     "frame": 60,
+     "t": 2.4,
+     "bbox": [
+      280.0,
+      250.0,
+      298.0,
+      296.0
+     ],
+     "confidence": 0.9,
+     "pitch_xy": null
+    },
+    {
+     "frame": 65,
+     "t": 2.6,
+     "bbox": [
+      270.0,
+      252.0,
+      288.0,
+      298.0
+     ],
+     "confidence": 0.9,
+     "pitch_xy": null
+    },
+    {
+     "frame": 70,
+     "t": 2.8,
+     "bbox": [
+      260.0,
+      256.0,
+      278.0,
+      302.0
+     ],
+     "confidence": 0.9,
+     "pitch_xy": null
+    },
+    {
+     "frame": 75,
+     "t": 3.0,
+     "bbox": [
+      250.0,
+      258.0,
+      268.0,
+      304.0
+     ],
+     "confidence": 0.9,
+     "pitch_xy": null
+    },
+    {
+     "frame": 80,
+     "t": 3.2,
+     "bbox": [
+      240.0,
+      260.0,
+      258.0,
+      306.0
+     ],
+     "confidence": 0.9,
+     "pitch_xy": null
+    },
+    {
+     "frame": 85,
+     "t": 3.4,
+     "bbox": [
+      230.0,
+      262.0,
+      248.0,
+      308.0
+     ],
+     "confidence": 0.9,
+     "pitch_xy": null
+    },
+    {
+     "frame": 90,
+     "t": 3.6,
+     "bbox": [
+      220.0,
+      266.0,
+      238.0,
+      312.0
+     ],
+     "confidence": 0.9,
+     "pitch_xy": null
+    },
+    {
+     "frame": 95,
+     "t": 3.8,
+     "bbox": [
+      210.0,
+      268.0,
+      228.0,
+      314.0
+     ],
+     "confidence": 0.9,
+     "pitch_xy": null
+    }
+   ],
+   "ball_proximity_candidates": [],
+   "identity_checkpoints": [],
+   "identity_checkpoint_share": 0.0,
+   "evidence": [
+    {
+     "id": "img_best",
+     "kind": "image",
+     "start_frame": 18,
+     "end_frame": 18,
+     "start_t": 0.72,
+     "end_t": 0.72,
+     "url": "/v2/athlete-requests/28c602b5b5414743878b1b204f370691/evidence/img_best",
+     "description": "Frame where the selected athlete is most clearly visible (highest confidence x box area)."
+    },
+    {
+     "id": "clip_1",
+     "kind": "clip",
+     "start_frame": 0,
+     "end_frame": 124,
+     "start_t": 0.0,
+     "end_t": 4.96,
+     "url": "/v2/athlete-requests/28c602b5b5414743878b1b204f370691/evidence/clip_1",
+     "description": "First continuous segment where the athlete is tracked. Virtual camera follows the athlete (crop of the original frame)."
+    }
+   ],
+   "metrics": {}
+  },
+  "events": [],
+  "limitations": [
+   "Detector is COCO-pretrained RF-DETR without football fine-tuning: it detects 'person' and 'sports ball'; small or occluded balls are often missed.",
+   "Team ids are arbitrary colour clusters (0/1), not real team identities.",
+   "Athlete identity comes from a human confirming one or more tracks. Only those tracks are attributed to the athlete: after an occlusion or camera cut the athlete continues under a different track id, which is NOT attributed unless a person confirms it (automatic re-identification is not implemented).",
+   "Jersey numbers are not read; a declared jersey number is stored but not verified.",
+   "Ball proximity candidates are not events; no pass/dribble/tackle/shot classification exists yet.",
+   "Accuracy was measured on SoccerTrack v2 fixed panoramic footage only (see docs/benchmarks); other camera types (broadcast, phone, youth matches) are not validated.",
+   "No calibration: coordinates are image pixels; goalkeepers and referees are reported together as 'goalkeeper_or_referee'; people outside the pitch are only filtered by the green-grass mask."
+  ],
+  "timings": {
+   "processing_seconds": 2.134,
+   "seconds_per_frame": 0.0023,
+   "video_seconds_processed": 5.0,
+   "device": "cpu"
+  },
+  "report": {
+   "validated": {
+    "observed_seconds": 5.0,
+    "presence_segments": 1
+   },
+   "experimental": {
+    "ball_proximity_candidates": 0
+   },
+   "unavailable": {
+    "passes": "not_validated",
+    "receptions": "not_validated",
+    "carries": "not_validated",
+    "dribbles": "not_validated",
+    "shots": "not_validated",
+    "tackles": "not_validated",
+    "interceptions": "not_validated",
+    "goals": "not_validated",
+    "assists": "not_validated",
+    "sprints": "not_validated",
+    "top_speed": "not_validated",
+    "positions": "no_calibration",
+    "heatmap": "no_calibration",
+    "distance": "no_calibration"
+   },
+   "scores": null,
+   "external_ai_used": false,
+   "minors": true
+  },
+  "identity_origin": "user"
+ }
+}

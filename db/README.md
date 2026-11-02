@@ -41,3 +41,15 @@ node tests/testar-neon.mjs
 - **Sem repetição nem alteração:** cada arquivo aplicado fica em `vp_meta.migrations` com seu SHA-256. Nada é reaplicado, e um arquivo alterado depois de aplicado é recusado. Mudança nova = arquivo novo.
 - **Tudo ou nada:** uma única transação, com trava contra execução simultânea.
 - **Recriar:** exige confirmação repetindo o branch e recusa se houver qualquer dado: usuários do Neon Auth ou linhas em tabelas da aplicação. Só não contam as configurações criadas pelas migrations (`storage.buckets`, `ai_settings`). Não toca em `neon_auth` nem nas extensões.
+
+## Integração PitchVision (0016)
+
+| Comando | O que prova |
+|---|---|
+| `npm run test:db` | migrations + RLS, inclusive `pitchvision.test.sql` (vídeo como arquivo, Gemini bloqueado para menores, regra de 6 a 10 anos, operações só do serviço, relatório sem notas) |
+| `npm run test:pitchvision` | assinatura dos avisos, relatório a partir de uma saída REAL da PitchVision (vídeo sintético), ciclo do integrador, envio em partes com retomada |
+| `npm run test:pitchvision:e2e` | ponta a ponta local: Postgres local com todas as migrations + PitchVision local real (API + worker). Exige `PV_REPO`, `PV_PYTHON` e `E2E_VIDEO`; `E2E_VIDEO_KIND=synthetic|real` e `E2E_DETECTOR=colorblob|rfdetr-medium` |
+
+Os testes com vídeo **sintético** provam o fluxo técnico. Os testes com **partida real** provam que o fluxo funciona
+com vídeo de verdade. **Nenhum dos dois mede a precisão da análise**: isso exige gabarito (ex.: SoccerTrack) e é
+avaliado à parte, na PitchVision.

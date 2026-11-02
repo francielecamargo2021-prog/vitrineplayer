@@ -14,6 +14,12 @@ if (env === "homolog" || env === "production") {
   if ((process.env.NEON_AUTH_COOKIE_SECRET ?? "").length < 32) missing.push("NEON_AUTH_COOKIE_SECRET (32+ caracteres)");
   if (Buffer.from(process.env.ADMIN_MFA_KEY ?? "", "base64url").length !== 32) missing.push("ADMIN_MFA_KEY (32 bytes em base64url)");
   if (process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_SERVICE_ROLE_KEY) missing.push("variáveis antigas do Supabase devem ser removidas");
+  // Integração PitchVision: só exigida quando ligada neste ambiente
+  if (process.env.PITCHVISION_ENABLED === "true") {
+    for (const k of ["PITCHVISION_API_URL", "PITCHVISION_API_KEY", "BLOB_VIDEO_READ_WRITE_TOKEN", "CRON_SECRET"]) if (!process.env[k]) missing.push(k);
+    for (const k of ["PITCHVISION_WEBHOOK_SECRET", "PITCHVISION_REF_KEY"]) if ((process.env[k] ?? "").length < 32) missing.push(`${k} (32+ caracteres)`);
+    if (!(process.env.PITCHVISION_API_URL ?? "").startsWith("https://")) missing.push("PITCHVISION_API_URL (https)");
+  }
   if (missing.length) throw new Error(`VP_ENV=${env}: configuração incompleta — ${[...new Set(missing)].join(", ")}`);
 }
 
