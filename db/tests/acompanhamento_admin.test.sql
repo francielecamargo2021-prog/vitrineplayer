@@ -44,7 +44,8 @@ insert into neon_auth."user" (id, name, email, "emailVerified") values
 update profiles set role = 'ADMIN' where id = 'a9000000-0000-0000-0000-0000000000c1';
 
 select pg_temp.as_user('a9000000-0000-0000-0000-0000000000a1');
-insert into ids values ('ath', create_athlete('Pedro Henrique Lima', 'Pedrinho', (current_date - interval '15 years')::date, 'BR', 'mother'));
+-- adulto (19 anos): o pedido abaixo usa o Gemini, bloqueado para menores pela 0016
+insert into ids values ('ath', create_athlete('Pedro Henrique Lima', 'Pedrinho', (current_date - interval '19 years')::date, 'BR', 'mother'));
 update athletes set primary_position = 'ST', category = 'Sub-15' where id = (select id from ids where k = 'ath');
 insert into athlete_media (athlete_id, kind, url, external_id) select id, 'youtube', 'https://www.youtube.com/watch?v=abcdefghijk', 'abcdefghijk' from ids where k = 'ath';
 insert into ids select 'video', id from athlete_media where external_id = 'abcdefghijk';

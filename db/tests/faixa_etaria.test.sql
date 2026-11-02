@@ -192,8 +192,10 @@ select admin_ai_grant(id, 1, 'cortesia de teste') from ids where k in ('a10', 'a
 select pg_temp.as_user('e1000000-0000-0000-0000-0000000000e1');
 select throws_ok(format($$ select request_ai_analysis(%L, 'highlights', 4, 9, 'azul', 'ST', 'v1', 'r1', 'p1') $$,
   (select id from athlete_media where athlete_id = pg_temp.id('a10'))), 'P0001', 'formative age', 'análise por IA com notas para 10 anos: bloqueada');
-select lives_ok(format($$ select request_ai_analysis(%L, 'highlights', 4, 9, 'azul', 'ST', 'v1', 'r1', 'p1') $$,
-  (select id from athlete_media where athlete_id = pg_temp.id('a11'))), 'para 11 anos: permitida');
+-- 0016: para 11 a 17 anos o Gemini é bloqueado (menor); a regra de idade de 0015 segue valendo para os dois provedores
+select throws_ok(format($$ select request_ai_analysis(%L, 'highlights', 4, 9, 'azul', 'ST', 'v1', 'r1', 'p1') $$,
+  (select id from athlete_media where athlete_id = pg_temp.id('a11'))), 'P0001', 'external ai not allowed for minors',
+  'para 11 anos: Gemini bloqueado (menor de 18; 0016)');
 
 select pg_temp.as_owner();
 select * from finish();

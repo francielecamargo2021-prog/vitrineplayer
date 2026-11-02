@@ -63,7 +63,7 @@ select is((select model from ai_settings), 'gemini-3.8-flash', 'modelo padrão c
 
 -- ---------------------------------------------------------------- dados dos atletas
 select pg_temp.as_user('a1000000-0000-0000-0000-00000000000a');
-insert into ids values ('athA', create_athlete('Atleta A', 'A', '2011-03-10', 'BR'));
+insert into ids values ('athA', create_athlete('Atleta A', 'A', '2006-03-10', 'BR'));
 insert into athlete_media (athlete_id, kind, url, external_id, video_type)
   select id, 'youtube', 'https://www.youtube.com/watch?v=AAAAAAAAAAA', 'AAAAAAAAAAA', 'highlights' from ids where k = 'athA';
 insert into ids select 'vidA', id from athlete_media where external_id = 'AAAAAAAAAAA';
@@ -71,7 +71,7 @@ insert into athlete_media (athlete_id, kind, storage_path) select id, 'photo', i
 insert into ids select 'photoA', id from athlete_media where storage_path like '%/p.webp';
 
 select pg_temp.as_user('b1000000-0000-0000-0000-00000000000b');
-insert into ids values ('athB', create_athlete('Atleta B', 'B', '2010-05-01', 'AR'));
+insert into ids values ('athB', create_athlete('Atleta B', 'B', '2005-05-01', 'AR'));
 insert into athlete_media (athlete_id, kind, url, external_id, video_type)
   select id, 'youtube', 'https://www.youtube.com/watch?v=BBBBBBBBBBB', 'BBBBBBBBBBB', 'full_match' from ids where k = 'athB';
 insert into ids select 'vidB', id from athlete_media where external_id = 'BBBBBBBBBBB';

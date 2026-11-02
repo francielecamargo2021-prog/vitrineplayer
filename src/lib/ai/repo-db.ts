@@ -41,7 +41,8 @@ class DbAiRepo implements AiRepo {
   async requestsToPlan(limit: number) {
     const rows = await asService<{ r: RequestContext }>((q) => q.query(`
       select ${requestJson("r")} as r from ai_analysis_requests r
-       where r.status = 'queued' and not exists (select 1 from ai_analysis_jobs j where j.request_id = r.id)
+       where r.status = 'queued' and r.provider = 'gemini'   -- 0016: pedidos da PitchVision têm outro processador
+         and not exists (select 1 from ai_analysis_jobs j where j.request_id = r.id)
        order by r.queued_at limit $1`, [limit]));
     return rows.map((x) => x.r);
   }
@@ -63,7 +64,7 @@ class DbAiRepo implements AiRepo {
     const rows = await asService<Record<string, unknown>>((q) => q.query(`
       select ${JOB_COLS}, ${requestJson("r")} as request from ai_analysis_jobs j
         join ai_analysis_requests r on r.id = j.request_id
-       where j.status = 'pending' and j.attempts < $1 and r.status in ('queued', 'processing')
+       where j.status = 'pending' and j.attempts < $1 and r.status in ('queued', 'processing') and r.provider = 'gemini'
        order by j.created_at limit $2`, [maxAttempts, limit]));
     return rows.map((r) => ({ ...toJob(r), request: r.request as RequestContext }));
   }
