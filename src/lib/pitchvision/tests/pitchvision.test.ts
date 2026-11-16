@@ -108,6 +108,8 @@ function world() {
       return `rep-${id}`;
     },
     async notifyGuardians(athleteId, template) { notes.push(`${athleteId}:${template}`); },
+    async linkRequestsToSend() { return []; },
+    async failUnsent() {},
   };
   const client: PvClient = {
     async createMatch(input) {
@@ -131,6 +133,12 @@ function world() {
     async getResult() { return fixture.result; },
     async getBinary() { return new Response(""); },
     async deleteRequest() {},
+    async getCalibrationInfo() { throw new Error("não usado"); },
+    async getFrame() { return new Response(""); },
+    async submitCalibration() { throw new Error("não usado"); },
+    async createLinkMatch() { throw new Error("modo link não deve ser chamado no fluxo de arquivo"); },
+    async createLinkRequest() { throw new Error("não usado"); },
+    async postFeedback() { return {}; },
   };
   const signer = { async presignGet(p: string) { return `https://store.private.blob.vercel-storage.com/${p}?vercel-blob-signature=x`; } };
   const onError = (_w: string, _id: string, e: unknown) => { if (!String(e).includes("ECONNRESET")) console.error(e); };

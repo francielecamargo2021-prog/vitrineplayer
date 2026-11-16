@@ -19,8 +19,11 @@ import { AiRequestForm } from "@/components/ai/AiRequestForm";
 import { VideoUploader } from "@/components/ai/VideoUploader";
 import { PvRequestForm } from "@/components/ai/PvRequestForm";
 import { AthletePick, PvActions, PvStatus, PvVideoList, stageOf } from "@/components/ai/PvSection";
-import { requestPvAnalysis } from "@/lib/panel/pv-actions";
-import { pvClient, pvConfig, type PvCandidate } from "@/lib/pitchvision/client";
+import { PvCalibration } from "@/components/ai/PvCalibration";
+import { PvLinkRequestForm } from "@/components/ai/PvLinkRequestForm";
+import { requestPvAnalysis, requestPvLinkAnalysis } from "@/lib/panel/pv-actions";
+import { pvClient, pvConfig, pvLinkEnabled, type PvCalibrationInfo, type PvCandidate } from "@/lib/pitchvision/client";
+import { LANDMARKS, diagramPositions, frameTimes } from "@/lib/pitchvision/calibration";
 import { videosReady } from "@/lib/videos/server";
 
 export default async function EditStep({ params, searchParams }: PageProps<"/[lang]/painel/atleta/[id]/editar/[etapa]">) {
@@ -193,13 +196,19 @@ export default async function EditStep({ params, searchParams }: PageProps<"/[la
     // 6 a 10 anos: regra 0015 preservada (nenhuma análise por IA) até a revisão de privacidade
     const formative = isFormativeAge(age);
     const pvOn = Boolean(pvConfig()) && videosReady();
-    const pvState = pvOn && !formative ? await getPvState(db, id) : null;
+    // modo link (link público do YouTube + IA externa): chave própria e SÓ 18+ (também no banco, 0017)
+    const linkOn = pvLinkEnabled() && age >= 18;
+    const pvState = (pvOn || linkOn) && !formative ? await getPvState(db, id) : null;
     const pvReq = pvState?.request ?? null;
     const pvActive = pvReq && ["awaiting_payment", "queued", "processing", "completed"].includes(pvReq.status);
     let candidates: PvCandidate[] | null = null;
+    let calib: PvCalibrationInfo | null = null;
     if (pvReq && pvReq.status === "processing" && pvReq.pv_stage === "athlete_pick" && pvReq.pv_request_id) {
       candidates = await pvClient()!.getCandidates(pvReq.pv_request_id).then((c) => c.candidates).catch(() => null);
+      // marcação do campo: só para ESTE pedido (envio de arquivo), com a partida pronta
+      if (pvReq.pv_source === "file" && pvReq.pv_match_id) calib = await pvClient()!.getCalibrationInfo(pvReq.pv_match_id).catch(() => null);
     }
+    const reqVideo = pvState?.videos.find((v) => v.id === pvReq?.analysis_video_id);
     // Gemini (fluxo 0004): só para atletas adultos (0016 bloqueia menores no banco)
     const { request } = age >= 18 ? await getAiState(db, id) : { request: null };
     const showGemini = age >= 18 && (!request || ["unidentified", "failed", "cancelled"].includes(request.status));
@@ -218,14 +227,20 @@ export default async function EditStep({ params, searchParams }: PageProps<"/[la
               <h2 className="font-display text-[clamp(2rem,8vw,3rem)] font-black uppercase leading-[0.86] [font-stretch:62%]">{pv.title}</h2>
               <p className="max-w-[62ch] leading-relaxed text-fog">{pv.lead}</p>
             </div>
-            {!pvOn && <p className="text-ash">{pv.disabled}</p>}
+            {!pvOn && !linkOn && <p className="text-ash">{pv.disabled}</p>}
+            {pvReq && pvActive && <PvStatus request={pvReq} t={pv} />}
+            {pvReq && <PvActions base={base} request={pvReq} t={pv} />}
+            {pvReq && calib && stageOf(pvReq) === "athlete_pick" && (
+              <PvCalibration lang={lang} athleteId={id} requestId={pvReq.id} t={pv.calibration}
+                available={LANDMARKS.filter((k) => k in calib.landmarks)} diagram={diagramPositions(calib.landmarks, calib.pitch)} pitch={calib.pitch}
+                times={frameTimes(reqVideo?.duration_s ?? 60)}
+                current={calib.calibration ? { method: calib.calibration.quality.method, points: calib.calibration.quality.points, error_m: calib.calibration.quality.loo_mean_m } : null} />
+            )}
             {pvOn && pvState && (
               <>
-                {pvReq && pvActive && <PvStatus request={pvReq} t={pv} />}
                 {pvReq && stageOf(pvReq) === "athlete_pick" && (
                   <AthletePick lang={lang} athleteId={id} request={pvReq} candidates={candidates} t={pv.pick} />
                 )}
-                {pvReq && <PvActions base={base} request={pvReq} t={pv} />}
                 <div className="space-y-4">
                   <h3 className="eyebrow text-fog">{pv.videos.title}</h3>
                   <PvVideoList lang={lang} athleteId={id} videos={pvState.videos} t={pv.videos} />
@@ -242,6 +257,17 @@ export default async function EditStep({ params, searchParams }: PageProps<"/[la
                   </div>
                 )}
               </>
+            )}
+            {linkOn && pvState && !pvActive && (
+              <section className="space-y-4 border-t border-white/12 pt-8" data-testid="pv-link-area">
+                <h3 className="font-display text-[1.6rem] font-extrabold uppercase leading-none [font-stretch:62%]">{pv.link.title}</h3>
+                <p className="max-w-[62ch] leading-relaxed text-fog">{pv.link.lead}</p>
+                <PvLinkRequestForm
+                  action={requestPvLinkAnalysis.bind(null, lang, id)} t={pv.link} req={pv.request}
+                  types={(["full_match", "highlights"] as const).map((v) => ({ value: v, label: pv.videos.types[v] }))}
+                  positions={opts(positions, p.positions)} defaultPosition={a.primary_position}
+                />
+              </section>
             )}
           </section>
         )}

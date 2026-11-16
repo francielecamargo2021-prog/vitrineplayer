@@ -18,6 +18,25 @@ export type AthleteRequestInput = {
   clues: { jersey_number: number | null; position: string | null; shirt_color: string | null };
 };
 
+export type PvCalibrationQuality = { method: string; points: number; fit_rmse_m: number; loo_mean_m: number | null; validated_by_loo: boolean };
+export type PvCalibrationInfo = {
+  match_id: string; min_points: number; pitch: { length_m: number; width_m: number; source: string };
+  landmarks: Record<string, [number, number]>;
+  calibration: { id: string; frame_t: number; quality: PvCalibrationQuality; created_at: string } | null;
+};
+export type CalibrationInput = {
+  t: number; frame_width: number; frame_height: number; recompute: boolean;
+  points: { image: [number, number]; landmark: string }[];
+};
+export type LinkMatchInput = {
+  external_ref: string; url: string; category: string | null; minors: false; duration_s: number | null;
+  authorization: { rights_basis: string; declared_by: string; purposes: string[]; age_band: "adults"; category?: string | null; consent_reference?: string };
+};
+export type LinkRequestInput = {
+  external_ref: string; external_athlete_ref: string;
+  descriptor: { jersey_number: number | null; shirt_color: string | null; position: string | null; appears_at: string | null };
+};
+
 export interface PvClient {
   createMatch(input: MatchInput): Promise<PvMatch>;
   getMatch(id: string): Promise<PvMatch>;
@@ -28,6 +47,14 @@ export interface PvClient {
   getResult(id: string): Promise<unknown>;
   getBinary(id: string, kind: "thumbnail" | "evidence", ref: string): Promise<Response>;
   deleteRequest(id: string): Promise<void>;
+  // calibração do campo (câmera fixa): quadro, pontos e envio
+  getCalibrationInfo(matchId: string): Promise<PvCalibrationInfo>;
+  getFrame(matchId: string, t: number, maxWidth: number): Promise<Response>;
+  submitCalibration(matchId: string, input: CalibrationInput): Promise<{ calibration: { id: string; quality: PvCalibrationQuality } }>;
+  // modo link (link público do YouTube, só adultos)
+  createLinkMatch(input: LinkMatchInput): Promise<PvMatch>;
+  createLinkRequest(matchId: string, input: LinkRequestInput): Promise<PvRequest>;
+  postFeedback(requestId: string, momentId: string, verdict: "correct" | "incorrect"): Promise<unknown>;
 }
 
 export class PvError extends Error {
@@ -102,6 +129,26 @@ export class HttpPvClient implements PvClient {
     return res;
   }
   async deleteRequest(rid: string) { await this.call<void>("DELETE", `/v2/athlete-requests/${id(rid)}`); }
+  getCalibrationInfo(mid: string) { return this.call<PvCalibrationInfo>("GET", `/v2/matches/${id(mid)}/calibration`); }
+  async getFrame(mid: string, t: number, maxWidth: number) {
+    if (!Number.isFinite(t) || t < 0 || !Number.isInteger(maxWidth)) throw new PvError(400, "quadro inválido");
+    const res = await this.fetchImpl(`${this.base}/v2/matches/${id(mid)}/frame?t=${t.toFixed(1)}&max_width=${maxWidth}`, {
+      headers: { "X-API-Key": this.key }, cache: "no-store", signal: AbortSignal.timeout(this.timeoutMs),
+    });
+    if (!res.ok) throw new PvError(res.status, `PitchVision respondeu ${res.status}`);
+    return res;
+  }
+  submitCalibration(mid: string, input: CalibrationInput) {
+    return this.call<{ calibration: { id: string; quality: PvCalibrationQuality } }>("POST", `/v2/matches/${id(mid)}/calibration`, input);
+  }
+  createLinkMatch(input: LinkMatchInput) { return this.call<PvMatch>("POST", "/v2/link-matches", input); }
+  createLinkRequest(mid: string, input: LinkRequestInput) {
+    return this.call<PvRequest>("POST", `/v2/link-matches/${id(mid)}/athlete-requests`, input);
+  }
+  postFeedback(rid: string, momentId: string, verdict: "correct" | "incorrect") {
+    if (!/^[mo][1-9]\d{0,3}$/.test(momentId)) throw new PvError(400, "momento inválido");
+    return this.call<unknown>("POST", `/v2/athlete-requests/${id(rid)}/feedback`, { moment_id: momentId, verdict });
+  }
 }
 
 /** Configuração do ambiente (null = integração desligada neste ambiente). */
@@ -111,6 +158,11 @@ export function pvConfig() {
   const key = process.env.PITCHVISION_API_KEY ?? "";
   if (!enabled || !url || !key) return null;
   return { url, key, webhookSecret: process.env.PITCHVISION_WEBHOOK_SECRET ?? "", refKey: process.env.PITCHVISION_REF_KEY ?? "" };
+}
+
+/** Modo link (link público do YouTube + IA externa): desligado salvo PITCHVISION_LINK_ENABLED=true, e só 18+. */
+export function pvLinkEnabled() {
+  return pvConfig() !== null && process.env.PITCHVISION_LINK_ENABLED === "true";
 }
 
 export function pvClient(): PvClient | null {

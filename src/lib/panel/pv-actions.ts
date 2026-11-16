@@ -6,13 +6,19 @@ import { asService } from "@/lib/db";
 import { currentUser } from "@/lib/auth/server";
 import { hasLocale } from "@/i18n/config";
 import { positions, type Position } from "@/domain/athlete";
-import { pvClient } from "@/lib/pitchvision/client";
+import { pvClient, pvLinkEnabled } from "@/lib/pitchvision/client";
+import { submitCalibrationFor, type Frame, type MarkedPoint, type SubmitResult } from "@/lib/pitchvision/calibration";
+import { isAdult, parseLinkForm } from "@/lib/pitchvision/link";
+import { pvRepo } from "@/lib/pitchvision/repo-db";
 import { MAX_VIDEO_BYTES, VIDEO_TYPES, deleteVideo, isVideoPath, newVideoPath, uploadToken, verifyUploaded, videosReady } from "@/lib/videos/server";
 import type { FormState } from "./actions";
 
 /** Versão do texto de autorização da análise PitchVision exibido no painel. */
 const PV_CONSENT_VERSION = "pv-2026-11";
 const PV_VERSION = "pitchvision-v2";
+/** Versão do texto de autorização do modo link (link público + IA externa, só 18+). */
+const PV_LINK_CONSENT_VERSION = "pv-link-2026-11";
+const PV_LINK_VERSION = "pitchvision-v2-link";
 const videoKinds = ["full_match", "highlights", "training"] as const;
 
 const isUuid = (v: string) => /^[0-9a-f-]{36}$/i.test(v);
@@ -121,4 +127,65 @@ export async function cancelPvAnalysis(lang: string, athleteId: string, requestI
   const { error } = await own.db.rpc("cancel_ai_analysis", { p_request: requestId });
   if (!error && req.pv_request_id) await pvClient()?.deleteRequest(req.pv_request_id).catch(() => undefined);
   refresh(lang, athleteId);
+}
+
+/**
+ * Marcação do campo (calibração) pelo responsável: só no pedido DESTE atleta e só enquanto a PitchVision espera a
+ * escolha do atleta (partida pronta). A PitchVision confere os pontos e recusa marcação incoerente.
+ */
+export async function submitPvCalibration(lang: string, athleteId: string, requestId: string, points: MarkedPoint[], frame: Frame): Promise<SubmitResult> {
+  const own = await ownAthlete(athleteId);
+  const client = pvClient();
+  if (!own || !client || !isUuid(requestId) || !Array.isArray(points)) return { ok: false, error: "notAllowed" };
+  const { data: row } = await own.db.from("ai_analysis_requests").select("athlete_id, status, pv_stage, pv_match_id")
+    .eq("id", requestId).eq("provider", "pitchvision").eq("pv_source", "file").maybeSingle();
+  const clean = points.slice(0, 20).map((p) => ({ landmark: String(p?.landmark ?? ""), x: Number(p?.x), y: Number(p?.y) })) as MarkedPoint[];
+  const out = await submitCalibrationFor(row ? { ...row, status: String(row.status) } : null, athleteId, clean,
+    { t: Number(frame?.t), width: Number(frame?.width), height: Number(frame?.height) }, client);
+  if (out.ok) refresh(lang, athleteId);
+  return out;
+}
+
+function linkError(message: string) {
+  if (message.includes("link mode adults only")) return "adultsOnly";
+  if (message.includes("invalid link")) return "link";
+  return requestError(message);
+}
+
+/** Pedido pelo link do YouTube (modo link): chave PITCHVISION_LINK_ENABLED, só atleta com 18+ (aqui e no banco). */
+export async function requestPvLinkAnalysis(lang: string, athleteId: string, _prev: FormState, fd: FormData): Promise<FormState> {
+  if (!pvLinkEnabled()) return { error: "disabled" };
+  const own = await ownAthlete(athleteId);
+  if (!own) return { error: "generic" };
+  const { data: athlete } = await own.db.from("athletes").select("birth_date").eq("id", athleteId).maybeSingle();
+  if (!isAdult(athlete?.birth_date ?? null)) return { error: "adultsOnly" };
+  if (String(fd.get("consent") ?? "") !== "yes") return { error: "consent" };
+  const parsed = parseLinkForm((k) => String(fd.get(k) ?? ""), positions);
+  if (!parsed.ok) return { error: parsed.error };
+  const a = parsed.args;
+  const { error } = await own.db.rpc("request_pitchvision_link_analysis", {
+    p_athlete: athleteId, p_youtube_id: a.youtube_id, p_video_minutes: a.minutes, p_video_type: a.video_type,
+    p_shirt_number: a.shirt_number, p_shirt_color: a.shirt_color, p_position: a.position as Position, p_appears_at: a.appears_at,
+    p_consent_version: PV_LINK_CONSENT_VERSION, p_rubric_version: PV_LINK_VERSION, p_prompt_version: PV_LINK_VERSION,
+  });
+  if (error) return { error: linkError(error.message) };
+  refresh(lang, athleteId);
+  return { ok: true };
+}
+
+/** Certo/errado num momento do relatório do modo link: grava (RLS, função do banco) e repassa à PitchVision. */
+export async function sendMomentFeedback(lang: string, athleteId: string, reportId: string, momentId: string, verdict: "correct" | "incorrect") {
+  const own = await ownAthlete(athleteId);
+  if (!own || !isUuid(reportId) || !/^[mo][1-9]\d{0,3}$/.test(momentId) || !["correct", "incorrect"].includes(verdict)) return;
+  const { data: id, error } = await own.db.rpc("pv_link_feedback", { p_report: reportId, p_moment: momentId, p_verdict: verdict });
+  if (error || typeof id !== "string") return;
+  const { data: rep } = await own.db.from("ai_video_reports").select("request_id").eq("id", reportId).maybeSingle();
+  const { data: req } = rep ? await own.db.from("ai_analysis_requests").select("pv_request_id").eq("id", rep.request_id).maybeSingle() : { data: null };
+  const client = pvClient();
+  if (client && req?.pv_request_id) {
+    // o rótulo fica guardado aqui mesmo se a PitchVision estiver fora; o repasse é marcado só quando confirmado
+    const ok = await client.postFeedback(req.pv_request_id, momentId, verdict).then(() => true, () => false);
+    if (ok) await pvRepo()?.feedbackSynced(id).catch(() => undefined);
+  }
+  revalidatePath(`/${safeLang(lang)}/painel/atleta/${athleteId}/avaliacao`);
 }

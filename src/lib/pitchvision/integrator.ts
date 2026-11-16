@@ -11,7 +11,8 @@
  * `applyRequest` também é chamado pelo webhook, com o mesmo efeito (a ordem dos eventos não importa).
  */
 import { mapResult, type PvResult } from "./report.ts";
-import type { PvClient, PvMatch, PvRequest } from "./client.ts";
+import { mapLinkResult, type PvLinkResult } from "./link.ts";
+import { PvError, type PvClient, type PvMatch, type PvRequest } from "./client.ts";
 import type { Position } from "../ai/rubric.ts";
 
 export type Stage = "sent" | "receiving_video" | "processing_match" | "athlete_pick" | "athlete_metrics" | "completed" | "failed";
@@ -20,6 +21,11 @@ export type ToSend = {
   request_id: string; athlete_id: string; video_id: string; blob_pathname: string; video_type: string;
   shirt_number: number | null; shirt_color: string | null; athlete_position: string; birth_year: number | null; category: string | null;
 };
+/** Pedido pelo LINK do YouTube (0017): só adultos; `adult` é conferido de novo pelo banco no momento do envio. */
+export type LinkToSend = {
+  request_id: string; athlete_id: string; youtube_id: string; video_minutes: number; shirt_number: number | null;
+  shirt_color: string | null; athlete_position: string; appears_at: string | null; category: string | null; adult: boolean;
+};
 export type InProgress = {
   request_id: string; athlete_id: string; pv_match_id: string; pv_request_id: string; pv_stage: string | null;
   position: string; report_locale: string;
@@ -27,6 +33,8 @@ export type InProgress = {
 
 export interface PvRepo {
   requestsToSend(limit: number): Promise<ToSend[]>;
+  linkRequestsToSend(limit: number): Promise<LinkToSend[]>;
+  failUnsent(requestId: string, error: string): Promise<void>;
   linkRequest(requestId: string, matchId: string, pvRequestId: string, stage: Stage): Promise<boolean>;
   inProgress(limit: number): Promise<InProgress[]>;
   byPvRequest(pvRequestId: string): Promise<InProgress | null>;
@@ -78,13 +86,50 @@ export async function sendOne(r: ToSend, deps: { repo: PvRepo; client: PvClient;
   return { match, req, linked };
 }
 
+/**
+ * Envia um pedido pelo link: partida "link" (external_ref = id do vídeo; nada é baixado) + pedido com a descrição do
+ * atleta. Menor de idade ou link recusado pela PitchVision (privado, sem incorporação) → o pedido falha aqui.
+ */
+export async function sendLinkOne(r: LinkToSend, deps: { repo: PvRepo; client: PvClient; athleteRef: (id: string) => string }) {
+  if (!r.adult) {
+    await deps.repo.failUnsent(r.request_id, "link mode adults only");
+    return { linked: false, failed: true };
+  }
+  try {
+    const match = await deps.client.createLinkMatch({
+      external_ref: `yt_${r.youtube_id}`,
+      url: `https://www.youtube.com/watch?v=${r.youtube_id}`,
+      category: r.category, minors: false, duration_s: r.video_minutes * 60,
+      authorization: {
+        rights_basis: "athlete_consent", declared_by: "Atleta adulto (VitrinePlayer)", purposes: ["individual_report"],
+        age_band: "adults", category: r.category, consent_reference: `vitrineplayer:ai_analysis_requests/${r.request_id}`,
+      },
+    });
+    const req = await deps.client.createLinkRequest(match.id, {
+      external_ref: `req_${r.request_id.replace(/-/g, "")}`,
+      external_athlete_ref: deps.athleteRef(r.athlete_id),
+      descriptor: { jersey_number: r.shirt_number, shirt_color: r.shirt_color, position: r.athlete_position, appears_at: r.appears_at },
+    });
+    const linked = await deps.repo.linkRequest(r.request_id, match.id, req.id, stageFor(req, match) ?? "sent");
+    return { linked, failed: false };
+  } catch (e) {
+    // recusa definitiva (link privado, desligado, fora das regras): encerra; erro de rede: tenta no próximo ciclo
+    if (e instanceof PvError && (e.status === 422 || e.status === 403)) {
+      await deps.repo.failUnsent(r.request_id, e.message);
+      return { linked: false, failed: true };
+    }
+    throw e;
+  }
+}
+
 export async function applyRequest(row: InProgress, req: PvRequest, match: PvMatch | null, deps: { repo: PvRepo; client: PvClient }) {
   const stage = stageFor(req, match);
   const prev = row.pv_stage; // lido antes de gravar: o aviso depende da etapa ANTERIOR
   if (stage === null) return "ignored";
   if (stage === "completed") {
-    const result = (await deps.client.getResult(req.id)) as PvResult;
-    const payload = mapResult(result, { position: row.position as Position, lang: row.report_locale.startsWith("es") ? "es" : "pt" });
+    const result = (await deps.client.getResult(req.id)) as PvResult | PvLinkResult;
+    const ctx = { position: row.position as Position, lang: row.report_locale.startsWith("es") ? "es" as const : "pt" as const };
+    const payload = "mode" in result && result.mode === "link" ? mapLinkResult(result, ctx) : mapResult(result as PvResult, ctx);
     const reportId = await deps.repo.saveReport(req.id, payload);
     if (reportId && prev !== "completed") await deps.repo.notifyGuardians(row.athlete_id, "ai_report_ready", { request_id: row.request_id, provider: "pitchvision" });
     return "completed";
@@ -105,10 +150,23 @@ export type CycleSummary = { sent: number; updated: number; completed: number; f
 
 export async function runPvCycle(deps: {
   repo: PvRepo; client: PvClient; signer: VideoSigner; athleteRef: (id: string) => string; now?: Date; limit?: number;
+  linkEnabled?: boolean;
   onError?: (where: "send" | "poll", requestId: string, e: unknown) => void;
 }): Promise<CycleSummary> {
   const sum: CycleSummary = { sent: 0, updated: 0, completed: 0, failed: 0, errors: 0 };
   const limit = deps.limit ?? 10;
+  if (deps.linkEnabled) {
+    for (const r of await deps.repo.linkRequestsToSend(limit)) {
+      try {
+        const out = await sendLinkOne(r, deps);
+        if (out.linked) sum.sent++;
+        if (out.failed) sum.failed++;
+      } catch (e) {
+        deps.onError?.("send", r.request_id, e);
+        sum.errors++;
+      }
+    }
+  }
   for (const r of await deps.repo.requestsToSend(limit)) {
     try {
       if ((await sendOne(r, deps)).linked) sum.sent++;

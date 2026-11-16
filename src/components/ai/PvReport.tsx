@@ -44,7 +44,8 @@ export function PvReport({ report, t, controls }: { report: Rep; t: PanelDiction
           <h2 className="font-display text-[1.6rem] font-extrabold uppercase leading-none text-fog [font-stretch:62%]">{t.experimental}</h2>
           <dl className="grid gap-x-10 gap-y-4 sm:grid-cols-2">
             {Object.entries(x).map(([k, val]) => (
-              <Row key={k} term={k === "ball_proximity_candidates" ? t.ballProximity : label(k)} value={String(val)} muted />
+              <Row key={k} term={k === "ball_proximity_candidates" ? t.ballProximity : label(k)}
+                value={typeof val === "boolean" ? (val ? t.available : t.reasons.not_enough_positions ?? "—") : String(val)} muted />
             ))}
           </dl>
         </section>

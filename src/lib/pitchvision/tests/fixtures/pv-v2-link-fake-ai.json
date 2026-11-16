@@ -1,0 +1,185 @@
+{
+ "_note": "Saída da PitchVision no modo link (tests/test_link_mode.py, IA FALSA: nenhuma chamada real ao Gemini). Prova o contrato, não a precisão.",
+ "result": {
+  "mode": "link",
+  "request_id": "cfe49495475f4b0c9d66ee0986fade4e",
+  "match_id": "30a751cb6fb34a2ea711dffc1889eccb",
+  "source": {
+   "provider": "youtube",
+   "video_id": "AbCdEfGhIj0",
+   "url": "https://www.youtube.com/watch?v=AbCdEfGhIj0",
+   "title": "Final da liga amadora",
+   "duration_s": 600.0
+  },
+  "athlete": {
+   "descriptor": {
+    "jersey_number": 10,
+    "shirt_color": "azul",
+    "team_name": null,
+    "position": "meia",
+    "appears_at": "03:12"
+   }
+  },
+  "capabilities": {
+   "external_ai_used": true,
+   "computer_vision": "not_run",
+   "pitch_calibration": "not_available",
+   "events": "ai_unverified",
+   "statistics": "not_available"
+  },
+  "ai": {
+   "provider": "google_gemini",
+   "model": "gemini-3.5-flash-lite",
+   "passes": 1,
+   "seconds": 0.0,
+   "tier_assumption": "paid",
+   "calls": [
+    {
+     "model": "gemini-3.5-flash-lite",
+     "url": "https://www.youtube.com/watch?v=AbCdEfGhIj0"
+    }
+   ]
+  },
+  "report": {
+   "validated": {},
+   "experimental": {},
+   "unavailable": {
+    "observed_seconds": "link_mode_no_frames",
+    "positions": "link_mode_no_frames",
+    "heatmap": "link_mode_no_frames",
+    "distance": "link_mode_no_frames",
+    "sprints": "link_mode_no_frames",
+    "top_speed": "link_mode_no_frames",
+    "passes": "link_mode_no_frames",
+    "dribbles": "link_mode_no_frames",
+    "shots": "link_mode_no_frames",
+    "tackles": "link_mode_no_frames",
+    "goals": "link_mode_no_frames",
+    "assists": "link_mode_no_frames"
+   },
+   "ai_unverified": {
+    "moments": [
+     {
+      "id": "m1",
+      "t": 65.0,
+      "time": "01:05",
+      "type": "pass",
+      "team": "azul",
+      "player_jersey": 10,
+      "player_name": null,
+      "is_target_athlete": true,
+      "description": "Passe em profundidade.",
+      "evidence_level": "ai_unverified"
+     },
+     {
+      "id": "m2",
+      "t": 250.0,
+      "time": "04:10",
+      "type": "assist",
+      "team": "azul",
+      "player_jersey": 10,
+      "player_name": null,
+      "is_target_athlete": true,
+      "description": "Cruzamento para o gol.",
+      "evidence_level": "ai_unverified"
+     },
+     {
+      "id": "m3",
+      "t": 260.0,
+      "time": "04:20",
+      "type": "goal",
+      "team": "azul",
+      "player_jersey": 9,
+      "player_name": null,
+      "is_target_athlete": false,
+      "description": "Gol de cabeça.",
+      "evidence_level": "ai_unverified"
+     },
+     {
+      "id": "m4",
+      "t": 450.0,
+      "time": "07:30",
+      "type": "dribble",
+      "team": "azul",
+      "player_jersey": 10,
+      "player_name": null,
+      "is_target_athlete": true,
+      "description": "Drible na lateral.",
+      "evidence_level": "ai_unverified"
+     }
+    ],
+    "observations": [
+     {
+      "id": "o1",
+      "t": 300.0,
+      "time": "05:00",
+      "description": "Recua para buscar a bola.",
+      "is_target_athlete": true,
+      "evidence_level": "ai_unverified"
+     }
+    ],
+    "target_athlete_found": true,
+    "stability_checked": false,
+    "note": "Gerado por IA externa a partir do vídeo público; não verificado. Confira cada momento no vídeo. Não use como contagem nem como nota."
+   },
+   "scores": null,
+   "external_ai_used": true,
+   "minors": false
+  },
+  "discarded": [
+   {
+    "time": "1:5",
+    "type": "shot",
+    "team": "azul",
+    "player_jersey": 10,
+    "player_name": null,
+    "is_target_athlete": true,
+    "description": "Tempo inválido.",
+    "confidence": 0.5,
+    "reason": "invalid_time"
+   },
+   {
+    "time": "01:06",
+    "type": "pass",
+    "team": "azul",
+    "player_jersey": 10,
+    "player_name": null,
+    "is_target_athlete": true,
+    "description": "Mesmo passe (replay).",
+    "confidence": 0.8,
+    "t": 66.0,
+    "reason": "duplicate"
+   },
+   {
+    "time": "12:00",
+    "type": "shot",
+    "team": "azul",
+    "player_jersey": 10,
+    "player_name": null,
+    "is_target_athlete": true,
+    "description": "Depois do fim do vídeo.",
+    "confidence": 0.5,
+    "t": 720,
+    "reason": "out_of_video"
+   },
+   {
+    "time": "02:00",
+    "type": "assist",
+    "team": "azul",
+    "player_jersey": 10,
+    "player_name": null,
+    "is_target_athlete": true,
+    "description": "Assistência sem gol depois.",
+    "confidence": 0.7,
+    "t": 120.0,
+    "reason": "assist_without_goal"
+   }
+  ],
+  "limitations": [
+   "Momentos gerados por IA externa (Google Gemini) a partir do vídeo público, sem verificação: confira cada um no vídeo.",
+   "A PitchVision não acessa os quadros deste vídeo: sem rastreamento, sem métricas físicas e sem contagens.",
+   "A IA analisa cerca de 1 quadro por segundo: lances rápidos podem faltar ou sair com o tempo deslocado.",
+   "A atribuição de lances ao atleta pela IA não foi validada (em teste anterior, acertou 0 de 32 em câmera panorâmica)."
+  ]
+ }
+}

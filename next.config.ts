@@ -29,6 +29,7 @@ const indexable = env === "production";
 /**
  * Política de conteúdo sem nonces (o site usa páginas estáticas e dinâmicas).
  * Imagens externas: só miniaturas do YouTube. Fotos dos atletas vêm do próprio site (/api/fotos).
+ * Quadros externos: só o player do YouTube sem cookies (youtube-nocookie.com), usado no relatório do modo link.
  */
 const csp = [
   "default-src 'self'",
@@ -38,7 +39,8 @@ const csp = [
   "media-src 'self' blob:",
   "font-src 'self'",
   "connect-src 'self'",
-  "frame-src 'none'",
+  // só o player oficial do YouTube sem cookies (relatório do modo link: o vídeo nunca é baixado)
+  "frame-src https://www.youtube-nocookie.com",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",

@@ -4,10 +4,12 @@ import type { PvCandidate } from "@/lib/pitchvision/client";
 import { cancelPvAnalysis, confirmAthletePick, removeAnalysisVideo } from "@/lib/panel/pv-actions";
 import { ghostButton, primaryButton, textButton } from "@/components/panel/controls";
 
-export type PvRequestRow = { id: string; status: string; pv_stage: string | null; created_at: string };
+export type PvRequestRow = { id: string; status: string; pv_stage: string | null; created_at: string; pv_source?: string | null };
 export type PvVideoRow = { id: string; video_type: string; duration_s: number; size_bytes: number; created_at: string };
 
 const ORDER = ["queued", "receiving_video", "processing_match", "athlete_pick", "athlete_metrics", "completed"] as const;
+/** Modo link: sem arquivo, sem processamento de quadros e sem escolha visual (a IA externa assiste pelo link). */
+const LINK_ORDER = ["queued", "athlete_metrics", "completed"] as const;
 
 /** Etapa exibida = estado gravado pelo integrador a partir da PitchVision (nada é estimado aqui). */
 export function stageOf(r: PvRequestRow): string {
@@ -20,18 +22,20 @@ export function stageOf(r: PvRequestRow): string {
 export function PvStatus({ request, t }: { request: PvRequestRow; t: PanelDictionary["pv"] }) {
   const current = stageOf(request);
   const failed = current === "failed";
-  const idx = ORDER.indexOf(current as (typeof ORDER)[number]);
+  const link = request.pv_source === "link";
+  const order: readonly string[] = link ? LINK_ORDER : ORDER;
+  const idx = order.indexOf(current);
   return (
     <section className="space-y-4" data-testid="pv-status" data-stage={current}>
       <ol className="space-y-2">
-        {ORDER.map((s, i) => {
+        {order.map((s, i) => {
           const done = !failed && (i < idx || current === "completed");
           const now = !failed && i === idx && current !== "completed";
           return (
             <li key={s} className={`flex items-center gap-3 border-l-2 pl-4 text-[0.95rem] ${done ? "border-grass text-bone" : now ? "border-bone text-bone" : "border-white/15 text-ash"}`}
               aria-current={now ? "step" : undefined}>
               <span className="w-5 text-center" aria-hidden>{done ? "✓" : now ? "•" : ""}</span>
-              {t.stages[s]}
+              {link && s === "athlete_metrics" ? t.link.stage : t.stages[s as keyof typeof t.stages]}
             </li>
           );
         })}

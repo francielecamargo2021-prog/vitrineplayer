@@ -6,6 +6,7 @@ import { getAiState, getAthleteBundle, requireGuardian } from "@/lib/panel/data"
 import { deleteAiReport, setAiReportPublished } from "@/lib/panel/ai-actions";
 import { AiReport } from "@/components/ai/AiReport";
 import { PvReport } from "@/components/ai/PvReport";
+import { PvLinkReport, type LinkRep } from "@/components/ai/PvLinkReport";
 import { ghostButton, primaryButton, textButton } from "@/components/panel/controls";
 
 /** Relatório da avaliação por IA: o responsável vê primeiro e decide se publica. */
@@ -19,6 +20,12 @@ export default async function AiReportPage({ params }: PageProps<"/[lang]/painel
   const { report } = await getAiState(session.db, id);
   if (!report) notFound();
   const t = p.ai.report;
+  const isLink = report.provider === "pitchvision" && (report.report as { mode?: string } | null)?.mode === "link";
+  const feedback: Record<string, string> = {};
+  if (isLink) {
+    const { data } = await session.db.from("ai_moment_feedback").select("moment_id, verdict").eq("report_id", report.id);
+    for (const f of data ?? []) feedback[f.moment_id] = f.verdict;
+  }
   const published = report.published_at !== null;
   const base = `/${lang}/painel/atleta/${id}`;
   const controls = (
@@ -42,7 +49,9 @@ export default async function AiReportPage({ params }: PageProps<"/[lang]/painel
         {bundle.athlete.sport_name || bundle.athlete.full_name}
       </Link>
       <h1 className="mb-10 mt-3 font-display text-[clamp(2.6rem,10vw,5rem)] font-black uppercase leading-[0.84] [font-stretch:62%]">{report.provider === "pitchvision" ? p.pv.report.title : t.title}</h1>
-      {report.provider === "pitchvision" ? (
+      {isLink ? (
+        <PvLinkReport lang={lang} athleteId={id} report={report as unknown as LinkRep} feedback={feedback} t={p.pv.report.link} controls={controls} />
+      ) : report.provider === "pitchvision" ? (
         <PvReport report={report as unknown as Parameters<typeof PvReport>[0]["report"]} t={p.pv.report} controls={controls} />
       ) : (
         <AiReport report={report} t={t} lang={lang} positionLabel={p.positions[report.position]} controls={controls} />

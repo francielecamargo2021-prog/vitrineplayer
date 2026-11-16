@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { timingSafeEqual } from "node:crypto";
 import { runPvCycle } from "@/lib/pitchvision/integrator";
-import { pvClient, pvConfig } from "@/lib/pitchvision/client";
+import { pvClient, pvConfig, pvLinkEnabled } from "@/lib/pitchvision/client";
 import { pvRepo } from "@/lib/pitchvision/repo-db";
 import { athleteRef } from "@/lib/pitchvision/signature";
 import { blobSigner, videosReady } from "@/lib/videos/server";
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
   const client = pvClient();
   if (!cfg || !repo || !client || !videosReady()) return NextResponse.json({ skipped: "not configured" });
   const summary = await runPvCycle({
-    repo, client, signer: blobSigner, athleteRef: (id) => athleteRef(cfg.refKey, id),
+    repo, client, signer: blobSigner, athleteRef: (id) => athleteRef(cfg.refKey, id), linkEnabled: pvLinkEnabled(),
     onError: (where, requestId, e) => console.error(`[pitchvision] ${where} ${requestId}: ${e instanceof Error ? e.message : "erro"}`),
   });
   return NextResponse.json(summary);

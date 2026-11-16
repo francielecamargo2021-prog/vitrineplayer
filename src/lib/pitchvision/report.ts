@@ -30,6 +30,7 @@ export type PvResult = {
     scores: null;
     external_ai_used: boolean;
     minors: boolean;
+    calibration?: { method?: string; points?: number; error_m?: number | null; error_kind?: string; level?: string };
   };
 };
 
@@ -49,15 +50,18 @@ const T = {
     seen: (m: string, pct: number) => `Atleta acompanhado em ${m} do vídeo (${pct}% do trecho analisado).`,
     who: { user: "A identificação foi confirmada pelo responsável.", auto: "A identificação foi feita automaticamente." },
     noPositions: "Posicionamento em campo indisponível: o vídeo não permitiu calibrar o campo.",
-    positions: "Posicionamento em campo disponível para este vídeo.",
+    positions: "Posicionamento em campo disponível como estimativa (campo calibrado a partir dos pontos marcados).",
   },
   es: {
     seen: (m: string, pct: number) => `Atleta seguido durante ${m} del video (${pct}% del tramo analizado).`,
     who: { user: "La identificación fue confirmada por el responsable.", auto: "La identificación se hizo automáticamente." },
     noPositions: "Posicionamiento en el campo no disponible: el video no permitió calibrar el campo.",
-    positions: "Posicionamiento en el campo disponible para este video.",
+    positions: "Posicionamiento en el campo disponible como estimación (campo calibrado con los puntos marcados).",
   },
 } as const;
+
+/** Itens que dependem do campo calibrado: nunca entram como "medido", mesmo que venham assim. */
+const PITCH_KEYS = ["positions_available", "heatmap_available", "distance_m"];
 
 const mmss = (s: number) => {
   const t = Math.max(0, Math.round(s));
@@ -73,7 +77,8 @@ export function mapResult(result: PvResult, ctx: { position: Position; lang: "pt
   const coverage = analysed > 0 ? Math.min(1, Math.max(0, observed / analysed)) : 0;
   const pct = Math.round(coverage * 100);
   const origin = result.identity_origin === "auto" ? "auto" : "user";
-  const positionsAvailable = r.validated.positions_available === true;
+  // posições, mapa de calor e distância dependem da calibração: sempre EXPERIMENTAIS (nunca "medido")
+  const positionsAvailable = r.experimental?.positions_available === true;
   const summary = [t.seen(mmss(observed), pct), t.who[origin], positionsAvailable ? t.positions : t.noPositions].join(" ");
   return {
     position_group: groupFor(ctx.position),
@@ -86,11 +91,15 @@ export function mapResult(result: PvResult, ctx: { position: Position; lang: "pt
     report: {
       provider: "pitchvision",
       contract: "v2",
-      validated: r.validated,
+      validated: Object.fromEntries(Object.entries(r.validated).filter(([k]) => !PITCH_KEYS.includes(k))),
       experimental: r.experimental,
       unavailable: r.unavailable,
       minors: r.minors,
       external_ai_used: false,
+      calibration: r.calibration ? {
+        method: r.calibration.method ?? null, points: r.calibration.points ?? null, error_m: r.calibration.error_m ?? null,
+        error_kind: r.calibration.error_kind ?? null, level: "experimental",
+      } : null,
       identity: {
         origin,
         tracks: [result.athlete.identity.track_id, ...(result.athlete.identity.additional_track_ids ?? [])],
