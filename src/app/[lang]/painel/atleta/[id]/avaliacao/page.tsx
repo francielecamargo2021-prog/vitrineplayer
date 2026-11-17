@@ -52,7 +52,7 @@ export default async function AiReportPage({ params }: PageProps<"/[lang]/painel
       {isLink ? (
         <PvLinkReport lang={lang} athleteId={id} report={report as unknown as LinkRep} feedback={feedback} t={p.pv.report.link} controls={controls} />
       ) : report.provider === "pitchvision" ? (
-        <PvReport report={report as unknown as Parameters<typeof PvReport>[0]["report"]} t={p.pv.report} controls={controls} />
+        <PvReport report={report as unknown as Parameters<typeof PvReport>[0]["report"]} t={p.pv.report} controls={controls} lang={lang} />
       ) : (
         <AiReport report={report} t={t} lang={lang} positionLabel={p.positions[report.position]} controls={controls} />
       )}

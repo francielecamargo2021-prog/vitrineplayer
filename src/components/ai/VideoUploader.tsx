@@ -6,7 +6,7 @@ import { completeMultipartUpload, createMultipartUpload, uploadPart } from "@ver
 import type { PanelDictionary } from "@/i18n/get-dictionary";
 import { browserStore, fingerprint, resumable, uploadFile, type UploadSdk } from "@/lib/videos/resumable-upload";
 import { finishVideoUpload, startVideoUpload } from "@/lib/panel/pv-actions";
-import { ghostButton, primaryButton } from "@/components/panel/controls";
+import { ghostButton, primaryButton, textButton } from "@/components/panel/controls";
 
 const ACCEPT = "video/mp4,video/quicktime,video/webm,video/x-matroska,.mp4,.mov,.webm,.mkv";
 const kinds = ["full_match", "highlights", "training"] as const;
@@ -124,7 +124,7 @@ export function VideoUploader({ lang, athleteId, t }: { lang: string; athleteId:
       {hasSaved && phase === "idle" && <p className="border-l-2 border-white/30 pl-4 text-[0.9rem] text-fog">{t.resumeFound}</p>}
       <input ref={input} type="file" accept={ACCEPT} className="sr-only" id={`pv-file-${athleteId}`}
         onChange={(e) => { const f = e.currentTarget.files?.[0]; if (f) void send(f); }} />
-      {!busy && (
+      {phase !== "paused" && !busy && (
         <label htmlFor={`pv-file-${athleteId}`} className={`${primaryButton} w-full cursor-pointer sm:w-auto sm:min-w-[18rem]`}>{t.pick}</label>
       )}
       {(busy || phase === "paused") && (
@@ -133,7 +133,7 @@ export function VideoUploader({ lang, athleteId, t }: { lang: string; athleteId:
             <div className="h-full bg-grass transition-[width]" style={{ width: `${pct}%` }} />
           </div>
           <p className="text-[0.85rem] text-fog">
-            {phase === "checking" ? t.checking : `${t.sending}: ${mb(sent)} ${t.of} ${mb(total)} MB (${pct}%)`}
+            {phase === "checking" ? t.checking : `${phase === "paused" ? "" : `${t.sending}: `}${mb(sent)} ${t.of} ${mb(total)} MB (${pct}%)`}
           </p>
         </div>
       )}
@@ -141,7 +141,11 @@ export function VideoUploader({ lang, athleteId, t }: { lang: string; athleteId:
       {phase === "paused" && pending && (
         <div className="space-y-3">
           <p className="border-l-2 border-white/30 pl-4 text-[0.9rem] text-fog">{t.paused}</p>
-          <button type="button" onClick={() => void send(pending)} className={primaryButton}>{t.resume}</button>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
+            <button type="button" onClick={() => void send(pending)} className={`${primaryButton} w-full sm:w-auto sm:min-w-[18rem]`}>{t.resume}</button>
+            {/* outro arquivo: só como ação secundária, para não competir com "continuar" */}
+            <label htmlFor={`pv-file-${athleteId}`} className={`${textButton} inline-flex min-h-11 cursor-pointer items-center`}>{t.pick}</label>
+          </div>
         </div>
       )}
       {phase === "done" && <p className="border-l-2 border-grass pl-4 text-bone" role="status">{t.done}</p>}

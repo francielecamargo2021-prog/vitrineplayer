@@ -25,6 +25,10 @@ export function PvCalibration({ lang, athleteId, requestId, available, diagram, 
   const [result, setResult] = useState<SubmitResult | null>(null);
   const [pending, start] = useTransition();
   const marked = new Set(points.map((p) => p.landmark));
+  // o quadro pode terminar de carregar ANTES da hidratação (onLoad perdido): mede também ao montar a imagem
+  const measure = (img: HTMLImageElement | null) => {
+    if (img?.complete && img.naturalWidth > 0) setSize((s) => (s?.w === img.naturalWidth && s.h === img.naturalHeight ? s : { w: img.naturalWidth, h: img.naturalHeight }));
+  };
   const nextFree = (after: MarkedPoint[]) => available.find((k) => !after.some((p) => p.landmark === k)) ?? null;
 
   const tap = (e: MouseEvent<HTMLButtonElement>) => {
@@ -70,16 +74,17 @@ export function PvCalibration({ lang, athleteId, requestId, available, diagram, 
         </ol>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_16rem]">
-        <div className="space-y-3">
-          <p className="text-[0.95rem] text-bone" aria-live="polite">
-            {selected ? <>{t.next}: <strong>{t.landmarks[selected] ?? selected}</strong></> : `${points.length} ${t.marked}`}
-          </p>
+      <p className="text-[0.95rem] text-bone" aria-live="polite">
+        {selected ? <>{t.next}: <strong>{t.landmarks[selected] ?? selected}</strong></> : `${points.length} ${t.marked}`}
+      </p>
+      {/* celular: desenho (ponto da vez) logo acima da imagem, para tocar sem rolar; lista de pontos depois */}
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_16rem] lg:grid-rows-[auto_1fr] lg:gap-x-6">
+        <div className="space-y-3 lg:row-span-2">
           <button type="button" onClick={tap} aria-label={t.frameAlt}
             className="relative block w-full cursor-crosshair touch-manipulation bg-white/5 focus-visible:outline-2 focus-visible:outline-bone">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img key={times[timeIdx]} src={`/api/pitchvision/${requestId}/quadro/${times[timeIdx]}`} alt="" draggable={false}
-              onLoad={(e) => setSize({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })}
+              ref={measure} onLoad={(e) => measure(e.currentTarget)}
               className="block h-auto w-full select-none" />
             {size && points.map((p, i) => (
               <span key={p.landmark} aria-hidden
@@ -96,7 +101,7 @@ export function PvCalibration({ lang, athleteId, requestId, available, diagram, 
           </div>
         </div>
 
-        <div className="space-y-3">
+        <div className="order-first mx-auto w-full max-w-[22rem] lg:order-none lg:col-start-2 lg:row-start-1 lg:max-w-none">
           <svg viewBox={`-3 -3 ${L + 6} ${W + 6}`} className="w-full" role="img" aria-label={t.title}>
             <g fill="none" strokeWidth={0.5} className="stroke-white/45">
               <rect x={0} y={0} width={L} height={W} />
@@ -118,6 +123,8 @@ export function PvCalibration({ lang, athleteId, requestId, available, diagram, 
               );
             })}
           </svg>
+        </div>
+        <div className="lg:col-start-2">
           <ul className="grid gap-2" aria-label={t.title}>
             {available.map((k) => (
               <li key={k}>
@@ -136,7 +143,10 @@ export function PvCalibration({ lang, athleteId, requestId, available, diagram, 
         {error && <p role="alert" className="border-l-2 border-[#e5a3a3] pl-4 text-[#f0c4c4]">{error}</p>}
         {done && (
           <p role="status" className="border-l-2 border-grass pl-4 text-bone">
-            {t.done} ({t.quality[done.method] ?? done.method}{done.error_m !== null ? `, ${t.errorM} ${done.error_m.toLocaleString(lang === "es" ? "es" : "pt-BR")} m` : ""})
+            {t.done}
+            <span className="mt-1 block text-[0.85rem] text-fog">
+              {t.quality[done.method] ?? done.method}{done.error_m !== null ? `, ${t.errorM} ${done.error_m.toLocaleString(lang === "es" ? "es" : "pt-BR")} m` : ""}
+            </span>
           </p>
         )}
         <button type="button" onClick={save} disabled={pending || points.length < MIN_POINTS || !size}

@@ -58,11 +58,11 @@ export function AthletePick({ lang, athleteId, request, candidates, t }: {
       ) : (
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {candidates.map((c) => (
-            <li key={c.track_id} className="space-y-2">
+            <li key={c.track_id} className="flex flex-col gap-2">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={`/api/pitchvision/${request.id}/candidato/${c.track_id}`} alt="" loading="lazy" className="aspect-[3/4] w-full bg-white/5 object-contain" />
               <p className="text-[0.8rem] text-ash">{Math.round(c.seconds)} {t.seconds}{c.jersey_votes > 0 ? ` · ${t.jersey}` : ""}</p>
-              <form action={confirmAthletePick.bind(null, lang, athleteId, request.id, c.track_id)}>
+              <form action={confirmAthletePick.bind(null, lang, athleteId, request.id, c.track_id)} className="mt-auto">
                 <button className={`${primaryButton} w-full`}>{t.choose}</button>
               </form>
             </li>
@@ -70,7 +70,7 @@ export function AthletePick({ lang, athleteId, request, candidates, t }: {
         </ul>
       )}
       <form action={cancelPvAnalysis.bind(null, lang, athleteId, request.id)}>
-        <button className={textButton}>{t.none}</button>
+        <button className={`${textButton} min-h-11`}>{t.none}</button>
       </form>
     </section>
   );
@@ -86,7 +86,7 @@ export function PvVideoList({ lang, athleteId, videos, t }: { lang: string; athl
             {t.types[v.video_type as keyof typeof t.types] ?? v.video_type} · {Math.round(v.duration_s / 60)} {t.minutes} · {new Date(v.created_at).toLocaleDateString(lang === "es" ? "es" : "pt-BR")}
           </span>
           <form action={removeAnalysisVideo.bind(null, lang, athleteId, v.id) as unknown as () => Promise<void>}>
-            <button className={textButton}>{t.remove}</button>
+            <button className={`${textButton} min-h-11`}>{t.remove}</button>
           </form>
         </li>
       ))}

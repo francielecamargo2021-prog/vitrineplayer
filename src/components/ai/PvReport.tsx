@@ -16,7 +16,9 @@ const fmtTime = (s: number) => `${Math.floor(s / 60)} min ${String(Math.round(s 
  * Relatório PitchVision no perfil: Medido × Experimental × Ainda não medido, sempre separados.
  * Sem nota, sem ranking. Imagens servidas pela VitrinePlayer (rota com permissão do banco).
  */
-export function PvReport({ report, t, controls }: { report: Rep; t: PanelDictionary["pv"]["report"]; controls?: ReactNode }) {
+export function PvReport({ report, t, controls, lang = "pt" }: { report: Rep; t: PanelDictionary["pv"]["report"]; controls?: ReactNode; lang?: string }) {
+  // experimental = estimativa: número com "≈", formato do idioma, nunca com cara de medição
+  const approx = (n: number) => `≈ ${n.toLocaleString(lang === "es" ? "es" : "pt-BR", { maximumFractionDigits: 1 })}`;
   const r = report.report ?? {};
   const v = r.validated ?? {};
   const x = r.experimental ?? {};
@@ -45,7 +47,7 @@ export function PvReport({ report, t, controls }: { report: Rep; t: PanelDiction
           <dl className="grid gap-x-10 gap-y-4 sm:grid-cols-2">
             {Object.entries(x).map(([k, val]) => (
               <Row key={k} term={k === "ball_proximity_candidates" ? t.ballProximity : label(k)}
-                value={typeof val === "boolean" ? (val ? t.available : t.reasons.not_enough_positions ?? "—") : String(val)} muted />
+                value={typeof val === "boolean" ? (val ? t.available : t.reasons.not_enough_positions ?? "—") : approx(val)} muted />
             ))}
           </dl>
         </section>
@@ -76,9 +78,9 @@ export function PvReport({ report, t, controls }: { report: Rep; t: PanelDiction
 
 function Row({ term, value, muted }: { term: string; value: string; muted?: boolean }) {
   return (
-    <div className="border-l-2 border-white/15 pl-4">
+    <div className={`border-l-2 pl-4 ${muted ? "border-dashed border-[#e5c07b]/50" : "border-white/15"}`}>
       <dt className="text-[0.8rem] text-ash">{term}</dt>
-      <dd className={`text-[1.15rem] ${muted ? "text-fog" : "text-bone"}`}>{value}</dd>
+      <dd className={muted ? "text-[0.95rem] text-fog" : "text-[1.15rem] text-bone"}>{value}</dd>
     </div>
   );
 }
